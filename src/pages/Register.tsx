@@ -292,7 +292,7 @@ export default function Register() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">מידה לחולצה</label>
                   <select value={form.shirt_size} onChange={e => setForm({...form, shirt_size: e.target.value})}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                    {['XS','S','M','L','XL','XXL'].map(s => <option key={s} value={s}>{s}</option>)}
+                    {['8','10','12','14','16','XS','S','M','L','XL','XXL'].map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
                 <div>
