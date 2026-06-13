@@ -43,9 +43,9 @@ const S = {
     overflow: 'hidden',
   } as React.CSSProperties,
   logo: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover' as const,
+    width: '85%',
+    height: '85%',
+    objectFit: 'contain' as const,
   },
   title: {
     fontSize: 28,
