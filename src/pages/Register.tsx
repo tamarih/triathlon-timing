@@ -7,6 +7,67 @@ import toast from 'react-hot-toast';
 
 type RegType = 'personal' | 'team' | null;
 
+const S = {
+  page: {
+    minHeight: '100vh',
+    background: '#f1f5f9',
+    padding: '24px 16px 48px',
+    direction: 'rtl' as const,
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+  },
+  inner: { maxWidth: 600, margin: '0 auto' },
+  title: { fontSize: 24, fontWeight: 800, color: '#111827', marginBottom: 20, textAlign: 'center' as const },
+  card: { background: 'white', borderRadius: 20, boxShadow: '0 2px 16px rgba(0,0,0,0.08)', padding: '24px 20px', marginBottom: 16 },
+  label: { display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 },
+  input: {
+    width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 10,
+    padding: '10px 12px', fontSize: 14, color: '#111827',
+    outline: 'none', boxSizing: 'border-box' as const,
+    background: '#f9fafb', fontFamily: 'system-ui, -apple-system, sans-serif',
+  },
+  select: {
+    width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 10,
+    padding: '10px 12px', fontSize: 14, color: '#111827',
+    outline: 'none', boxSizing: 'border-box' as const,
+    background: '#f9fafb', fontFamily: 'system-ui, -apple-system, sans-serif',
+    appearance: 'auto' as const,
+  },
+  fieldWrap: { marginBottom: 14 },
+  grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
+  grid3: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 },
+  raceBtn: (selected: boolean): React.CSSProperties => ({
+    border: selected ? '2px solid #2563eb' : '2px solid #e5e7eb',
+    borderRadius: 14, padding: '14px 12px', textAlign: 'right' as const,
+    background: selected ? '#eff6ff' : 'white', cursor: 'pointer',
+    width: '100%', transition: 'all 0.15s',
+  }),
+  raceName: { fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 3 },
+  raceSub: { fontSize: 12, color: '#6b7280' },
+  typeBtn: {
+    border: '2px solid #e5e7eb', borderRadius: 14, padding: '16px',
+    textAlign: 'center' as const, background: 'white', cursor: 'pointer',
+    flex: 1, transition: 'all 0.15s',
+  },
+  sectionTitle: { fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 16 },
+  divider: { borderTop: '1px solid #f3f4f6', margin: '16px 0' },
+  btnRow: { display: 'flex', gap: 10, marginTop: 20 },
+  btnPrimary: {
+    flex: 1, background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)',
+    color: 'white', border: 'none', borderRadius: 12,
+    padding: '13px 0', fontSize: 15, fontWeight: 700, cursor: 'pointer',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+  },
+  btnSecondary: {
+    flex: 1, background: 'white', color: '#374151',
+    border: '1.5px solid #e5e7eb', borderRadius: 12,
+    padding: '13px 0', fontSize: 15, fontWeight: 600, cursor: 'pointer',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+  },
+  checkRow: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, cursor: 'pointer' },
+  memberCard: { border: '1.5px solid #e5e7eb', borderRadius: 14, padding: 16, marginBottom: 14 },
+  memberTitle: { fontSize: 14, fontWeight: 700, color: '#1d4ed8', marginBottom: 12 },
+};
+
 export default function Register() {
   const [params] = useSearchParams();
   const [events, setEvents] = useState<Event[]>([]);
@@ -18,7 +79,6 @@ export default function Register() {
   const [submitting, setSubmitting] = useState(false);
   const [waitlist, setWaitlist] = useState(false);
 
-  // Personal form state
   const [form, setForm] = useState({
     first_name: '', last_name: '', id_number: '', birth_date: '',
     gender: 'male', phone: '', email: '', city: '', club: '',
@@ -26,7 +86,6 @@ export default function Register() {
     notes: '', health_declaration: false, rules_accepted: false, photo_consent: false,
   });
 
-  // Team form state
   const [teamForm, setTeamForm] = useState({
     name: '', contact_name: '', contact_phone: '', contact_email: '',
     swimmer: { first_name: '', last_name: '', phone: '', birth_date: '', health: false, rules: false },
@@ -43,52 +102,35 @@ export default function Register() {
     supabase.from('races').select('*').eq('event_id', selectedEvent).eq('is_open', true).then(({ data }) => setRaces(data || []));
   }, [selectedEvent]);
 
-  async function checkCapacity(raceId: string): Promise<{ full: boolean; count: number; max: number | null }> {
+  async function checkCapacity(raceId: string) {
     const race = races.find(r => r.id === raceId);
-    if (!race?.max_participants) return { full: false, count: 0, max: null };
+    if (!race?.max_participants) return { full: false };
     const { count } = await supabase.from('participants').select('*', { count: 'exact', head: true }).eq('race_id', raceId);
-    return { full: (count || 0) >= race.max_participants, count: count || 0, max: race.max_participants };
+    return { full: (count || 0) >= race.max_participants };
   }
 
   async function submitPersonal(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.health_declaration || !form.rules_accepted) {
-      toast.error('יש לאשר את הצהרת הבריאות והתקנון');
-      return;
-    }
+    if (!form.health_declaration || !form.rules_accepted) { toast.error('יש לאשר את הצהרת הבריאות והתקנון'); return; }
     setSubmitting(true);
     try {
       const cap = await checkCapacity(selectedRace);
       if (cap.full) { setWaitlist(true); setSubmitting(false); return; }
-
       const age = form.birth_date ? calculateAge(form.birth_date) : null;
-      const { error } = await supabase.from('participants').insert({
-        event_id: selectedEvent, race_id: selectedRace,
-        ...form, age,
-      });
+      const { error } = await supabase.from('participants').insert({ event_id: selectedEvent, race_id: selectedRace, ...form, age });
       if (error) throw error;
       setStep('success');
-    } catch (err: any) {
-      toast.error(err.message || 'שגיאה בהרשמה');
-    } finally {
-      setSubmitting(false);
-    }
+    } catch (err: any) { toast.error(err.message || 'שגיאה בהרשמה'); }
+    finally { setSubmitting(false); }
   }
 
   async function submitWaitlist() {
     setSubmitting(true);
     try {
-      await supabase.from('waitlist').insert({
-        event_id: selectedEvent, race_id: selectedRace,
-        name: `${form.first_name} ${form.last_name}`,
-        phone: form.phone, email: form.email,
-      });
+      await supabase.from('waitlist').insert({ event_id: selectedEvent, race_id: selectedRace, name: `${form.first_name} ${form.last_name}`, phone: form.phone, email: form.email });
       setStep('success');
-    } catch (err: any) {
-      toast.error(err.message || 'שגיאה');
-    } finally {
-      setSubmitting(false);
-    }
+    } catch (err: any) { toast.error(err.message || 'שגיאה'); }
+    finally { setSubmitting(false); }
   }
 
   async function submitTeam(e: React.FormEvent) {
@@ -96,105 +138,55 @@ export default function Register() {
     setSubmitting(true);
     try {
       const { data: teamData, error: teamErr } = await supabase.from('teams').insert({
-        event_id: selectedEvent, race_id: selectedRace,
-        name: teamForm.name, contact_name: teamForm.contact_name,
-        contact_phone: teamForm.contact_phone, contact_email: teamForm.contact_email,
+        event_id: selectedEvent, race_id: selectedRace, name: teamForm.name,
+        contact_name: teamForm.contact_name, contact_phone: teamForm.contact_phone, contact_email: teamForm.contact_email,
       }).select().single();
       if (teamErr) throw teamErr;
-
-      const members = [
-        { role: 'swimmer', data: teamForm.swimmer },
-        { role: 'cyclist', data: teamForm.cyclist },
-        { role: 'runner', data: teamForm.runner },
-      ];
-
-      for (const m of members) {
-        const age = m.data.birth_date ? calculateAge(m.data.birth_date) : null;
-        await supabase.from('participants').insert({
-          event_id: selectedEvent, race_id: selectedRace,
-          team_id: teamData.id, team_role: m.role,
-          first_name: m.data.first_name, last_name: m.data.last_name,
-          phone: m.data.phone, birth_date: m.data.birth_date,
-          gender: 'male', email: teamForm.contact_email,
-          health_declaration: m.data.health, rules_accepted: m.data.rules,
-          photo_consent: false, age,
-        });
+      for (const [role, data] of [['swimmer', teamForm.swimmer], ['cyclist', teamForm.cyclist], ['runner', teamForm.runner]] as any[]) {
+        const age = data.birth_date ? calculateAge(data.birth_date) : null;
+        await supabase.from('participants').insert({ event_id: selectedEvent, race_id: selectedRace, team_id: teamData.id, team_role: role, first_name: data.first_name, last_name: data.last_name, phone: data.phone, birth_date: data.birth_date, gender: 'male', email: teamForm.contact_email, health_declaration: data.health, rules_accepted: data.rules, photo_consent: false, age });
       }
       setStep('success');
-    } catch (err: any) {
-      toast.error(err.message || 'שגיאה בהרשמה');
-    } finally {
-      setSubmitting(false);
-    }
+    } catch (err: any) { toast.error(err.message || 'שגיאה בהרשמה'); }
+    finally { setSubmitting(false); }
   }
 
   const selectedRaceObj = races.find(r => r.id === selectedRace);
 
-  if (step === 'success') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 flex items-center justify-center p-4" dir="rtl">
-        <div className="bg-white rounded-2xl shadow-lg p-8 text-center max-w-sm w-full">
-          <div className="text-6xl mb-4">{waitlist ? '⏳' : '🎉'}</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            {waitlist ? 'נרשמת לרשימת המתנה!' : 'ההרשמה הושלמה!'}
-          </h2>
-          <p className="text-gray-600 mb-6">
-            {waitlist ? 'נעדכן אותך אם יפנה מקום.' : 'ברוכים הבאים לאירוע!'}
-          </p>
-          <div className="flex flex-col gap-2">
-            <Link to="/" className="bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors">
-              חזרה לדף הבית
-            </Link>
-            <Link to="/results" className="border border-blue-200 text-blue-600 py-2.5 rounded-lg font-medium hover:bg-blue-50 transition-colors">
-              צפייה בתוצאות
-            </Link>
-          </div>
-        </div>
+  if (step === 'success') return (
+    <div style={{ ...S.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ ...S.card, textAlign: 'center', maxWidth: 360 }}>
+        <div style={{ fontSize: 64, marginBottom: 12 }}>{waitlist ? '⏳' : '🎉'}</div>
+        <h2 style={{ fontSize: 22, fontWeight: 800, color: '#111827', marginBottom: 8 }}>{waitlist ? 'נרשמת לרשימת המתנה!' : 'ההרשמה הושלמה!'}</h2>
+        <p style={{ color: '#6b7280', marginBottom: 24 }}>{waitlist ? 'נעדכן אותך אם יפנה מקום.' : 'ברוכים הבאים לאירוע! 🏊🚴🏃'}</p>
+        <Link to="/" style={{ display: 'block', background: 'linear-gradient(135deg,#1d4ed8,#0ea5e9)', color: 'white', borderRadius: 12, padding: '13px 0', fontWeight: 700, textDecoration: 'none', marginBottom: 8 }}>חזרה לדף הבית</Link>
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 py-8 px-4" dir="rtl">
-      <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">הרשמה לאירוע</h1>
-        </div>
+    <div style={S.page}>
+      <div style={S.inner}>
+        <h1 style={S.title}>🏁 הרשמה לאירוע</h1>
 
-        {/* Step 1: Select event & race */}
         {step === 'select' && (
-          <div className="bg-white rounded-2xl shadow-sm p-6 space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">בחרו אירוע</label>
-              <select
-                value={selectedEvent}
-                onChange={e => { setSelectedEvent(e.target.value); setSelectedRace(''); setRegType(null); }}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              >
+          <div style={S.card}>
+            <div style={S.fieldWrap}>
+              <label style={S.label}>בחרו אירוע</label>
+              <select style={S.select} value={selectedEvent} onChange={e => { setSelectedEvent(e.target.value); setSelectedRace(''); setRegType(null); }}>
                 <option value="">-- בחרו אירוע --</option>
                 {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
               </select>
             </div>
 
             {selectedEvent && races.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">בחרו מקצה</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div style={S.fieldWrap}>
+                <label style={S.label}>בחרו מקצה</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {races.map(r => (
-                    <button
-                      key={r.id}
-                      onClick={() => setSelectedRace(r.id)}
-                      className={`border-2 rounded-xl p-4 text-right transition-colors ${
-                        selectedRace === r.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'
-                      }`}
-                    >
-                      <div className="font-medium text-gray-900">{r.name}</div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {r.type === 'relay' ? 'שליחים' : 'אישי'} · ₪{r.price}
-                      </div>
-                      <div className="text-xs text-gray-400 mt-1">
-                        שחייה {r.swim_distance}מ' · אופניים {r.bike_distance}ק"מ · ריצה {r.run_distance}ק"מ
-                      </div>
+                    <button key={r.id} onClick={() => setSelectedRace(r.id)} style={S.raceBtn(selectedRace === r.id)}>
+                      <div style={S.raceName}>{r.name}</div>
+                      <div style={S.raceSub}>{r.type === 'relay' ? 'שליחים' : 'אישי'} · שחייה {r.swim_distance}מ' · אופניים {r.bike_distance}ק"מ · ריצה {r.run_distance}ק"מ</div>
                     </button>
                   ))}
                 </div>
@@ -202,34 +194,19 @@ export default function Register() {
             )}
 
             {selectedRace && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">סוג הרשמה</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {(selectedRaceObj?.type === 'individual' || !selectedRaceObj) && (
-                    <button
-                      onClick={() => { setRegType('personal'); setStep('form'); }}
-                      className="border-2 border-gray-200 hover:border-blue-500 rounded-xl p-4 text-center transition-colors"
-                    >
-                      <div className="text-2xl mb-1">👤</div>
-                      <div className="font-medium text-gray-900">הרשמה אישית</div>
+              <div style={S.fieldWrap}>
+                <label style={S.label}>סוג הרשמה</label>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  {selectedRaceObj?.type !== 'relay' && (
+                    <button onClick={() => { setRegType('personal'); setStep('form'); }} style={S.typeBtn}>
+                      <div style={{ fontSize: 28, marginBottom: 4 }}>👤</div>
+                      <div style={{ fontWeight: 700, color: '#111827' }}>הרשמה אישית</div>
                     </button>
                   )}
-                  {(selectedRaceObj?.type === 'relay') && (
-                    <button
-                      onClick={() => { setRegType('team'); setStep('form'); }}
-                      className="border-2 border-gray-200 hover:border-blue-500 rounded-xl p-4 text-center transition-colors"
-                    >
-                      <div className="text-2xl mb-1">👥</div>
-                      <div className="font-medium text-gray-900">הרשמה קבוצתית</div>
-                    </button>
-                  )}
-                  {selectedRaceObj?.type === 'individual' && (
-                    <button
-                      onClick={() => { setRegType('team'); setStep('form'); }}
-                      className="border-2 border-gray-200 hover:border-blue-500 rounded-xl p-4 text-center transition-colors"
-                    >
-                      <div className="text-2xl mb-1">👥</div>
-                      <div className="font-medium text-gray-900">הרשמה קבוצתית</div>
+                  {selectedRaceObj?.type === 'relay' && (
+                    <button onClick={() => { setRegType('team'); setStep('form'); }} style={S.typeBtn}>
+                      <div style={{ fontSize: 28, marginBottom: 4 }}>👥</div>
+                      <div style={{ fontWeight: 700, color: '#111827' }}>הרשמה קבוצתית</div>
                     </button>
                   )}
                 </div>
@@ -238,133 +215,105 @@ export default function Register() {
           </div>
         )}
 
-        {/* Step 2a: Personal form */}
         {step === 'form' && regType === 'personal' && (
-          <div className="bg-white rounded-2xl shadow-sm p-6">
+          <div style={S.card}>
             {waitlist ? (
-              <div className="text-center py-8">
-                <div className="text-4xl mb-4">⚠️</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">המקצה מלא</h3>
-                <p className="text-gray-600 mb-6">תוכלו להצטרף לרשימת המתנה</p>
-                <button onClick={submitWaitlist} disabled={submitting} className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50">
+              <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>⚠️</div>
+                <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>המקצה מלא</h3>
+                <p style={{ color: '#6b7280', marginBottom: 20 }}>תוכלו להצטרף לרשימת המתנה</p>
+                <button onClick={submitWaitlist} disabled={submitting} style={{ ...S.btnPrimary, flex: 'none', padding: '12px 32px' }}>
                   {submitting ? '...' : 'הצטרפות לרשימת המתנה'}
                 </button>
               </div>
             ) : (
-              <form onSubmit={submitPersonal} className="space-y-4">
-                <h2 className="text-lg font-bold text-gray-900 mb-4">פרטים אישיים</h2>
-                <div className="grid grid-cols-2 gap-3">
+              <form onSubmit={submitPersonal}>
+                <div style={S.sectionTitle}>פרטים אישיים</div>
+                <div style={S.grid2}>
                   <Field label="שם פרטי" value={form.first_name} onChange={v => setForm({...form, first_name: v})} required />
                   <Field label="שם משפחה" value={form.last_name} onChange={v => setForm({...form, last_name: v})} required />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div style={S.grid2}>
                   <Field label='ת"ז' value={form.id_number} onChange={v => setForm({...form, id_number: v})} />
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">תאריך לידה</label>
-                    <input type="date" value={form.birth_date} onChange={e => setForm({...form, birth_date: e.target.value})}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
-                  </div>
+                  <Field label="תאריך לידה" type="date" value={form.birth_date} onChange={v => setForm({...form, birth_date: v})} required />
                 </div>
-                {form.birth_date && (
-                  <div className="text-sm text-blue-600">גיל מחושב: {calculateAge(form.birth_date)}</div>
-                )}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">מין</label>
-                  <select value={form.gender} onChange={e => setForm({...form, gender: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                {form.birth_date && <div style={{ fontSize: 13, color: '#2563eb', marginBottom: 12 }}>גיל: {calculateAge(form.birth_date)}</div>}
+                <div style={S.fieldWrap}>
+                  <label style={S.label}>מין</label>
+                  <select style={S.select} value={form.gender} onChange={e => setForm({...form, gender: e.target.value})}>
                     <option value="male">זכר</option>
                     <option value="female">נקבה</option>
                   </select>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div style={S.grid2}>
                   <Field label="טלפון" type="tel" value={form.phone} onChange={v => setForm({...form, phone: v})} required />
                   <Field label='דוא"ל' type="email" value={form.email} onChange={v => setForm({...form, email: v})} required />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div style={S.grid2}>
                   <Field label="יישוב" value={form.city} onChange={v => setForm({...form, city: v})} />
                   <Field label="קבוצה/מועדון" value={form.club} onChange={v => setForm({...form, club: v})} />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div style={S.grid2}>
                   <Field label="איש קשר לחירום" value={form.emergency_contact} onChange={v => setForm({...form, emergency_contact: v})} />
                   <Field label="טלפון לחירום" type="tel" value={form.emergency_phone} onChange={v => setForm({...form, emergency_phone: v})} />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">מידה לחולצה</label>
-                  <select value={form.shirt_size} onChange={e => setForm({...form, shirt_size: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <div style={S.fieldWrap}>
+                  <label style={S.label}>מידה לחולצה</label>
+                  <select style={S.select} value={form.shirt_size} onChange={e => setForm({...form, shirt_size: e.target.value})}>
                     {['8','10','12','14','16','XS','S','M','L','XL','XXL'].map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">הערות</label>
-                  <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})}
-                    rows={2} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                <div style={S.fieldWrap}>
+                  <label style={S.label}>הערות</label>
+                  <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} rows={2}
+                    style={{ ...S.input, resize: 'vertical' as const }} />
                 </div>
-                <div className="space-y-2 pt-2 border-t border-gray-100">
-                  <CheckField label="מאשר/ת הצהרת בריאות" checked={form.health_declaration} onChange={v => setForm({...form, health_declaration: v})} />
-                  <CheckField label="קראתי ואני מאשר/ת את התקנון" checked={form.rules_accepted} onChange={v => setForm({...form, rules_accepted: v})} />
-                  <CheckField label="מאשר/ת צילום ופרסום" checked={form.photo_consent} onChange={v => setForm({...form, photo_consent: v})} />
-                </div>
-                <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setStep('select')} className="flex-1 border border-gray-300 text-gray-700 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50">
-                    חזרה
-                  </button>
-                  <button type="submit" disabled={submitting} className="flex-1 bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50">
-                    {submitting ? 'שולח...' : 'אישור הרשמה'}
-                  </button>
+                <div style={S.divider} />
+                <CheckField label="מאשר/ת הצהרת בריאות" checked={form.health_declaration} onChange={v => setForm({...form, health_declaration: v})} />
+                <CheckField label="קראתי ואני מאשר/ת את התקנון" checked={form.rules_accepted} onChange={v => setForm({...form, rules_accepted: v})} />
+                <CheckField label="מאשר/ת צילום ופרסום" checked={form.photo_consent} onChange={v => setForm({...form, photo_consent: v})} />
+                <div style={S.btnRow}>
+                  <button type="button" onClick={() => setStep('select')} style={S.btnSecondary}>חזרה</button>
+                  <button type="submit" disabled={submitting} style={S.btnPrimary}>{submitting ? 'שולח...' : 'אישור הרשמה ✓'}</button>
                 </div>
               </form>
             )}
           </div>
         )}
 
-        {/* Step 2b: Team form */}
         {step === 'form' && regType === 'team' && (
-          <div className="bg-white rounded-2xl shadow-sm p-6">
-            <form onSubmit={submitTeam} className="space-y-6">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900 mb-4">פרטי הקבוצה</h2>
-                <div className="space-y-3">
-                  <Field label="שם הקבוצה" value={teamForm.name} onChange={v => setTeamForm({...teamForm, name: v})} required />
-                  <Field label="איש קשר" value={teamForm.contact_name} onChange={v => setTeamForm({...teamForm, contact_name: v})} required />
-                  <div className="grid grid-cols-2 gap-3">
-                    <Field label="טלפון" type="tel" value={teamForm.contact_phone} onChange={v => setTeamForm({...teamForm, contact_phone: v})} required />
-                    <Field label='דוא"ל' type="email" value={teamForm.contact_email} onChange={v => setTeamForm({...teamForm, contact_email: v})} required />
-                  </div>
-                </div>
+          <div style={S.card}>
+            <form onSubmit={submitTeam}>
+              <div style={S.sectionTitle}>👥 פרטי הקבוצה</div>
+              <Field label="שם הקבוצה" value={teamForm.name} onChange={v => setTeamForm({...teamForm, name: v})} required />
+              <Field label="איש קשר" value={teamForm.contact_name} onChange={v => setTeamForm({...teamForm, contact_name: v})} required />
+              <div style={S.grid2}>
+                <Field label="טלפון" type="tel" value={teamForm.contact_phone} onChange={v => setTeamForm({...teamForm, contact_phone: v})} required />
+                <Field label='דוא"ל' type="email" value={teamForm.contact_email} onChange={v => setTeamForm({...teamForm, contact_email: v})} required />
               </div>
+              <div style={S.divider} />
               {(['swimmer','cyclist','runner'] as const).map(role => {
                 const labels = { swimmer: '🏊 שחיין', cyclist: '🚴 רוכב', runner: '🏃 רץ' };
                 const member = teamForm[role];
                 return (
-                  <div key={role} className="border border-gray-200 rounded-xl p-4">
-                    <h3 className="font-medium text-gray-900 mb-3">{labels[role]}</h3>
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
-                        <Field label="שם פרטי" value={member.first_name} onChange={v => setTeamForm({...teamForm, [role]: {...member, first_name: v}})} required />
-                        <Field label="שם משפחה" value={member.last_name} onChange={v => setTeamForm({...teamForm, [role]: {...member, last_name: v}})} required />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <Field label="טלפון" type="tel" value={member.phone} onChange={v => setTeamForm({...teamForm, [role]: {...member, phone: v}})} required />
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">תאריך לידה</label>
-                          <input type="date" value={member.birth_date} onChange={e => setTeamForm({...teamForm, [role]: {...member, birth_date: e.target.value}})}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
-                        </div>
-                      </div>
-                      <CheckField label="מאשר/ת הצהרת בריאות" checked={member.health} onChange={v => setTeamForm({...teamForm, [role]: {...member, health: v}})} />
-                      <CheckField label="מאשר/ת תקנון" checked={member.rules} onChange={v => setTeamForm({...teamForm, [role]: {...member, rules: v}})} />
+                  <div key={role} style={S.memberCard}>
+                    <div style={S.memberTitle}>{labels[role]}</div>
+                    <div style={S.grid2}>
+                      <Field label="שם פרטי" value={member.first_name} onChange={v => setTeamForm({...teamForm, [role]: {...member, first_name: v}})} required />
+                      <Field label="שם משפחה" value={member.last_name} onChange={v => setTeamForm({...teamForm, [role]: {...member, last_name: v}})} required />
                     </div>
+                    <div style={S.grid2}>
+                      <Field label="טלפון" type="tel" value={member.phone} onChange={v => setTeamForm({...teamForm, [role]: {...member, phone: v}})} required />
+                      <Field label="תאריך לידה" type="date" value={member.birth_date} onChange={v => setTeamForm({...teamForm, [role]: {...member, birth_date: v}})} required />
+                    </div>
+                    <CheckField label="מאשר/ת הצהרת בריאות" checked={member.health} onChange={v => setTeamForm({...teamForm, [role]: {...member, health: v}})} />
+                    <CheckField label="מאשר/ת תקנון" checked={member.rules} onChange={v => setTeamForm({...teamForm, [role]: {...member, rules: v}})} />
                   </div>
                 );
               })}
-              <div className="flex gap-3">
-                <button type="button" onClick={() => setStep('select')} className="flex-1 border border-gray-300 text-gray-700 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50">
-                  חזרה
-                </button>
-                <button type="submit" disabled={submitting} className="flex-1 bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50">
-                  {submitting ? 'שולח...' : 'אישור הרשמה'}
-                </button>
+              <div style={S.btnRow}>
+                <button type="button" onClick={() => setStep('select')} style={S.btnSecondary}>חזרה</button>
+                <button type="submit" disabled={submitting} style={S.btnPrimary}>{submitting ? 'שולח...' : 'אישור הרשמה ✓'}</button>
               </div>
             </form>
           </div>
@@ -375,28 +324,22 @@ export default function Register() {
 }
 
 function Field({ label, value, onChange, required, type = 'text' }: {
-  label: string; value: string; onChange: (v: string) => void;
-  required?: boolean; type?: string;
+  label: string; value: string; onChange: (v: string) => void; required?: boolean; type?: string;
 }) {
   return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-      <input
-        type={type} value={value} onChange={e => onChange(e.target.value)} required={required}
-        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-      />
+    <div style={{ marginBottom: 14 }}>
+      <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>{label}</label>
+      <input type={type} value={value} onChange={e => onChange(e.target.value)} required={required}
+        style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '10px 12px', fontSize: 14, color: '#111827', outline: 'none', boxSizing: 'border-box', background: '#f9fafb', fontFamily: 'system-ui, -apple-system, sans-serif' }} />
     </div>
   );
 }
 
-function CheckField({ label, checked, onChange }: {
-  label: string; checked: boolean; onChange: (v: boolean) => void;
-}) {
+function CheckField({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <label className="flex items-center gap-2 cursor-pointer">
-      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)}
-        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-      <span className="text-sm text-gray-700">{label}</span>
+    <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, cursor: 'pointer' }}>
+      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} style={{ width: 16, height: 16 }} />
+      <span style={{ fontSize: 14, color: '#374151' }}>{label}</span>
     </label>
   );
 }
