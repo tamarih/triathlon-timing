@@ -156,8 +156,8 @@ export default function Events() {
 
       {/* Event form modal */}
       {showEventForm && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl mt-8">
+        <div style={{ position:'fixed', inset:0, zIndex:50, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'flex-start', justifyContent:'center', padding:16, overflowY:'auto' }}>
+          <div style={{ background:'white', borderRadius:20, boxShadow:'0 8px 40px rgba(0,0,0,0.2)', width:'100%', maxWidth:560, marginTop:40 }}>
             <div className="p-6">
               <h2 className="text-lg font-bold mb-4">{editEvent ? 'עריכת אירוע' : 'אירוע חדש'}</h2>
               <form onSubmit={saveEvent} className="space-y-3">
@@ -198,8 +198,8 @@ export default function Events() {
 
       {/* Race form modal */}
       {showRaceForm && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl mt-8">
+        <div style={{ position:'fixed', inset:0, zIndex:50, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'flex-start', justifyContent:'center', padding:16, overflowY:'auto' }}>
+          <div style={{ background:'white', borderRadius:20, boxShadow:'0 8px 40px rgba(0,0,0,0.2)', width:'100%', maxWidth:560, marginTop:40 }}>
             <div className="p-6">
               <h2 className="text-lg font-bold mb-4">{editRace ? 'עריכת מקצה' : 'מקצה חדש'}</h2>
               <form onSubmit={e => saveRace(e, showRaceForm)} className="space-y-3">
