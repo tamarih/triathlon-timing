@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Event } from '../lib/types';
 import { formatDate, countdownString } from '../lib/utils';
-import { Calendar, MapPin, Clock, ChevronLeft } from 'lucide-react';
+import { Calendar, MapPin, ChevronLeft } from 'lucide-react';
 
 export default function Home() {
   const [events, setEvents] = useState<Event[]>([]);
