@@ -30,8 +30,8 @@ const S = {
     color: 'white',
   },
   logoWrap: {
-    width: 120,
-    height: 120,
+    width: 90,
+    height: 90,
     borderRadius: '50%',
     background: 'white',
     display: 'flex',
