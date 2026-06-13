@@ -31,7 +31,6 @@ const S = {
     width: '100%',
     height: '100%',
     objectFit: 'cover' as const,
-    transform: 'scale(1.15)',
   },
   title: {
     color: 'white',
