@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { Event } from '../../lib/types';
 import { formatTime, timeDiffSeconds, statusLabel, paymentLabel, genderLabel, calculateAge } from '../../lib/utils';
