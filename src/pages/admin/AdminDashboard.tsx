@@ -6,16 +6,33 @@ import { formatDate } from '../../lib/utils';
 import { Link } from 'react-router-dom';
 
 interface Stats {
-  total: number; paid: number; started: number;
-  finished: number; dnf: number; dns: number; dsq: number;
-  swim_done: number; bike_done: number;
+  total: number; paid: number; started: number; finished: number;
+  dnf: number; dns: number; dsq: number; swim_done: number; bike_done: number;
 }
+
+const S = {
+  page: { direction: 'rtl' as const, fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 900, margin: '0 auto', paddingBottom: 40 },
+  header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
+  title: { fontSize: 22, fontWeight: 800, color: '#111827' },
+  live: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#6b7280' },
+  dot: { width: 8, height: 8, borderRadius: '50%', background: '#22c55e', animation: 'pulse 2s infinite' },
+  select: { border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '9px 12px', fontSize: 14, color: '#374151', background: 'white', outline: 'none', marginBottom: 16, fontFamily: 'system-ui' },
+  eventBanner: { background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: 14, padding: '12px 16px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 },
+  statCard: (color: string) => ({ background: 'white', borderRadius: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.07)', padding: '16px', borderTop: `3px solid ${color}` }),
+  statLabel: { fontSize: 12, color: '#6b7280', fontWeight: 600, marginBottom: 6 },
+  statValue: { fontSize: 32, fontWeight: 800, color: '#111827' },
+  twoCol: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 },
+  card: { background: 'white', borderRadius: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.07)', padding: '20px' },
+  cardTitle: { fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 16 },
+  quickGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 },
+  quickLink: { background: 'white', borderRadius: 14, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', padding: '16px', textAlign: 'center' as const, textDecoration: 'none', display: 'block', border: '1.5px solid #f3f4f6' },
+};
 
 export default function AdminDashboard() {
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState('');
   const [stats, setStats] = useState<Stats | null>(null);
-  const [_loading, setLoading] = useState(false);
 
   useEffect(() => {
     supabase.from('events').select('*').order('date', { ascending: false }).then(({ data }) => {
@@ -28,7 +45,6 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (!selectedEvent) return;
     loadStats();
-
     const sub = supabase.channel('dashboard-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'participants', filter: `event_id=eq.${selectedEvent}` }, loadStats)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'timing_records', filter: `event_id=eq.${selectedEvent}` }, loadStats)
@@ -37,12 +53,10 @@ export default function AdminDashboard() {
   }, [selectedEvent]);
 
   async function loadStats() {
-    setLoading(true);
     const { data: parts } = await supabase.from('participants').select('status, payment_status').eq('event_id', selectedEvent);
     const { data: timings } = await supabase.from('timing_records').select('station').eq('event_id', selectedEvent);
-
     if (parts) {
-      const s: Stats = {
+      setStats({
         total: parts.length,
         paid: parts.filter(p => p.payment_status === 'paid' || p.payment_status === 'exempt').length,
         started: parts.filter(p => p.status === 'started').length,
@@ -52,134 +66,106 @@ export default function AdminDashboard() {
         dsq: parts.filter(p => p.status === 'dsq').length,
         swim_done: timings?.filter(t => t.station === 1).length || 0,
         bike_done: timings?.filter(t => t.station === 2).length || 0,
-      };
-      setStats(s);
+      });
     }
-    setLoading(false);
   }
 
   const event = events.find(e => e.id === selectedEvent);
 
   return (
-    <div className="p-6 max-w-5xl mx-auto" dir="rtl">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">לוח בקרה</h1>
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-          <span className="text-sm text-gray-500">עדכון בזמן אמת</span>
-        </div>
+    <div style={S.page}>
+      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
+      <div style={S.header}>
+        <span style={S.title}>לוח בקרה</span>
+        <div style={S.live}><span style={S.dot} />עדכון בזמן אמת</div>
       </div>
 
-      <div className="mb-6">
-        <select
-          value={selectedEvent}
-          onChange={e => setSelectedEvent(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-        >
-          <option value="">-- בחרו אירוע --</option>
-          {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name} ({formatDate(ev.date)})</option>)}
-        </select>
-      </div>
+      <select style={S.select} value={selectedEvent} onChange={e => setSelectedEvent(e.target.value)}>
+        <option value="">-- בחרו אירוע --</option>
+        {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name} ({formatDate(ev.date)})</option>)}
+      </select>
 
       {event && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-6 flex items-center gap-3">
+        <div style={S.eventBanner}>
           <div>
-            <div className="font-medium text-blue-900">{event.name}</div>
-            <div className="text-sm text-blue-600">{formatDate(event.date)} · {event.location}</div>
+            <div style={{ fontWeight: 700, color: '#1e3a8a', fontSize: 15 }}>{event.name}</div>
+            <div style={{ fontSize: 13, color: '#3b82f6', marginTop: 2 }}>{formatDate(event.date)} · {event.location}</div>
           </div>
-          <span className={`mr-auto px-2 py-0.5 rounded-full text-xs font-medium ${
-            event.status === 'open' ? 'bg-green-100 text-green-700' :
-            event.status === 'finished' ? 'bg-gray-100 text-gray-600' :
-            'bg-orange-100 text-orange-700'
-          }`}>
-            {event.status === 'open' ? 'פתוח' : event.status === 'closed' ? 'סגור' : event.status === 'finished' ? 'הסתיים' : 'טיוטה'}
+          <span style={{ fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, background: event.status === 'open' ? '#dcfce7' : '#f3f4f6', color: event.status === 'open' ? '#15803d' : '#6b7280' }}>
+            {event.status === 'open' ? '✅ פתוח' : event.status === 'closed' ? '🔒 סגור' : '🏁 הסתיים'}
           </span>
         </div>
       )}
 
       {stats && (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <StatCard icon={<Users size={20} className="text-blue-500" />} label="נרשמים" value={stats.total} color="blue" />
-            <StatCard icon={<TrendingUp size={20} className="text-green-500" />} label="שילמו" value={stats.paid} color="green" />
-            <StatCard icon={<Timer size={20} className="text-orange-500" />} label="מזנקים" value={stats.started} color="orange" />
-            <StatCard icon={<Trophy size={20} className="text-yellow-500" />} label="סיימו" value={stats.finished} color="yellow" />
+          <div style={S.statsGrid}>
+            {[
+              { icon: <Users size={18} color="#3b82f6" />, label: 'נרשמים', value: stats.total, color: '#3b82f6' },
+              { icon: <TrendingUp size={18} color="#22c55e" />, label: 'שילמו', value: stats.paid, color: '#22c55e' },
+              { icon: <Timer size={18} color="#f97316" />, label: 'מזנקים', value: stats.started, color: '#f97316' },
+              { icon: <Trophy size={18} color="#eab308" />, label: 'סיימו', value: stats.finished, color: '#eab308' },
+            ].map(sc => (
+              <div key={sc.label} style={S.statCard(sc.color)}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>{sc.icon}<span style={S.statLabel}>{sc.label}</span></div>
+                <div style={S.statValue}>{sc.value}</div>
+              </div>
+            ))}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
-            {/* Progress by station */}
-            <div className="bg-white rounded-xl shadow-sm p-5">
-              <h3 className="font-medium text-gray-900 mb-4">התקדמות לפי תחנה</h3>
-              <div className="space-y-3">
-                <ProgressBar label="🏊 סיימו שחייה" value={stats.swim_done} total={stats.total} color="blue" />
-                <ProgressBar label="🚴 סיימו אופניים" value={stats.bike_done} total={stats.total} color="orange" />
-                <ProgressBar label="🏃 חצו קו סיום" value={stats.finished} total={stats.total} color="green" />
-              </div>
-            </div>
-
-            {/* Status breakdown */}
-            <div className="bg-white rounded-xl shadow-sm p-5">
-              <h3 className="font-medium text-gray-900 mb-4">סטטוסים</h3>
-              <div className="space-y-2">
-                {[
-                  { label: 'סיימו', value: stats.finished, color: 'text-green-600' },
-                  { label: 'בריצה', value: stats.started, color: 'text-blue-600' },
-                  { label: 'DNS', value: stats.dns, color: 'text-gray-500' },
-                  { label: 'DNF', value: stats.dnf, color: 'text-red-500' },
-                  { label: 'DSQ', value: stats.dsq, color: 'text-purple-500' },
-                ].map(item => (
-                  <div key={item.label} className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">{item.label}</span>
-                    <span className={`font-bold ${item.color}`}>{item.value}</span>
+          <div style={S.twoCol}>
+            <div style={S.card}>
+              <div style={S.cardTitle}>📍 התקדמות לפי תחנה</div>
+              {[
+                { label: '🏊 סיימו שחייה', value: stats.swim_done, color: '#3b82f6' },
+                { label: '🚴 סיימו אופניים', value: stats.bike_done, color: '#f97316' },
+                { label: '🏃 חצו קו סיום', value: stats.finished, color: '#22c55e' },
+              ].map(pb => {
+                const pct = stats.total > 0 ? Math.round((pb.value / stats.total) * 100) : 0;
+                return (
+                  <div key={pb.label} style={{ marginBottom: 14 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 5 }}>
+                      <span style={{ color: '#374151' }}>{pb.label}</span>
+                      <span style={{ color: '#6b7280' }}>{pb.value}/{stats.total} ({pct}%)</span>
+                    </div>
+                    <div style={{ height: 8, background: '#f3f4f6', borderRadius: 4, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', background: pb.color, width: `${pct}%`, borderRadius: 4, transition: 'width 0.5s' }} />
+                    </div>
                   </div>
-                ))}
-              </div>
+                );
+              })}
+            </div>
+            <div style={S.card}>
+              <div style={S.cardTitle}>📊 סטטוסים</div>
+              {[
+                { label: '✅ סיימו', value: stats.finished, color: '#15803d' },
+                { label: '🏃 בריצה', value: stats.started, color: '#2563eb' },
+                { label: '⏭️ DNS', value: stats.dns, color: '#6b7280' },
+                { label: '❌ DNF', value: stats.dnf, color: '#dc2626' },
+                { label: '🚫 DSQ', value: stats.dsq, color: '#7c3aed' },
+              ].map(item => (
+                <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f3f4f6' }}>
+                  <span style={{ fontSize: 14, color: '#374151' }}>{item.label}</span>
+                  <span style={{ fontSize: 20, fontWeight: 800, color: item.color }}>{item.value}</span>
+                </div>
+              ))}
             </div>
           </div>
         </>
       )}
 
-      {/* Quick links */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div style={S.quickGrid}>
         {[
-          { to: '/admin/participants', label: 'ניהול משתתפים', icon: '👥' },
+          { to: '/admin/participants', label: 'משתתפים', icon: '👥' },
           { to: '/admin/timing', label: 'עריכת זמנים', icon: '⏱️' },
           { to: '/admin/results', label: 'תוצאות', icon: '🏆' },
           { to: '/admin/reports', label: 'דוחות', icon: '📊' },
         ].map(item => (
-          <Link
-            key={item.to}
-            to={item.to}
-            className="bg-white rounded-xl shadow-sm p-4 text-center hover:shadow-md transition-shadow border border-gray-100"
-          >
-            <div className="text-3xl mb-2">{item.icon}</div>
-            <div className="text-sm font-medium text-gray-700">{item.label}</div>
+          <Link key={item.to} to={item.to} style={S.quickLink}>
+            <div style={{ fontSize: 32, marginBottom: 6 }}>{item.icon}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>{item.label}</div>
           </Link>
         ))}
-      </div>
-    </div>
-  );
-}
-
-function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number; color?: string }) {
-  return (
-    <div className="bg-white rounded-xl shadow-sm p-4">
-      <div className="flex items-center gap-2 mb-2">{icon}<span className="text-sm text-gray-500">{label}</span></div>
-      <div className="text-3xl font-bold text-gray-900">{value}</div>
-    </div>
-  );
-}
-
-function ProgressBar({ label, value, total, color }: { label: string; value: number; total: number; color: string }) {
-  const pct = total > 0 ? Math.round((value / total) * 100) : 0;
-  return (
-    <div>
-      <div className="flex justify-between text-sm mb-1">
-        <span className="text-gray-700">{label}</span>
-        <span className="text-gray-500">{value}/{total} ({pct}%)</span>
-      </div>
-      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-        <div className={`h-full bg-${color}-500 transition-all`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
