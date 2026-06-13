@@ -5,7 +5,6 @@ import {
   Home, Calendar, Users, Timer, FileText,
   LogOut, Menu, X, Trophy, Settings,
 } from 'lucide-react';
-import { cn } from '../../lib/utils';
 
 const adminNav = [
   { to: '/admin', icon: Home, label: 'לוח בקרה' },
@@ -16,6 +15,154 @@ const adminNav = [
   { to: '/admin/reports', icon: FileText, label: 'דוחות' },
   { to: '/admin/settings', icon: Settings, label: 'הגדרות' },
 ];
+
+const S = {
+  header: {
+    background: 'linear-gradient(135deg, #1e3a8a 0%, #0284c7 100%)',
+    color: 'white',
+    boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
+    position: 'sticky' as const,
+    top: 0,
+    zIndex: 40,
+  },
+  headerInner: {
+    maxWidth: 1200,
+    margin: '0 auto',
+    padding: '0 16px',
+    height: 60,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    direction: 'rtl' as const,
+  },
+  logoArea: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    textDecoration: 'none',
+    color: 'white',
+  },
+  logoCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: '50%',
+    background: 'white',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 3,
+  },
+  logoImg: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'contain' as const,
+  },
+  siteName: {
+    fontWeight: 700,
+    fontSize: 16,
+    letterSpacing: '-0.3px',
+  },
+  headerRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+  },
+  roleBadge: {
+    background: 'rgba(255,255,255,0.2)',
+    border: '1px solid rgba(255,255,255,0.3)',
+    borderRadius: 20,
+    padding: '3px 10px',
+    fontSize: 12,
+    fontWeight: 600,
+  },
+  logoutBtn: {
+    background: 'rgba(255,255,255,0.15)',
+    border: '1px solid rgba(255,255,255,0.25)',
+    borderRadius: 8,
+    padding: '6px 10px',
+    color: 'white',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 5,
+    fontSize: 13,
+  },
+  loginBtn: {
+    background: 'white',
+    color: '#1e3a8a',
+    border: 'none',
+    borderRadius: 8,
+    padding: '7px 16px',
+    fontSize: 13,
+    fontWeight: 700,
+    cursor: 'pointer',
+    textDecoration: 'none',
+  },
+  menuBtn: {
+    background: 'rgba(255,255,255,0.15)',
+    border: 'none',
+    borderRadius: 8,
+    padding: 7,
+    color: 'white',
+    cursor: 'pointer',
+    display: 'flex',
+  },
+  layout: {
+    display: 'flex',
+    minHeight: 'calc(100vh - 60px)',
+    direction: 'rtl' as const,
+    background: '#f1f5f9',
+  },
+  sidebar: {
+    width: 220,
+    background: 'white',
+    borderLeft: '1px solid #e5e7eb',
+    boxShadow: '2px 0 8px rgba(0,0,0,0.04)',
+    flexShrink: 0,
+    display: 'flex',
+    flexDirection: 'column' as const,
+  },
+  navItem: (active: boolean): React.CSSProperties => ({
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    padding: '11px 16px',
+    margin: '2px 8px',
+    borderRadius: 10,
+    fontSize: 14,
+    fontWeight: active ? 700 : 500,
+    color: active ? '#1d4ed8' : '#374151',
+    background: active ? '#eff6ff' : 'transparent',
+    textDecoration: 'none',
+    cursor: 'pointer',
+    transition: 'all 0.15s',
+  }),
+  main: {
+    flex: 1,
+    minWidth: 0,
+    padding: '24px 20px',
+  },
+  overlay: {
+    position: 'fixed' as const,
+    inset: 0,
+    background: 'rgba(0,0,0,0.3)',
+    zIndex: 20,
+  },
+  mobileSidebar: (open: boolean): React.CSSProperties => ({
+    position: 'fixed' as const,
+    top: 60,
+    right: 0,
+    bottom: 0,
+    width: 240,
+    background: 'white',
+    boxShadow: '-4px 0 20px rgba(0,0,0,0.15)',
+    zIndex: 30,
+    transform: open ? 'translateX(0)' : 'translateX(100%)',
+    transition: 'transform 0.2s ease',
+    overflowY: 'auto' as const,
+    padding: '12px 0',
+  }),
+};
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { appUser, signOut } = useAuth();
@@ -28,93 +175,96 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     navigate('/');
   }
 
-  const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
+  const isActive = (path: string) =>
+    path === '/admin'
+      ? location.pathname === '/admin'
+      : location.pathname.startsWith(path);
+
+  const navLinks = appUser?.role === 'admin' ? adminNav : appUser?.role === 'volunteer' ? [
+    { to: '/volunteer', icon: Timer, label: 'קליטת זמנים' },
+  ] : [];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col" dir="rtl">
-      {/* Top nav */}
-      <header className="bg-blue-700 text-white shadow-md z-40 relative">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              className="md:hidden p-2 rounded-lg hover:bg-blue-600"
-              onClick={() => setMobileOpen(!mobileOpen)}
-            >
-              {mobileOpen ? <X size={22} /> : <Menu size={22} />}
-            </button>
-            <Link to="/" className="flex items-center gap-2 font-bold text-xl">
-              🏊 טריאתלון קהילתי
-            </Link>
-          </div>
+    <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+      {/* Header */}
+      <header style={S.header}>
+        <div style={S.headerInner}>
+          <Link to="/" style={S.logoArea}>
+            <div style={S.logoCircle}>
+              <img src="/logo.png" alt="לוגו" style={S.logoImg} />
+            </div>
+            <span style={S.siteName}>טריאתלון יקנעם</span>
+          </Link>
 
-          <div className="flex items-center gap-3">
-            {appUser && (
-              <div className="flex items-center gap-2 text-sm">
-                <span className="hidden md:inline opacity-80">{appUser.email}</span>
-                <span className="bg-blue-500 px-2 py-0.5 rounded-full text-xs">
-                  {appUser.role === 'admin' ? 'מנהל' : appUser.role === 'volunteer' ? 'מתנדב' : 'צופה'}
+          <div style={S.headerRight}>
+            {appUser ? (
+              <>
+                <span style={S.roleBadge}>
+                  {appUser.role === 'admin' ? '👑 מנהל' : appUser.role === 'volunteer' ? '🙋 מתנדב' : '👁️ צופה'}
                 </span>
-                <button onClick={handleSignOut} className="p-1.5 hover:bg-blue-600 rounded-lg" title="התנתק">
-                  <LogOut size={18} />
+                <button onClick={handleSignOut} style={S.logoutBtn}>
+                  <LogOut size={15} />
+                  יציאה
                 </button>
-              </div>
+              </>
+            ) : (
+              <Link to="/login" style={S.loginBtn}>כניסה</Link>
             )}
-            {!appUser && (
-              <Link to="/login" className="bg-white text-blue-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-50">
-                כניסה
-              </Link>
+            {appUser && (
+              <button style={S.menuBtn} onClick={() => setMobileOpen(!mobileOpen)}
+                className="md-hide">
+                {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
             )}
           </div>
         </div>
       </header>
 
-      <div className="flex flex-1">
-        {/* Sidebar - admin/volunteer only */}
-        {appUser && (
+      <div style={S.layout}>
+        {/* Desktop sidebar */}
+        {appUser && navLinks.length > 0 && (
+          <aside style={{ ...S.sidebar, display: 'none' }} className="desktop-sidebar">
+            <nav style={{ padding: '12px 0' }}>
+              {navLinks.map(item => (
+                <Link key={item.to} to={item.to} style={S.navItem(isActive(item.to))}>
+                  <item.icon size={17} />
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+          </aside>
+        )}
+
+        {/* Mobile sidebar */}
+        {appUser && navLinks.length > 0 && (
           <>
-            <aside className={cn(
-              'fixed inset-y-0 right-0 z-30 w-56 bg-white border-l border-gray-200 shadow-lg pt-16 transition-transform duration-200',
-              'md:sticky md:top-0 md:translate-x-0 md:h-screen md:shadow-none',
-              mobileOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'
-            )}>
-              <nav className="p-3 space-y-1 overflow-y-auto h-full">
-                {appUser.role === 'admin' && adminNav.map(item => (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    onClick={() => setMobileOpen(false)}
-                    className={cn(
-                      'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                      isActive(item.to)
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                    )}
-                  >
-                    <item.icon size={18} />
+            {mobileOpen && <div style={S.overlay} onClick={() => setMobileOpen(false)} />}
+            <div style={S.mobileSidebar(mobileOpen)}>
+              <nav>
+                {navLinks.map(item => (
+                  <Link key={item.to} to={item.to}
+                    style={S.navItem(isActive(item.to))}
+                    onClick={() => setMobileOpen(false)}>
+                    <item.icon size={17} />
                     {item.label}
                   </Link>
                 ))}
-                {appUser.role === 'volunteer' && (
-                  <Link
-                    to="/volunteer"
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-blue-50 text-blue-700"
-                  >
-                    <Timer size={18} />
-                    קליטת זמנים
-                  </Link>
-                )}
               </nav>
-            </aside>
-            {mobileOpen && (
-              <div className="fixed inset-0 z-20 bg-black/30 md:hidden" onClick={() => setMobileOpen(false)} />
-            )}
+            </div>
           </>
         )}
 
-        <main className="flex-1 min-w-0">
+        <main style={S.main}>
           {children}
         </main>
       </div>
+
+      <style>{`
+        @media (min-width: 768px) {
+          .desktop-sidebar { display: flex !important; }
+          .md-hide { display: none !important; }
+        }
+      `}</style>
     </div>
   );
 }
