@@ -30,6 +30,7 @@ const S = {
     width: '100%',
     height: '100%',
     objectFit: 'contain' as const,
+    mixBlendMode: 'multiply' as const,
   },
   title: {
     color: 'white',
