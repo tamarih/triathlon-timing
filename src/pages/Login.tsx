@@ -24,14 +24,13 @@ const S = {
     justifyContent: 'center',
     marginBottom: 20,
     boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-    padding: 6,
+    padding: 0,
     overflow: 'hidden',
   } as React.CSSProperties,
   logo: {
     width: '100%',
     height: '100%',
-    objectFit: 'contain' as const,
-    mixBlendMode: 'multiply' as const,
+    objectFit: 'cover' as const,
   },
   title: {
     color: 'white',
