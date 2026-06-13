@@ -11,6 +11,15 @@ const S = {
     background: 'linear-gradient(160deg, #1e3a8a 0%, #0284c7 60%, #38bdf8 100%)',
     direction: 'rtl' as const,
     fontFamily: 'system-ui, -apple-system, sans-serif',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+  } as React.CSSProperties,
+  inner: {
+    width: '100%',
+    maxWidth: 480,
+    display: 'flex',
+    flexDirection: 'column' as const,
   } as React.CSSProperties,
   hero: {
     display: 'flex',
@@ -20,12 +29,22 @@ const S = {
     padding: '48px 20px 32px',
     color: 'white',
   },
-  logo: {
-    width: 110,
-    height: 110,
-    objectFit: 'contain' as const,
+  logoWrap: {
+    width: 120,
+    height: 120,
+    borderRadius: '50%',
+    background: 'white',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 16,
-    filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+    padding: 10,
+  } as React.CSSProperties,
+  logo: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'contain' as const,
   },
   title: {
     fontSize: 28,
@@ -94,7 +113,7 @@ const S = {
     background: '#f8fafc',
     borderRadius: '24px 24px 0 0',
     minHeight: '60vh',
-    padding: '24px 16px 40px',
+    padding: '24px 20px 40px',
     marginTop: 8,
   },
   sectionTitle: {
@@ -219,9 +238,12 @@ export default function Home() {
 
   return (
     <div style={S.page}>
+      <div style={S.inner}>
       {/* Hero */}
       <div style={S.hero}>
-        <img src="/logo.png" alt="לוגו" style={S.logo} />
+        <div style={S.logoWrap}>
+          <img src="/logo.png" alt="לוגו" style={S.logo} />
+        </div>
         <h1 style={S.title}>טריאתלון יקנעם מושבה</h1>
         <p style={S.subtitle}>האירוע הספורטיבי הגדול של הקהילה</p>
 
@@ -305,6 +327,7 @@ export default function Home() {
       </div>
 
       <div style={S.footer}>טריאתלון יקנעם מושבה © 2025</div>
+      </div>
     </div>
   );
 }
