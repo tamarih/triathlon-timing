@@ -96,7 +96,7 @@ export default function Participants() {
     e.preventDefault();
     if (!editParticipant) return;
     setSaving(true);
-    const { id, created_at, updated_at, ...data } = editParticipant;
+    const { id, created_at: _ca, updated_at: _ua, ...data } = editParticipant;
     const { error } = await supabase.from('participants').update(data).eq('id', id);
     if (error) toast.error(error.message);
     else { toast.success('המשתתף עודכן'); setEditParticipant(null); loadParticipants(); }
