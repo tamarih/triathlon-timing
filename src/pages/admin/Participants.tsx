@@ -63,6 +63,9 @@ export default function Participants() {
   const [editParticipant, setEditParticipant] = useState<Participant | null>(null);
   const [saving, setSaving] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [approvalFilter, setApprovalFilter] = useState('');
+  const [approvalNotes, setApprovalNotes] = useState('');
+  const [showApprovalModal, setShowApprovalModal] = useState<Participant | null>(null);
 
   useEffect(() => {
     supabase.from('events').select('*').order('date', { ascending: false }).then(({ data }) => {
@@ -138,13 +141,30 @@ export default function Participants() {
     reader.readAsBinaryString(file);
   }
 
+  async function approveParticipant(p: Participant, status: 'approved' | 'rejected') {
+    const { error } = await supabase.from('participants').update({
+      approval_status: status,
+      approval_notes: approvalNotes || null,
+    }).eq('id', p.id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success(status === 'approved' ? '✅ אושרה הרשמה' : '❌ הרשמה נדחתה');
+      setShowApprovalModal(null);
+      setApprovalNotes('');
+      loadParticipants();
+    }
+  }
+
+  const pendingCount = participants.filter(p => p.approval_status === 'pending').length;
+
   function getFiltered() {
     return participants.filter(p => {
       const name = `${p.first_name} ${p.last_name}`.toLowerCase();
       return (!search || name.includes(search.toLowerCase()) || (p.bib_number || '').includes(search))
         && (!selectedRace || p.race_id === selectedRace)
         && (!statusFilter || p.status === statusFilter)
-        && (!paymentFilter || p.payment_status === paymentFilter);
+        && (!paymentFilter || p.payment_status === paymentFilter)
+        && (!approvalFilter || p.approval_status === approvalFilter);
     });
   }
 
@@ -180,6 +200,17 @@ export default function Participants() {
           <span style={S.searchIcon}><Search size={14} /></span>
           <input style={S.searchInput} placeholder="חיפוש שם / מספר..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
+        <select style={S.filterSelect} value={approvalFilter} onChange={e => setApprovalFilter(e.target.value)}>
+          <option value="">כל האישורים</option>
+          <option value="pending">⏳ ממתין לאישור</option>
+          <option value="approved">✅ אושר</option>
+          <option value="rejected">❌ נדחה</option>
+        </select>
+        {pendingCount > 0 && (
+          <span style={{ fontSize: 12, fontWeight: 700, background: '#fef9c3', color: '#92400e', borderRadius: 20, padding: '4px 12px', cursor: 'pointer' }} onClick={() => setApprovalFilter('pending')}>
+            ⏳ {pendingCount} ממתינים לאישור
+          </span>
+        )}
         <span style={{ fontSize: 13, color: '#6b7280', fontWeight: 600 }}>{filtered.length} משתתפים</span>
       </div>
 
@@ -201,7 +232,7 @@ export default function Participants() {
           <table style={S.table}>
             <thead>
               <tr>
-                {['מס\'', 'שם', 'מקצה', 'מין/גיל', 'טלפון', 'סטטוס', 'תשלום', ''].map(h => (
+                {['מס\'', 'שם', 'קטגוריה', 'מקצה', 'מין/גיל', 'טלפון', 'סטטוס', 'תשלום', 'אישור', ''].map(h => (
                   <th key={h} style={S.th}>{h}</th>
                 ))}
               </tr>
@@ -211,6 +242,7 @@ export default function Participants() {
                 <tr key={p.id} style={{ background: 'white' }}>
                   <td style={{ ...S.td, fontFamily: 'monospace', color: '#6b7280' }}>{p.bib_number || '—'}</td>
                   <td style={{ ...S.td, fontWeight: 700, color: '#111827' }}>{p.first_name} {p.last_name}</td>
+                  <td style={{ ...S.td, color: '#6b7280', fontSize: 12 }}>{p.recommended_category || '—'}</td>
                   <td style={{ ...S.td, color: '#6b7280' }}>{races.find(r => r.id === p.race_id)?.name || '—'}</td>
                   <td style={{ ...S.td, color: '#6b7280' }}>{genderLabel(p.gender)} · {p.age || (p.birth_date ? calculateAge(p.birth_date) : '?')}</td>
                   <td style={{ ...S.td, color: '#9ca3af' }}>{p.phone}</td>
@@ -225,6 +257,18 @@ export default function Participants() {
                     </select>
                   </td>
                   <td style={S.td}>
+                    {p.approval_status === 'pending' ? (
+                      <button
+                        onClick={() => { setShowApprovalModal(p); setApprovalNotes(''); }}
+                        style={{ fontSize: 11, fontWeight: 700, background: '#fef9c3', color: '#92400e', border: 'none', borderRadius: 20, padding: '4px 10px', cursor: 'pointer', fontFamily: 'system-ui' }}
+                      >⏳ אישור</button>
+                    ) : p.approval_status === 'approved' ? (
+                      <span style={{ fontSize: 11, fontWeight: 700, background: '#dcfce7', color: '#15803d', borderRadius: 20, padding: '3px 10px' }}>✅ אושר</span>
+                    ) : p.approval_status === 'rejected' ? (
+                      <span style={{ fontSize: 11, fontWeight: 700, background: '#fee2e2', color: '#dc2626', borderRadius: 20, padding: '3px 10px' }}>❌ נדחה</span>
+                    ) : null}
+                  </td>
+                  <td style={S.td}>
                     <button onClick={() => setEditParticipant(p)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 4, borderRadius: 6 }}><Edit2 size={14} /></button>
                   </td>
                 </tr>
@@ -234,6 +278,50 @@ export default function Participants() {
           {filtered.length === 0 && <div style={{ textAlign: 'center', padding: '48px 20px', color: '#9ca3af' }}>אין משתתפים</div>}
         </div>
       </div>
+
+      {showApprovalModal && (
+        <div style={S.overlay}>
+          <div style={{ ...S.modal, maxWidth: 420 }}>
+            <div style={S.modalHeader}>
+              <span style={S.modalTitle}>בקשת אישור — {showApprovalModal.first_name} {showApprovalModal.last_name}</span>
+              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }} onClick={() => setShowApprovalModal(null)}><X size={18} /></button>
+            </div>
+            <div style={{ background: '#f9fafb', borderRadius: 12, padding: '12px 14px', marginBottom: 16, fontSize: 13 }}>
+              <div style={{ marginBottom: 6 }}>
+                <span style={{ color: '#6b7280' }}>קטגוריית גיל: </span>
+                <span style={{ fontWeight: 700 }}>{showApprovalModal.recommended_category || '—'}</span>
+              </div>
+              <div style={{ marginBottom: 6 }}>
+                <span style={{ color: '#6b7280' }}>מקצה שנבחר: </span>
+                <span style={{ fontWeight: 700 }}>{showApprovalModal.selected_category || races.find(r => r.id === showApprovalModal.race_id)?.name || '—'}</span>
+              </div>
+              {showApprovalModal.approval_reason && (
+                <div>
+                  <span style={{ color: '#6b7280' }}>סיבה: </span>
+                  <span style={{ fontWeight: 700, color: '#1d4ed8' }}>{showApprovalModal.approval_reason}</span>
+                </div>
+              )}
+            </div>
+            <label style={S.label}>הערות (אופציונלי)</label>
+            <input
+              style={{ ...S.input, marginBottom: 20 }}
+              value={approvalNotes}
+              onChange={e => setApprovalNotes(e.target.value)}
+              placeholder="הערה לנרשם..."
+            />
+            <div style={S.btnRow}>
+              <button
+                style={{ ...S.btnSecondary, color: '#dc2626', borderColor: '#fca5a5' }}
+                onClick={() => approveParticipant(showApprovalModal, 'rejected')}
+              >❌ דחייה</button>
+              <button
+                style={{ ...S.btnPrimary, background: 'linear-gradient(135deg,#16a34a,#22c55e)' }}
+                onClick={() => approveParticipant(showApprovalModal, 'approved')}
+              >✅ אישור</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {editParticipant && (
         <div style={S.overlay}>

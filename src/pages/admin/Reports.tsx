@@ -8,6 +8,21 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import toast from 'react-hot-toast';
 
+const S = {
+  page: { direction: 'rtl' as const, fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 800, margin: '0 auto', paddingBottom: 40 },
+  title: { fontSize: 22, fontWeight: 800, color: '#111827', marginBottom: 20 },
+  sectionLabel: { fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 8 },
+  select: { border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '9px 12px', fontSize: 14, color: '#374151', background: 'white', outline: 'none', fontFamily: 'system-ui', marginBottom: 24 },
+  grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 },
+  card: { background: 'white', borderRadius: 16, boxShadow: '0 2px 10px rgba(0,0,0,0.07)', padding: '20px', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer', border: '1.5px solid #f3f4f6', transition: 'box-shadow 0.2s' } as React.CSSProperties,
+  cardIcon: { fontSize: 40, lineHeight: 1 },
+  cardBody: { flex: 1 },
+  cardTitle: { fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 3 },
+  cardDesc: { fontSize: 13, color: '#6b7280' },
+  cardBadge: (isPdf: boolean) => ({ fontSize: 12, fontWeight: 700, color: isPdf ? '#dc2626' : '#15803d', marginTop: 4 }),
+  downloadIcon: { color: '#9ca3af' },
+};
+
 export default function Reports() {
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState('');
@@ -150,34 +165,33 @@ export default function Reports() {
   ];
 
   return (
-    <div className="p-6 max-w-4xl mx-auto" dir="rtl">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">דוחות וייצוא</h1>
+    <div style={S.page}>
+      <div style={S.title}>📊 דוחות וייצוא</div>
 
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-1.5">אירוע</label>
-        <select value={selectedEvent} onChange={e => setSelectedEvent(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+      <div>
+        <div style={S.sectionLabel}>אירוע</div>
+        <select style={S.select} value={selectedEvent} onChange={e => setSelectedEvent(e.target.value)}>
           {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
         </select>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div style={S.grid}>
         {reportCards.map(card => (
           <button
             key={card.title}
             onClick={card.action}
             disabled={loading || !selectedEvent}
-            className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-right hover:shadow-md disabled:opacity-50 transition-shadow flex items-center gap-4"
+            style={{ ...S.card, opacity: loading || !selectedEvent ? 0.6 : 1 }}
           >
-            <div className="text-4xl">{card.icon}</div>
-            <div className="flex-1">
-              <div className="font-medium text-gray-900">{card.title}</div>
-              <div className="text-sm text-gray-500 mt-0.5">{card.desc}</div>
-              <div className={`text-xs mt-1 font-medium ${card.type === 'PDF' ? 'text-red-500' : 'text-green-600'}`}>
+            <div style={S.cardIcon}>{card.icon}</div>
+            <div style={S.cardBody}>
+              <div style={S.cardTitle}>{card.title}</div>
+              <div style={S.cardDesc}>{card.desc}</div>
+              <div style={S.cardBadge(card.type === 'PDF')}>
                 {card.type === 'PDF' ? '📄 PDF' : '📊 Excel'}
               </div>
             </div>
-            <Download size={18} className="text-gray-400" />
+            <Download size={18} style={S.downloadIcon} />
           </button>
         ))}
       </div>

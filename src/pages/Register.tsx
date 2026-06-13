@@ -6,6 +6,49 @@ import { calculateAge } from '../lib/utils';
 import toast from 'react-hot-toast';
 
 type RegType = 'personal' | 'team' | null;
+type Category = 'ילדים א' | 'ילדים ב' | 'נוער' | 'בוגרים';
+
+// Classify participant by birth year (event is Sept 2026)
+function calcCategory(birthDate: string): Category {
+  const year = new Date(birthDate).getFullYear();
+  if (year >= 2018) return 'ילדים א';
+  if (year >= 2016) return 'ילדים ב';
+  if (year >= 2012) return 'נוער';
+  return 'בוגרים';
+}
+
+function getCategoryEmoji(cat: Category) {
+  return cat === 'ילדים א' ? '🧒' : cat === 'ילדים ב' ? '👦' : cat === 'נוער' ? '🧑' : '🏃';
+}
+
+function getCategoryColor(cat: Category) {
+  return cat === 'ילדים א' ? '#7c3aed' : cat === 'ילדים ב' ? '#0284c7' : cat === 'נוער' ? '#059669' : '#d97706';
+}
+
+// Find race that matches category
+function getRecommendedRaceId(cat: Category, races: Race[]): string | null {
+  if (cat === 'ילדים א') return races.find(r => r.name.includes('ילדים א'))?.id || null;
+  if (cat === 'ילדים ב') return races.find(r => r.name.includes('ילדים ב'))?.id || null;
+  if (cat === 'נוער') return races.find(r => r.name.includes('נוער'))?.id || null;
+  // בוגרים can choose freely between קלאסי / ספרינטון
+  return races.find(r => r.name.includes('קלאסי') || r.name.includes('ספרינטון'))?.id || null;
+}
+
+function isRaceMatchCategory(cat: Category, raceName: string): boolean {
+  if (cat === 'ילדים א') return raceName.includes('ילדים א');
+  if (cat === 'ילדים ב') return raceName.includes('ילדים ב');
+  if (cat === 'נוער') return raceName.includes('נוער');
+  // בוגרים can freely choose any adult race
+  return raceName.includes('קלאסי') || raceName.includes('ספרינטון');
+}
+
+const APPROVAL_REASONS = [
+  'רצון להתחרות עם אח/אחות',
+  'רצון להתחרות עם חברים',
+  'בקשת הורים',
+  'ניסיון קודם ורמה מתאימה',
+  'אחר',
+];
 
 const S = {
   page: {
@@ -34,11 +77,10 @@ const S = {
   },
   fieldWrap: { marginBottom: 14 },
   grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
-  grid3: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 },
-  raceBtn: (selected: boolean): React.CSSProperties => ({
-    border: selected ? '2px solid #2563eb' : '2px solid #e5e7eb',
+  raceBtn: (selected: boolean, recommended: boolean): React.CSSProperties => ({
+    border: selected ? '2px solid #2563eb' : recommended ? '2px solid #d97706' : '2px solid #e5e7eb',
     borderRadius: 14, padding: '14px 12px', textAlign: 'right' as const,
-    background: selected ? '#eff6ff' : 'white', cursor: 'pointer',
+    background: selected ? '#eff6ff' : recommended ? '#fffbeb' : 'white', cursor: 'pointer',
     width: '100%', transition: 'all 0.15s',
   }),
   raceName: { fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 3 },
@@ -63,7 +105,6 @@ const S = {
     padding: '13px 0', fontSize: 15, fontWeight: 600, cursor: 'pointer',
     fontFamily: 'system-ui, -apple-system, sans-serif',
   },
-  checkRow: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, cursor: 'pointer' },
   memberCard: { border: '1.5px solid #e5e7eb', borderRadius: 14, padding: 16, marginBottom: 14 },
   memberTitle: { fontSize: 14, fontWeight: 700, color: '#1d4ed8', marginBottom: 12 },
 };
@@ -84,6 +125,7 @@ export default function Register() {
     gender: 'male', phone: '', email: '', city: '', club: '',
     emergency_contact: '', emergency_phone: '', shirt_size: 'M',
     notes: '', health_declaration: false, rules_accepted: false, photo_consent: false,
+    school_grade: '', approval_reason: '',
   });
 
   const [teamForm, setTeamForm] = useState({
@@ -102,6 +144,19 @@ export default function Register() {
     supabase.from('races').select('*').eq('event_id', selectedEvent).eq('is_open', true).then(({ data }) => setRaces(data || []));
   }, [selectedEvent]);
 
+  // Auto-set recommended race when birth_date or races change
+  useEffect(() => {
+    if (!form.birth_date || races.length === 0) return;
+    const cat = calcCategory(form.birth_date);
+    const recId = getRecommendedRaceId(cat, races);
+    if (recId && !selectedRace) setSelectedRace(recId);
+  }, [form.birth_date, races]);
+
+  const category: Category | null = form.birth_date ? calcCategory(form.birth_date) : null;
+  const selectedRaceObj = races.find(r => r.id === selectedRace);
+  const isChildCategory = category === 'ילדים א' || category === 'ילדים ב' || category === 'נוער';
+  const raceMismatch = category && selectedRaceObj && !isRaceMatchCategory(category, selectedRaceObj.name);
+
   async function checkCapacity(raceId: string) {
     const race = races.find(r => r.id === raceId);
     if (!race?.max_participants) return { full: false };
@@ -112,12 +167,40 @@ export default function Register() {
   async function submitPersonal(e: React.FormEvent) {
     e.preventDefault();
     if (!form.health_declaration || !form.rules_accepted) { toast.error('יש לאשר את הצהרת הבריאות והתקנון'); return; }
+    if (raceMismatch && !form.approval_reason) { toast.error('יש לבחור סיבה לרישום למקצה שאינו מתאים לגיל'); return; }
     setSubmitting(true);
     try {
       const cap = await checkCapacity(selectedRace);
       if (cap.full) { setWaitlist(true); setSubmitting(false); return; }
       const age = form.birth_date ? calculateAge(form.birth_date) : null;
-      const { error } = await supabase.from('participants').insert({ event_id: selectedEvent, race_id: selectedRace, ...form, age });
+      const rec_cat = category;
+      const approval_status = raceMismatch ? 'pending' : null;
+      const { error } = await supabase.from('participants').insert({
+        event_id: selectedEvent,
+        race_id: selectedRace,
+        first_name: form.first_name,
+        last_name: form.last_name,
+        id_number: form.id_number,
+        birth_date: form.birth_date,
+        gender: form.gender,
+        phone: form.phone,
+        email: form.email,
+        city: form.city,
+        club: form.club,
+        emergency_contact: form.emergency_contact,
+        emergency_phone: form.emergency_phone,
+        shirt_size: form.shirt_size,
+        notes: form.notes,
+        health_declaration: form.health_declaration,
+        rules_accepted: form.rules_accepted,
+        photo_consent: form.photo_consent,
+        age,
+        school_grade: form.school_grade || null,
+        recommended_category: rec_cat,
+        selected_category: selectedRaceObj?.name || null,
+        approval_status,
+        approval_reason: form.approval_reason || null,
+      });
       if (error) throw error;
       setStep('success');
     } catch (err: any) { toast.error(err.message || 'שגיאה בהרשמה'); }
@@ -151,14 +234,20 @@ export default function Register() {
     finally { setSubmitting(false); }
   }
 
-  const selectedRaceObj = races.find(r => r.id === selectedRace);
-
   if (step === 'success') return (
     <div style={{ ...S.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ ...S.card, textAlign: 'center', maxWidth: 360 }}>
-        <div style={{ fontSize: 64, marginBottom: 12 }}>{waitlist ? '⏳' : '🎉'}</div>
-        <h2 style={{ fontSize: 22, fontWeight: 800, color: '#111827', marginBottom: 8 }}>{waitlist ? 'נרשמת לרשימת המתנה!' : 'ההרשמה הושלמה!'}</h2>
-        <p style={{ color: '#6b7280', marginBottom: 24 }}>{waitlist ? 'נעדכן אותך אם יפנה מקום.' : 'ברוכים הבאים לאירוע! 🏊🚴🏃'}</p>
+      <div style={{ ...S.card, textAlign: 'center', maxWidth: 380 }}>
+        <div style={{ fontSize: 64, marginBottom: 12 }}>{waitlist ? '⏳' : raceMismatch ? '⏳' : '🎉'}</div>
+        <h2 style={{ fontSize: 22, fontWeight: 800, color: '#111827', marginBottom: 8 }}>
+          {waitlist ? 'נרשמת לרשימת המתנה!' : raceMismatch ? 'ההרשמה התקבלה — ממתינה לאישור' : 'ההרשמה הושלמה!'}
+        </h2>
+        <p style={{ color: '#6b7280', marginBottom: 24, lineHeight: 1.6 }}>
+          {waitlist
+            ? 'נעדכן אותך אם יפנה מקום.'
+            : raceMismatch
+              ? 'ההרשמה שלך נשלחה לאישור הועדה. נחזור אליך בהקדם.'
+              : 'ברוכים הבאים לאירוע! 🏊🚴🏃'}
+        </p>
         <Link to="/" style={{ display: 'block', background: 'linear-gradient(135deg,#1d4ed8,#0ea5e9)', color: 'white', borderRadius: 12, padding: '13px 0', fontWeight: 700, textDecoration: 'none', marginBottom: 8 }}>חזרה לדף הבית</Link>
       </div>
     </div>
@@ -179,16 +268,49 @@ export default function Register() {
               </select>
             </div>
 
+            {selectedEvent && (
+              <div style={S.fieldWrap}>
+                <label style={S.label}>תאריך לידה (לסיווג קטגוריה)</label>
+                <input
+                  type="date"
+                  value={form.birth_date}
+                  onChange={e => setForm({ ...form, birth_date: e.target.value })}
+                  style={S.input}
+                />
+                {category && (
+                  <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 10, background: getCategoryColor(category) + '18', border: `1.5px solid ${getCategoryColor(category)}40`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 22 }}>{getCategoryEmoji(category)}</span>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: getCategoryColor(category) }}>קטגוריה: {category}</div>
+                      <div style={{ fontSize: 12, color: '#6b7280' }}>גיל: {calculateAge(form.birth_date)} · המקצה המומלץ יסומן בכתום</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {selectedEvent && races.length > 0 && (
               <div style={S.fieldWrap}>
                 <label style={S.label}>בחרו מקצה</label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {races.map(r => (
-                    <button key={r.id} onClick={() => setSelectedRace(r.id)} style={S.raceBtn(selectedRace === r.id)}>
-                      <div style={S.raceName}>{r.name}</div>
-                      <div style={S.raceSub}>{r.type === 'relay' ? 'שליחים' : 'אישי'} · שחייה {r.swim_distance}מ' · אופניים {r.bike_distance}ק"מ · ריצה {r.run_distance}ק"מ</div>
-                    </button>
-                  ))}
+                  {races.map(r => {
+                    const isRec = category ? isRaceMatchCategory(category, r.name) : false;
+                    return (
+                      <button key={r.id} onClick={() => setSelectedRace(r.id)} style={S.raceBtn(selectedRace === r.id, isRec)}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div>
+                            <div style={S.raceName}>{r.name}</div>
+                            <div style={S.raceSub}>{r.type === 'relay' ? 'שליחים' : 'אישי'} · שחייה {r.swim_distance}מ' · אופניים {r.bike_distance}ק"מ · ריצה {r.run_distance}ק"מ</div>
+                          </div>
+                          {isRec && category && (
+                            <span style={{ fontSize: 11, fontWeight: 700, background: '#fef9c3', color: '#92400e', borderRadius: 20, padding: '2px 8px', whiteSpace: 'nowrap', marginRight: 8 }}>
+                              ⭐ מומלץ לך
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -228,6 +350,22 @@ export default function Register() {
               </div>
             ) : (
               <form onSubmit={submitPersonal}>
+                {/* Category banner */}
+                {category && (
+                  <div style={{ marginBottom: 20, padding: '12px 16px', borderRadius: 12, background: getCategoryColor(category) + '12', border: `1.5px solid ${getCategoryColor(category)}40`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 24 }}>{getCategoryEmoji(category)}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: getCategoryColor(category) }}>קטגוריה: {category}</div>
+                      <div style={{ fontSize: 12, color: '#6b7280' }}>מקצה נבחר: {selectedRaceObj?.name}</div>
+                    </div>
+                    {raceMismatch && (
+                      <span style={{ fontSize: 11, fontWeight: 700, background: '#fef2f2', color: '#dc2626', borderRadius: 20, padding: '3px 10px' }}>
+                        ⚠️ טעון אישור
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 <div style={S.sectionTitle}>פרטים אישיים</div>
                 <div style={S.grid2}>
                   <Field label="שם פרטי" value={form.first_name} onChange={v => setForm({...form, first_name: v})} required />
@@ -237,7 +375,25 @@ export default function Register() {
                   <Field label='ת"ז' value={form.id_number} onChange={v => setForm({...form, id_number: v})} />
                   <Field label="תאריך לידה" type="date" value={form.birth_date} onChange={v => setForm({...form, birth_date: v})} required />
                 </div>
-                {form.birth_date && <div style={{ fontSize: 13, color: '#2563eb', marginBottom: 12 }}>גיל: {calculateAge(form.birth_date)}</div>}
+                {form.birth_date && (
+                  <div style={{ fontSize: 13, color: '#2563eb', marginBottom: 12 }}>
+                    גיל: {calculateAge(form.birth_date)} · קטגוריה: {category}
+                  </div>
+                )}
+
+                {/* School grade for kids/teens */}
+                {isChildCategory && (
+                  <div style={S.fieldWrap}>
+                    <label style={S.label}>כיתה בבית ספר</label>
+                    <input
+                      style={S.input}
+                      value={form.school_grade}
+                      onChange={e => setForm({...form, school_grade: e.target.value})}
+                      placeholder="לדוגמה: ד', ה', ו'..."
+                    />
+                  </div>
+                )}
+
                 <div style={S.fieldWrap}>
                   <label style={S.label}>מין</label>
                   <select style={S.select} value={form.gender} onChange={e => setForm({...form, gender: e.target.value})}>
@@ -268,13 +424,39 @@ export default function Register() {
                   <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} rows={2}
                     style={{ ...S.input, resize: 'vertical' as const }} />
                 </div>
+
+                {/* Mismatch warning + reason */}
+                {raceMismatch && (
+                  <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#dc2626', marginBottom: 8 }}>
+                      ⚠️ שים לב — המקצה שנבחר אינו תואם לקטגוריית הגיל שלך ({category})
+                    </div>
+                    <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 12 }}>
+                      ניתן להירשם למקצה אחר, אך ההרשמה תועבר לאישור הועדה.
+                    </div>
+                    <label style={{ ...S.label, color: '#dc2626' }}>סיבה לרישום למקצה שאינו מתאים לגיל *</label>
+                    <select
+                      style={{ ...S.select, border: '1.5px solid #fca5a5' }}
+                      value={form.approval_reason}
+                      onChange={e => setForm({...form, approval_reason: e.target.value})}
+                      required
+                    >
+                      <option value="">-- בחרו סיבה --</option>
+                      {APPROVAL_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </div>
+                )}
+
                 <div style={S.divider} />
                 <CheckField label="מאשר/ת הצהרת בריאות" checked={form.health_declaration} onChange={v => setForm({...form, health_declaration: v})} />
                 <CheckField label="קראתי ואני מאשר/ת את התקנון" checked={form.rules_accepted} onChange={v => setForm({...form, rules_accepted: v})} />
                 <CheckField label="מאשר/ת צילום ופרסום" checked={form.photo_consent} onChange={v => setForm({...form, photo_consent: v})} />
+
                 <div style={S.btnRow}>
                   <button type="button" onClick={() => setStep('select')} style={S.btnSecondary}>חזרה</button>
-                  <button type="submit" disabled={submitting} style={S.btnPrimary}>{submitting ? 'שולח...' : 'אישור הרשמה ✓'}</button>
+                  <button type="submit" disabled={submitting} style={S.btnPrimary}>
+                    {submitting ? 'שולח...' : raceMismatch ? 'שליחה לאישור ✓' : 'אישור הרשמה ✓'}
+                  </button>
                 </div>
               </form>
             )}

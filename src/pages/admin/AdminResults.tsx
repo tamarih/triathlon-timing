@@ -14,6 +14,30 @@ interface RankedResult {
   overall_rank?: number; gender_rank?: number; race_rank?: number;
 }
 
+const S = {
+  page: { direction: 'rtl' as const, fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 1100, margin: '0 auto', paddingBottom: 40 },
+  header: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 },
+  title: { fontSize: 22, fontWeight: 800, color: '#111827' },
+  filtersBar: { background: 'white', borderRadius: 14, boxShadow: '0 2px 8px rgba(0,0,0,0.07)', padding: '12px 16px', marginBottom: 16, display: 'flex', flexWrap: 'wrap' as const, gap: 10 },
+  select: { border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '8px 12px', fontSize: 14, color: '#374151', background: 'white', outline: 'none', fontFamily: 'system-ui' },
+  tableWrap: { background: 'white', borderRadius: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.07)', overflow: 'hidden' },
+  tableScroll: { overflowX: 'auto' as const },
+  table: { width: '100%', borderCollapse: 'collapse' as const, fontSize: 13 },
+  th: { textAlign: 'right' as const, padding: '11px 14px', fontWeight: 600, color: '#6b7280', background: '#f9fafb', borderBottom: '1.5px solid #f3f4f6' },
+  tdBase: { padding: '10px 14px', borderBottom: '1px solid #f9fafb' },
+  empty: { textAlign: 'center' as const, padding: 48, color: '#9ca3af', fontSize: 15 },
+};
+
+const statusBadge = (status: string) => {
+  const map: Record<string, { bg: string; color: string }> = {
+    finished: { bg: '#dcfce7', color: '#15803d' },
+    dnf: { bg: '#fee2e2', color: '#dc2626' },
+    started: { bg: '#dbeafe', color: '#1d4ed8' },
+  };
+  const s = map[status] || { bg: '#f3f4f6', color: '#6b7280' };
+  return { ...s, borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 700 };
+};
+
 export default function AdminResults() {
   const [events, setEvents] = useState<Event[]>([]);
   const [races, setRaces] = useState<Race[]>([]);
@@ -107,85 +131,76 @@ export default function AdminResults() {
     return matchRace && matchGender;
   });
 
+  const rankIcon = (rank?: number) =>
+    rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank ? String(rank) : '—';
+
   return (
-    <div className="p-6 max-w-7xl mx-auto" dir="rtl">
-      <div className="flex items-center gap-3 mb-6">
-        <Trophy className="text-yellow-500" size={24} />
-        <h1 className="text-2xl font-bold text-gray-900">תוצאות ודירוגים</h1>
+    <div style={S.page}>
+      <div style={S.header}>
+        <Trophy size={22} color="#eab308" />
+        <span style={S.title}>תוצאות ודירוגים</span>
+        <span style={{ marginRight: 'auto', fontSize: 13, color: '#6b7280' }}>{filtered.length} משתתפים</span>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm p-4 mb-5 flex flex-wrap gap-3">
-        <select value={selectedEvent} onChange={e => { setSelectedEvent(e.target.value); setSelectedRace(''); }}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+      <div style={S.filtersBar}>
+        <select style={S.select} value={selectedEvent} onChange={e => { setSelectedEvent(e.target.value); setSelectedRace(''); }}>
           {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
         </select>
-        <select value={selectedRace} onChange={e => setSelectedRace(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        <select style={S.select} value={selectedRace} onChange={e => setSelectedRace(e.target.value)}>
           <option value="">כל המקצים</option>
           {races.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
         </select>
-        <select value={genderFilter} onChange={e => setGenderFilter(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        <select style={S.select} value={genderFilter} onChange={e => setGenderFilter(e.target.value)}>
           <option value="">כל המינים</option>
           <option value="male">גברים</option>
           <option value="female">נשים</option>
         </select>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
+      <div style={S.tableWrap}>
+        <div style={S.tableScroll}>
+          <table style={S.table}>
+            <thead>
               <tr>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">כללי</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">מקצה</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">מין</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">מס'</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">שם</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">מקצה</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">🏊</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">🚴</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">🏃</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600 font-bold">סה"כ</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">סטטוס</th>
-                <th className="px-4 py-3"></th>
+                {['כללי','מקצה','מין','מס\'','שם','קטגוריה','🏊 שחייה','🚴 אופניים','🏃 ריצה','סה"כ','סטטוס',''].map(h => (
+                  <th key={h} style={S.th}>{h}</th>
+                ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filtered.map((r, i) => (
-                <tr key={r.participant.id} className={i < 3 && r.overall_rank ? 'bg-yellow-50' : 'hover:bg-gray-50'}>
-                  <td className="px-4 py-3 font-bold text-lg">
-                    {r.overall_rank === 1 ? '🥇' : r.overall_rank === 2 ? '🥈' : r.overall_rank === 3 ? '🥉' : r.overall_rank || '—'}
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">{r.race_rank || '—'}</td>
-                  <td className="px-4 py-3 text-gray-500">{r.gender_rank || '—'}</td>
-                  <td className="px-4 py-3 font-mono text-gray-500">{r.participant.bib_number || '—'}</td>
-                  <td className="px-4 py-3 font-medium">{r.participant.first_name} {r.participant.last_name}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{r.race?.name}</td>
-                  <td className="px-4 py-3 font-mono text-blue-600 text-xs">{r.swim ? formatTime(r.swim) : '—'}</td>
-                  <td className="px-4 py-3 font-mono text-orange-600 text-xs">{r.bike ? formatTime(r.bike) : '—'}</td>
-                  <td className="px-4 py-3 font-mono text-green-600 text-xs">{r.run ? formatTime(r.run) : '—'}</td>
-                  <td className="px-4 py-3 font-mono font-bold">{r.total ? formatTime(r.total) : '—'}</td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      r.participant.status === 'finished' ? 'bg-green-100 text-green-700' :
-                      r.participant.status === 'dnf' ? 'bg-red-100 text-red-600' :
-                      'bg-gray-100 text-gray-500'
-                    }`}>{statusLabel(r.participant.status)}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {r.participant.status === 'finished' && (
-                      <button onClick={() => generateCertificatePDF(r)} title="הורד תעודה"
-                        className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded hover:bg-yellow-200">
-                        🎓 תעודה
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+            <tbody>
+              {filtered.map((r, i) => {
+                const isPodium = (r.overall_rank || 0) <= 3 && r.overall_rank;
+                return (
+                  <tr key={r.participant.id} style={{ background: isPodium ? '#fefce8' : i % 2 === 0 ? 'white' : '#fafafa' }}>
+                    <td style={{ ...S.tdBase, fontWeight: 800, fontSize: 16 }}>{rankIcon(r.overall_rank)}</td>
+                    <td style={{ ...S.tdBase, color: '#6b7280' }}>{r.race_rank || '—'}</td>
+                    <td style={{ ...S.tdBase, color: '#6b7280' }}>{r.gender_rank || '—'}</td>
+                    <td style={{ ...S.tdBase, fontFamily: 'monospace', color: '#6b7280' }}>{r.participant.bib_number || '—'}</td>
+                    <td style={{ ...S.tdBase, fontWeight: 600, color: '#111827' }}>{r.participant.first_name} {r.participant.last_name}</td>
+                    <td style={{ ...S.tdBase, color: '#6b7280', fontSize: 12 }}>{r.race?.name}</td>
+                    <td style={{ ...S.tdBase, fontFamily: 'monospace', color: '#3b82f6', fontSize: 12 }}>{r.swim ? formatTime(r.swim) : '—'}</td>
+                    <td style={{ ...S.tdBase, fontFamily: 'monospace', color: '#f97316', fontSize: 12 }}>{r.bike ? formatTime(r.bike) : '—'}</td>
+                    <td style={{ ...S.tdBase, fontFamily: 'monospace', color: '#22c55e', fontSize: 12 }}>{r.run ? formatTime(r.run) : '—'}</td>
+                    <td style={{ ...S.tdBase, fontFamily: 'monospace', fontWeight: 800, color: '#111827' }}>{r.total ? formatTime(r.total) : '—'}</td>
+                    <td style={S.tdBase}>
+                      <span style={statusBadge(r.participant.status)}>{statusLabel(r.participant.status)}</span>
+                    </td>
+                    <td style={S.tdBase}>
+                      {r.participant.status === 'finished' && (
+                        <button
+                          onClick={() => generateCertificatePDF(r)}
+                          style={{ fontSize: 12, background: '#fef9c3', color: '#92400e', border: 'none', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', fontFamily: 'system-ui' }}
+                        >
+                          🎓 תעודה
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
-          {filtered.length === 0 && <div className="text-center py-12 text-gray-400">אין תוצאות</div>}
+          {filtered.length === 0 && <div style={S.empty}>אין תוצאות</div>}
         </div>
       </div>
     </div>

@@ -72,6 +72,13 @@ export interface Participant {
   payment_status: PaymentStatus;
   team_id?: string;
   team_role?: 'swimmer' | 'cyclist' | 'runner';
+  // Classification fields
+  school_grade?: string;
+  recommended_category?: string;
+  selected_category?: string;
+  approval_status?: 'pending' | 'approved' | 'rejected' | null;
+  approval_reason?: string;
+  approval_notes?: string;
   created_at: string;
   updated_at: string;
 }

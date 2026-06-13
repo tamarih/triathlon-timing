@@ -17,6 +17,31 @@ interface TimingRow {
   total?: number;
 }
 
+const S = {
+  page: { direction: 'rtl' as const, fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 1100, margin: '0 auto', paddingBottom: 40 },
+  title: { fontSize: 22, fontWeight: 800, color: '#111827', marginBottom: 20 },
+  filtersBar: { background: 'white', borderRadius: 14, boxShadow: '0 2px 8px rgba(0,0,0,0.07)', padding: '12px 16px', marginBottom: 16, display: 'flex', flexWrap: 'wrap' as const, gap: 10 },
+  select: { border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '8px 12px', fontSize: 14, color: '#374151', background: 'white', outline: 'none', fontFamily: 'system-ui' },
+  input: { border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '8px 12px', fontSize: 14, color: '#374151', background: 'white', outline: 'none', fontFamily: 'system-ui', width: 160 },
+  tableWrap: { background: 'white', borderRadius: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.07)', overflow: 'hidden' },
+  tableScroll: { overflowX: 'auto' as const },
+  table: { width: '100%', borderCollapse: 'collapse' as const, fontSize: 13 },
+  th: { textAlign: 'right' as const, padding: '11px 14px', fontWeight: 600, color: '#6b7280', background: '#f9fafb', borderBottom: '1.5px solid #f3f4f6' },
+  td: { padding: '9px 14px', borderBottom: '1px solid #f9fafb', verticalAlign: 'middle' as const },
+  empty: { textAlign: 'center' as const, padding: 48, color: '#9ca3af', fontSize: 15 },
+  overlay: { position: 'fixed' as const, inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 },
+  modal: { background: 'white', borderRadius: 20, boxShadow: '0 8px 40px rgba(0,0,0,0.2)', width: '100%', maxWidth: 340, padding: 24 },
+  modalHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
+  modalTitle: { fontSize: 17, fontWeight: 800, color: '#111827' },
+  closeBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: 4 },
+  label: { display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 },
+  timeInput: { width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '10px 12px', fontSize: 18, color: '#111827', outline: 'none', boxSizing: 'border-box' as const, background: '#f9fafb', fontFamily: 'system-ui', textAlign: 'center' as const, marginBottom: 16 },
+  btnRow: { display: 'flex', gap: 10 },
+  btnSecondary: { flex: 1, background: 'white', color: '#374151', border: '1.5px solid #e5e7eb', borderRadius: 12, padding: '11px 0', fontSize: 14, fontWeight: 600, cursor: 'pointer' },
+  btnPrimary: { flex: 1, background: 'linear-gradient(135deg,#1d4ed8,#0ea5e9)', color: 'white', border: 'none', borderRadius: 12, padding: '11px 0', fontSize: 14, fontWeight: 700, cursor: 'pointer' },
+  iconBtn: (color: string) => ({ background: 'none', border: 'none', cursor: 'pointer', color, padding: 3, display: 'flex', alignItems: 'center' }),
+};
+
 export default function TimingAdmin() {
   const [events, setEvents] = useState<Event[]>([]);
   const [races, setRaces] = useState<Race[]>([]);
@@ -110,87 +135,105 @@ export default function TimingAdmin() {
     return matchSearch && matchRace;
   });
 
-  return (
-    <div className="p-6 max-w-7xl mx-auto" dir="rtl">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">עריכת זמנים</h1>
+  const stationColors = ['#3b82f6', '#f97316', '#22c55e'];
 
-      <div className="bg-white rounded-xl shadow-sm p-4 mb-5 flex flex-wrap gap-3">
-        <select value={selectedEvent} onChange={e => setSelectedEvent(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+  return (
+    <div style={S.page}>
+      <div style={S.title}>⏱️ עריכת זמנים</div>
+
+      <div style={S.filtersBar}>
+        <select style={S.select} value={selectedEvent} onChange={e => setSelectedEvent(e.target.value)}>
           {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
         </select>
-        <select value={selectedRace} onChange={e => setSelectedRace(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        <select style={S.select} value={selectedRace} onChange={e => setSelectedRace(e.target.value)}>
           <option value="">כל המקצים</option>
           {races.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
         </select>
-        <div className="relative">
-          <input type="text" placeholder="חיפוש..." value={search} onChange={e => setSearch(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none w-40" />
-        </div>
+        <input
+          style={S.input}
+          type="text"
+          placeholder="🔍 חיפוש שם / מספר..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
       </div>
 
-      {/* Edit modal */}
       {editRecord && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold">עריכת זמן - תחנה {editRecord.station}</h3>
-              <button onClick={() => setEditRecord(null)}><X size={18} /></button>
+        <div style={S.overlay}>
+          <div style={S.modal}>
+            <div style={S.modalHeader}>
+              <span style={S.modalTitle}>
+                {['🏊','🚴','🏃'][editRecord.station - 1]} תחנה {editRecord.station}
+              </span>
+              <button style={S.closeBtn} onClick={() => setEditRecord(null)}><X size={18} /></button>
             </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">שעה (HH:MM)</label>
-              <input type="time" value={editTime} onChange={e => setEditTime(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-lg text-center focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-            </div>
-            <div className="flex gap-3">
-              <button onClick={() => setEditRecord(null)} className="flex-1 border border-gray-300 text-gray-700 py-2.5 rounded-lg text-sm">ביטול</button>
-              <button onClick={saveTime} disabled={saving || !editTime} className="flex-1 bg-blue-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
-                {saving ? '...' : 'שמירה'}
+            <label style={S.label}>שעה (HH:MM)</label>
+            <input
+              type="time"
+              value={editTime}
+              onChange={e => setEditTime(e.target.value)}
+              style={S.timeInput}
+            />
+            <div style={S.btnRow}>
+              <button style={S.btnSecondary} onClick={() => setEditRecord(null)}>ביטול</button>
+              <button style={{ ...S.btnPrimary, opacity: saving || !editTime ? 0.5 : 1 }} onClick={saveTime} disabled={saving || !editTime}>
+                {saving ? 'שומר...' : 'שמירה'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
+      <div style={S.tableWrap}>
+        <div style={S.tableScroll}>
+          <table style={S.table}>
+            <thead>
               <tr>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">מס'</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">שם</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">מקצה</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">
-                  🏊 שחייה
-                </th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">🚴 אופניים</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">🏃 ריצה</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600 font-bold">סה"כ</th>
+                <th style={S.th}>מס'</th>
+                <th style={S.th}>שם</th>
+                <th style={S.th}>מקצה</th>
+                <th style={{ ...S.th, color: stationColors[0] }}>🏊 שחייה</th>
+                <th style={{ ...S.th, color: stationColors[1] }}>🚴 אופניים</th>
+                <th style={{ ...S.th, color: stationColors[2] }}>🏃 ריצה</th>
+                <th style={S.th}>סה"כ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filtered.map(row => (
-                <tr key={row.participant.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-mono text-gray-500">{row.participant.bib_number || '—'}</td>
-                  <td className="px-4 py-3 font-medium">{row.participant.first_name} {row.participant.last_name}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{row.race?.name}</td>
+            <tbody>
+              {filtered.map((row, i) => (
+                <tr key={row.participant.id} style={{ background: i % 2 === 0 ? 'white' : '#fafafa' }}>
+                  <td style={{ ...S.td, fontFamily: 'monospace', color: '#6b7280', fontWeight: 600 }}>
+                    {row.participant.bib_number || '—'}
+                  </td>
+                  <td style={{ ...S.td, fontWeight: 600, color: '#111827' }}>
+                    {row.participant.first_name} {row.participant.last_name}
+                  </td>
+                  <td style={{ ...S.td, color: '#6b7280', fontSize: 12 }}>{row.race?.name || '—'}</td>
                   {([1,2,3] as const).map(station => {
                     const rec = station === 1 ? row.t1 : station === 2 ? row.t2 : row.t3;
                     const time = station === 1 ? row.swim : station === 2 ? row.bike : row.run;
+                    const color = stationColors[station - 1];
                     return (
-                      <td key={station} className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          <span className={`font-mono text-xs ${rec ? 'text-blue-600' : 'text-gray-300'}`}>
+                      <td key={station} style={S.td}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span style={{ fontFamily: 'monospace', fontSize: 12, color: rec ? color : '#d1d5db' }}>
                             {rec ? new Date(rec.recorded_at).toLocaleTimeString('he-IL') : '—'}
                           </span>
-                          {time !== undefined && <span className="text-xs text-gray-400">({formatTime(time)})</span>}
-                          <button onClick={() => openEdit(row.participant.id, station, rec)}
-                            className="p-0.5 text-gray-300 hover:text-blue-500 mr-1">
+                          {time !== undefined && (
+                            <span style={{ fontSize: 11, color: '#9ca3af' }}>({formatTime(time)})</span>
+                          )}
+                          <button
+                            style={S.iconBtn(rec ? color : '#9ca3af')}
+                            onClick={() => openEdit(row.participant.id, station, rec)}
+                            title={rec ? 'ערוך' : 'הוסף'}
+                          >
                             {rec ? <Edit2 size={11} /> : <Plus size={11} />}
                           </button>
                           {rec && (
-                            <button onClick={() => deleteTime(rec)} className="p-0.5 text-gray-300 hover:text-red-500">
+                            <button
+                              style={S.iconBtn('#ef4444')}
+                              onClick={() => deleteTime(rec)}
+                              title="מחק"
+                            >
                               <Trash2 size={11} />
                             </button>
                           )}
@@ -198,14 +241,14 @@ export default function TimingAdmin() {
                       </td>
                     );
                   })}
-                  <td className="px-4 py-3 font-mono font-bold text-gray-900">
+                  <td style={{ ...S.td, fontFamily: 'monospace', fontWeight: 800, color: row.total ? '#111827' : '#d1d5db' }}>
                     {row.total ? formatTime(row.total) : '—'}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {filtered.length === 0 && <div className="text-center py-12 text-gray-400">אין נתונים</div>}
+          {filtered.length === 0 && <div style={S.empty}>אין נתונים</div>}
         </div>
       </div>
     </div>
