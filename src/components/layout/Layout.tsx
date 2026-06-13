@@ -16,154 +16,6 @@ const adminNav = [
   { to: '/admin/settings', icon: Settings, label: 'הגדרות' },
 ];
 
-const S = {
-  header: {
-    background: 'linear-gradient(135deg, #1e3a8a 0%, #0284c7 100%)',
-    color: 'white',
-    boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
-    position: 'sticky' as const,
-    top: 0,
-    zIndex: 40,
-  },
-  headerInner: {
-    maxWidth: 1200,
-    margin: '0 auto',
-    padding: '0 16px',
-    height: 60,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    direction: 'rtl' as const,
-  },
-  logoArea: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 10,
-    textDecoration: 'none',
-    color: 'white',
-  },
-  logoCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: '50%',
-    background: 'white',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 3,
-  },
-  logoImg: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'contain' as const,
-  },
-  siteName: {
-    fontWeight: 700,
-    fontSize: 16,
-    letterSpacing: '-0.3px',
-  },
-  headerRight: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 10,
-  },
-  roleBadge: {
-    background: 'rgba(255,255,255,0.2)',
-    border: '1px solid rgba(255,255,255,0.3)',
-    borderRadius: 20,
-    padding: '3px 10px',
-    fontSize: 12,
-    fontWeight: 600,
-  },
-  logoutBtn: {
-    background: 'rgba(255,255,255,0.15)',
-    border: '1px solid rgba(255,255,255,0.25)',
-    borderRadius: 8,
-    padding: '6px 10px',
-    color: 'white',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    gap: 5,
-    fontSize: 13,
-  },
-  loginBtn: {
-    background: 'white',
-    color: '#1e3a8a',
-    border: 'none',
-    borderRadius: 8,
-    padding: '7px 16px',
-    fontSize: 13,
-    fontWeight: 700,
-    cursor: 'pointer',
-    textDecoration: 'none',
-  },
-  menuBtn: {
-    background: 'rgba(255,255,255,0.15)',
-    border: 'none',
-    borderRadius: 8,
-    padding: 7,
-    color: 'white',
-    cursor: 'pointer',
-    display: 'flex',
-  },
-  layout: {
-    display: 'flex',
-    minHeight: 'calc(100vh - 60px)',
-    direction: 'rtl' as const,
-    background: '#f1f5f9',
-  },
-  sidebar: {
-    width: 220,
-    background: 'white',
-    borderLeft: '1px solid #e5e7eb',
-    boxShadow: '2px 0 8px rgba(0,0,0,0.04)',
-    flexShrink: 0,
-    display: 'flex',
-    flexDirection: 'column' as const,
-  },
-  navItem: (active: boolean): React.CSSProperties => ({
-    display: 'flex',
-    alignItems: 'center',
-    gap: 10,
-    padding: '11px 16px',
-    margin: '2px 8px',
-    borderRadius: 10,
-    fontSize: 14,
-    fontWeight: active ? 700 : 500,
-    color: active ? '#1d4ed8' : '#374151',
-    background: active ? '#eff6ff' : 'transparent',
-    textDecoration: 'none',
-    cursor: 'pointer',
-    transition: 'all 0.15s',
-  }),
-  main: {
-    flex: 1,
-    minWidth: 0,
-    padding: '24px 20px',
-  },
-  overlay: {
-    position: 'fixed' as const,
-    inset: 0,
-    background: 'rgba(0,0,0,0.3)',
-    zIndex: 20,
-  },
-  mobileSidebar: (open: boolean): React.CSSProperties => ({
-    position: 'fixed' as const,
-    top: 60,
-    right: 0,
-    bottom: 0,
-    width: 240,
-    background: 'white',
-    boxShadow: '-4px 0 20px rgba(0,0,0,0.15)',
-    zIndex: 30,
-    transform: open ? 'translateX(0)' : 'translateX(100%)',
-    transition: 'transform 0.2s ease',
-    overflowY: 'auto' as const,
-    padding: '12px 0',
-  }),
-};
-
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { appUser, signOut } = useAuth();
   const location = useLocation();
@@ -185,48 +37,106 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   ] : [];
 
   return (
-    <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif', direction: 'rtl' }}>
+      <style>{`
+        .triath-sidebar { display: flex; }
+        .triath-hamburger { display: none; }
+        @media (max-width: 767px) {
+          .triath-sidebar { display: none; }
+          .triath-hamburger { display: flex !important; }
+        }
+        .triath-nav-link:hover { background: #f0f4ff !important; color: #1d4ed8 !important; }
+      `}</style>
+
       {/* Header */}
-      <header style={S.header}>
-        <div style={S.headerInner}>
-          <Link to="/" style={S.logoArea}>
-            <div style={S.logoCircle}>
-              <img src="/logo.png" alt="לוגו" style={S.logoImg} />
+      <header style={{
+        background: 'linear-gradient(135deg, #1e3a8a 0%, #0284c7 100%)',
+        color: 'white',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 40,
+      }}>
+        <div style={{
+          maxWidth: 1200, margin: '0 auto', padding: '0 16px',
+          height: 60, display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', direction: 'rtl',
+        }}>
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'white' }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: '50%', background: 'white',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 3, flexShrink: 0,
+            }}>
+              <img src="/logo.png" alt="לוגו" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
-            <span style={S.siteName}>טריאתלון יקנעם</span>
+            <span style={{ fontWeight: 700, fontSize: 16 }}>טריאתלון יקנעם</span>
           </Link>
 
-          <div style={S.headerRight}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {appUser ? (
               <>
-                <span style={S.roleBadge}>
+                <span style={{
+                  background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)',
+                  borderRadius: 20, padding: '3px 10px', fontSize: 12, fontWeight: 600,
+                }}>
                   {appUser.role === 'admin' ? '👑 מנהל' : appUser.role === 'volunteer' ? '🙋 מתנדב' : '👁️ צופה'}
                 </span>
-                <button onClick={handleSignOut} style={S.logoutBtn}>
+                <button onClick={handleSignOut} style={{
+                  background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)',
+                  borderRadius: 8, padding: '6px 10px', color: 'white', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 5, fontSize: 13,
+                }}>
                   <LogOut size={15} />
                   יציאה
                 </button>
+                {navLinks.length > 0 && (
+                  <button
+                    className="triath-hamburger"
+                    onClick={() => setMobileOpen(!mobileOpen)}
+                    style={{
+                      background: 'rgba(255,255,255,0.15)', border: 'none',
+                      borderRadius: 8, padding: 7, color: 'white', cursor: 'pointer',
+                      alignItems: 'center',
+                    }}
+                  >
+                    {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+                  </button>
+                )}
               </>
             ) : (
-              <Link to="/login" style={S.loginBtn}>כניסה</Link>
-            )}
-            {appUser && (
-              <button style={S.menuBtn} onClick={() => setMobileOpen(!mobileOpen)}
-                className="md-hide">
-                {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-              </button>
+              <Link to="/login" style={{
+                background: 'white', color: '#1e3a8a', border: 'none',
+                borderRadius: 8, padding: '7px 16px', fontSize: 13, fontWeight: 700,
+                textDecoration: 'none',
+              }}>כניסה</Link>
             )}
           </div>
         </div>
       </header>
 
-      <div style={S.layout}>
-        {/* Desktop sidebar */}
+      <div style={{ display: 'flex', minHeight: 'calc(100vh - 60px)', background: '#f1f5f9' }}>
+        {/* Desktop Sidebar */}
         {appUser && navLinks.length > 0 && (
-          <aside style={{ ...S.sidebar, display: 'none' }} className="desktop-sidebar">
+          <aside className="triath-sidebar" style={{
+            width: 220, background: 'white', borderLeft: '1px solid #e5e7eb',
+            boxShadow: '2px 0 8px rgba(0,0,0,0.04)', flexShrink: 0,
+            flexDirection: 'column',
+          }}>
             <nav style={{ padding: '12px 0' }}>
               {navLinks.map(item => (
-                <Link key={item.to} to={item.to} style={S.navItem(isActive(item.to))}>
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className="triath-nav-link"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '11px 16px', margin: '2px 8px', borderRadius: 10,
+                    fontSize: 14, fontWeight: isActive(item.to) ? 700 : 500,
+                    color: isActive(item.to) ? '#1d4ed8' : '#374151',
+                    background: isActive(item.to) ? '#eff6ff' : 'transparent',
+                    textDecoration: 'none', transition: 'all 0.15s',
+                  }}
+                >
                   <item.icon size={17} />
                   {item.label}
                 </Link>
@@ -235,36 +145,47 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </aside>
         )}
 
-        {/* Mobile sidebar */}
-        {appUser && navLinks.length > 0 && (
+        {/* Mobile Sidebar */}
+        {appUser && navLinks.length > 0 && mobileOpen && (
           <>
-            {mobileOpen && <div style={S.overlay} onClick={() => setMobileOpen(false)} />}
-            <div style={S.mobileSidebar(mobileOpen)}>
-              <nav>
-                {navLinks.map(item => (
-                  <Link key={item.to} to={item.to}
-                    style={S.navItem(isActive(item.to))}
-                    onClick={() => setMobileOpen(false)}>
-                    <item.icon size={17} />
-                    {item.label}
-                  </Link>
-                ))}
-              </nav>
+            <div
+              onClick={() => setMobileOpen(false)}
+              style={{
+                position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 20,
+              }}
+            />
+            <div style={{
+              position: 'fixed', top: 60, right: 0, bottom: 0, width: 240,
+              background: 'white', boxShadow: '-4px 0 20px rgba(0,0,0,0.15)',
+              zIndex: 30, overflowY: 'auto', padding: '12px 0',
+            }}>
+              {navLinks.map(item => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setMobileOpen(false)}
+                  className="triath-nav-link"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '13px 20px', fontSize: 15,
+                    fontWeight: isActive(item.to) ? 700 : 500,
+                    color: isActive(item.to) ? '#1d4ed8' : '#374151',
+                    background: isActive(item.to) ? '#eff6ff' : 'transparent',
+                    textDecoration: 'none',
+                  }}
+                >
+                  <item.icon size={18} />
+                  {item.label}
+                </Link>
+              ))}
             </div>
           </>
         )}
 
-        <main style={S.main}>
+        <main style={{ flex: 1, minWidth: 0, padding: '24px 20px' }}>
           {children}
         </main>
       </div>
-
-      <style>{`
-        @media (min-width: 768px) {
-          .desktop-sidebar { display: flex !important; }
-          .md-hide { display: none !important; }
-        }
-      `}</style>
     </div>
   );
 }
