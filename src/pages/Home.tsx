@@ -39,7 +39,8 @@ const S = {
     justifyContent: 'center',
     marginBottom: 16,
     boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-    padding: 10,
+    padding: 0,
+    overflow: 'hidden',
   } as React.CSSProperties,
   logo: {
     width: '100%',

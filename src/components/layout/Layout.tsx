@@ -65,7 +65,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'white' }}>
             <div style={{
               width: 36, height: 36, borderRadius: '50%', background: 'white',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 3, flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0, overflow: 'hidden',
             }}>
               <img src="/logo.png" alt="לוגו" style={{ width: '100%', height: '100%', objectFit: 'contain', mixBlendMode: 'multiply' }} />
             </div>
