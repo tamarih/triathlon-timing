@@ -50,14 +50,12 @@ export default function Settings() {
     setSaving(true);
     try {
       const loginEmail = toLoginEmail(newUser.email);
-      const { data, error } = await supabase.functions.invoke('create-user', {
-        body: {
-          email: loginEmail,
-          password: newUser.password,
-          name: newUser.name,
-          role: newUser.role,
-          assigned_station: newUser.assigned_station,
-        },
+      const { data, error } = await supabase.rpc('create_app_user', {
+        p_email: loginEmail,
+        p_password: newUser.password,
+        p_name: newUser.name,
+        p_role: newUser.role,
+        p_station: newUser.assigned_station ? Number(newUser.assigned_station) : null,
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
