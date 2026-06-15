@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { Participant, Event, Race } from '../../lib/types';
 import { genderLabel, statusLabel, paymentLabel, calculateAge } from '../../lib/utils';
-import { Search, Edit2, Download, Upload, X } from 'lucide-react';
+import { Search, Edit2, Download, Upload, X, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 
@@ -66,6 +66,9 @@ export default function Participants() {
   const [approvalFilter, setApprovalFilter] = useState('');
   const [approvalNotes, setApprovalNotes] = useState('');
   const [showApprovalModal, setShowApprovalModal] = useState<Participant | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmDelete, setConfirmDelete] = useState<'single' | 'multi' | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.from('events').select('*').order('date', { ascending: false }).then(({ data }) => {
@@ -141,6 +144,39 @@ export default function Participants() {
     reader.readAsBinaryString(file);
   }
 
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    const ids = filtered.map(p => p.id);
+    if (ids.every(id => selectedIds.has(id))) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(ids));
+    }
+  }
+
+  async function deleteOne(id: string) {
+    const { error } = await supabase.from('participants').delete().eq('id', id);
+    if (error) toast.error(error.message);
+    else { toast.success('משתתף נמחק'); loadParticipants(); }
+    setConfirmDelete(null);
+    setDeleteTarget(null);
+  }
+
+  async function deleteSelected() {
+    const ids = Array.from(selectedIds);
+    const { error } = await supabase.from('participants').delete().in('id', ids);
+    if (error) toast.error(error.message);
+    else { toast.success(`${ids.length} משתתפים נמחקו`); setSelectedIds(new Set()); loadParticipants(); }
+    setConfirmDelete(null);
+  }
+
   async function approveParticipant(p: Participant, status: 'approved' | 'rejected') {
     const { error } = await supabase.from('participants').update({
       approval_status: status,
@@ -175,6 +211,12 @@ export default function Participants() {
       <div style={S.header}>
         <span style={S.title}>משתתפים</span>
         <div style={S.btnGroup}>
+          {selectedIds.size > 0 && (
+            <button
+              style={{ ...S.outlineBtn, color: '#dc2626', borderColor: '#fca5a5' }}
+              onClick={() => setConfirmDelete('multi')}
+            ><Trash2 size={14} /> מחק נבחרים ({selectedIds.size})</button>
+          )}
           <button style={S.outlineBtn} onClick={() => setShowImport(true)}><Upload size={14} /> ייבוא Excel</button>
           <button style={S.outlineBtn} onClick={exportExcel}><Download size={14} /> ייצוא</button>
         </div>
@@ -232,6 +274,12 @@ export default function Participants() {
           <table style={S.table}>
             <thead>
               <tr>
+                <th style={S.th}>
+                  <input type="checkbox"
+                    checked={filtered.length > 0 && filtered.every(p => selectedIds.has(p.id))}
+                    onChange={toggleSelectAll}
+                  />
+                </th>
                 {['מס\'', 'שם', 'קטגוריה', 'מקצה', 'מין/גיל', 'טלפון', 'סטטוס', 'תשלום', 'אישור', ''].map(h => (
                   <th key={h} style={S.th}>{h}</th>
                 ))}
@@ -239,7 +287,10 @@ export default function Participants() {
             </thead>
             <tbody>
               {filtered.map(p => (
-                <tr key={p.id} style={{ background: 'white' }}>
+                <tr key={p.id} style={{ background: selectedIds.has(p.id) ? '#eff6ff' : 'white' }}>
+                  <td style={S.td}>
+                    <input type="checkbox" checked={selectedIds.has(p.id)} onChange={() => toggleSelect(p.id)} />
+                  </td>
                   <td style={{ ...S.td, fontFamily: 'monospace', color: '#6b7280' }}>{p.bib_number || '—'}</td>
                   <td style={{ ...S.td, fontWeight: 700, color: '#111827' }}>{p.first_name} {p.last_name}</td>
                   <td style={{ ...S.td, color: '#6b7280', fontSize: 12 }}>{p.recommended_category || '—'}</td>
@@ -268,8 +319,9 @@ export default function Participants() {
                       <span style={{ fontSize: 11, fontWeight: 700, background: '#fee2e2', color: '#dc2626', borderRadius: 20, padding: '3px 10px' }}>❌ נדחה</span>
                     ) : null}
                   </td>
-                  <td style={S.td}>
+                  <td style={{ ...S.td, whiteSpace: 'nowrap' as const }}>
                     <button onClick={() => setEditParticipant(p)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 4, borderRadius: 6 }}><Edit2 size={14} /></button>
+                    <button onClick={() => { setDeleteTarget(p.id); setConfirmDelete('single'); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#fca5a5', padding: 4, borderRadius: 6 }}><Trash2 size={14} /></button>
                   </td>
                 </tr>
               ))}
@@ -318,6 +370,29 @@ export default function Participants() {
                 style={{ ...S.btnPrimary, background: 'linear-gradient(135deg,#16a34a,#22c55e)' }}
                 onClick={() => approveParticipant(showApprovalModal, 'approved')}
               >✅ אישור</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmDelete && (
+        <div style={S.overlay}>
+          <div style={{ ...S.modal, maxWidth: 360 }}>
+            <div style={S.modalHeader}>
+              <span style={{ ...S.modalTitle, color: '#dc2626' }}>אישור מחיקה</span>
+              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }} onClick={() => setConfirmDelete(null)}><X size={18} /></button>
+            </div>
+            <p style={{ fontSize: 14, color: '#374151', marginBottom: 20 }}>
+              {confirmDelete === 'single'
+                ? 'האם למחוק את המשתתף? פעולה זו אינה הפיכה.'
+                : `האם למחוק ${selectedIds.size} משתתפים? פעולה זו אינה הפיכה.`}
+            </p>
+            <div style={S.btnRow}>
+              <button style={S.btnSecondary} onClick={() => setConfirmDelete(null)}>ביטול</button>
+              <button
+                style={{ ...S.btnPrimary, background: 'linear-gradient(135deg,#dc2626,#ef4444)' }}
+                onClick={() => confirmDelete === 'single' && deleteTarget ? deleteOne(deleteTarget) : deleteSelected()}
+              >מחק</button>
             </div>
           </div>
         </div>
