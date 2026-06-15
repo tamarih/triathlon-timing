@@ -141,6 +141,15 @@ CREATE TABLE change_log (
 );
 
 -- App users (extends auth.users)
+CREATE TABLE route_stations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  notes TEXT,
+  sort_order INT NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE app_users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
@@ -151,6 +160,7 @@ CREATE TABLE app_users (
     assigned_disciplines IS NULL OR
     assigned_disciplines <@ ARRAY['swim','bike','run']::TEXT[]
   ),
+  assigned_route_station UUID REFERENCES route_stations(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

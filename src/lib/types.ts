@@ -173,4 +173,14 @@ export interface AppUser {
   name?: string;
   assigned_station?: 1 | 2 | 3;
   assigned_disciplines?: Discipline[];
+  assigned_route_station?: string;
+}
+
+export interface RouteStation {
+  id: string;
+  name: string;
+  notes?: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
 }

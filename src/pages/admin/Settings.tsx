@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import type { AppUser, Discipline } from '../../lib/types';
-import { Plus, X, Eye, EyeOff, KeyRound } from 'lucide-react';
+import type { AppUser, Discipline, RouteStation } from '../../lib/types';
+import { Plus, X, Eye, EyeOff, KeyRound, MapPin, Pencil, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { toLoginEmail, isUsernameEmail, displayLogin } from '../../lib/utils';
 
@@ -35,16 +35,38 @@ const DISCIPLINES: Discipline[] = ['swim', 'bike', 'run'];
 
 export default function Settings() {
   const [users, setUsers] = useState<AppUser[]>([]);
+  const [stations, setStations] = useState<RouteStation[]>([]);
   const [showAddUser, setShowAddUser] = useState(false);
-  const [newUser, setNewUser] = useState<{ email: string; password: string; name: string; role: string; assigned_station: string; assigned_disciplines: Discipline[] }>({ email: '', password: '', name: '', role: 'volunteer', assigned_station: '', assigned_disciplines: [] });
+  const [newUser, setNewUser] = useState<{ email: string; password: string; name: string; role: string; assignment: string; assigned_disciplines: Discipline[] }>({ email: '', password: '', name: '', role: 'volunteer', assignment: '', assigned_disciplines: [] });
   const [saving, setSaving] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showAddStation, setShowAddStation] = useState(false);
+  const [editingStation, setEditingStation] = useState<RouteStation | null>(null);
+  const [stationForm, setStationForm] = useState<{ name: string; notes: string }>({ name: '', notes: '' });
 
-  useEffect(() => { loadUsers(); }, []);
+  useEffect(() => { loadUsers(); loadStations(); }, []);
 
   async function loadUsers() {
     const { data } = await supabase.from('app_users').select('*').order('role');
     setUsers(data || []);
+  }
+
+  async function loadStations() {
+    const { data } = await supabase.from('route_stations').select('*').eq('is_active', true).order('sort_order').order('name');
+    setStations(data || []);
+  }
+
+  function parseAssignment(value: string): { assigned_station: number | null; assigned_route_station: string | null } {
+    if (!value) return { assigned_station: null, assigned_route_station: null };
+    if (value.startsWith('t:')) return { assigned_station: Number(value.slice(2)), assigned_route_station: null };
+    if (value.startsWith('r:')) return { assigned_station: null, assigned_route_station: value.slice(2) };
+    return { assigned_station: null, assigned_route_station: null };
+  }
+
+  function assignmentValue(u: AppUser): string {
+    if (u.assigned_station) return `t:${u.assigned_station}`;
+    if (u.assigned_route_station) return `r:${u.assigned_route_station}`;
+    return '';
   }
 
   async function addUser(e: React.FormEvent) {
@@ -54,18 +76,20 @@ export default function Settings() {
       const loginEmail = toLoginEmail(newUser.email);
       const { data, error } = await supabase.auth.admin.createUser({ email: loginEmail, password: newUser.password, email_confirm: true });
       if (error) throw error;
+      const assignment = newUser.role === 'volunteer' ? parseAssignment(newUser.assignment) : { assigned_station: null, assigned_route_station: null };
       await supabase.from('app_users').insert({
         id: data.user.id,
         email: loginEmail,
         name: newUser.name,
         role: newUser.role,
-        assigned_station: newUser.role === 'volunteer' && newUser.assigned_station ? Number(newUser.assigned_station) : null,
+        assigned_station: assignment.assigned_station,
+        assigned_route_station: assignment.assigned_route_station,
         assigned_disciplines: newUser.role === 'judge' && newUser.assigned_disciplines.length ? newUser.assigned_disciplines : null,
       });
       toast.success('משתמש נוצר');
       setShowAddUser(false);
       setShowPassword(false);
-      setNewUser({ email: '', password: '', name: '', role: 'volunteer', assigned_station: '', assigned_disciplines: [] });
+      setNewUser({ email: '', password: '', name: '', role: 'volunteer', assignment: '', assigned_disciplines: [] });
       loadUsers();
     } catch (err: any) { toast.error(err.message || 'שגיאה ביצירת משתמש'); }
     finally { setSaving(false); }
@@ -83,10 +107,41 @@ export default function Settings() {
     loadUsers();
   }
 
-  async function updateStation(userId: string, station: string) {
-    await supabase.from('app_users').update({ assigned_station: station ? Number(station) : null }).eq('id', userId);
-    toast.success('תחנה עודכנה');
+  async function updateAssignment(userId: string, value: string) {
+    const { assigned_station, assigned_route_station } = parseAssignment(value);
+    await supabase.from('app_users').update({ assigned_station, assigned_route_station }).eq('id', userId);
+    toast.success('שיוך עודכן');
     loadUsers();
+  }
+
+  async function saveStation(e: React.FormEvent) {
+    e.preventDefault();
+    if (!stationForm.name.trim()) return;
+    if (editingStation) {
+      await supabase.from('route_stations').update({ name: stationForm.name.trim(), notes: stationForm.notes.trim() || null }).eq('id', editingStation.id);
+      toast.success('תחנה עודכנה');
+    } else {
+      await supabase.from('route_stations').insert({ name: stationForm.name.trim(), notes: stationForm.notes.trim() || null, sort_order: stations.length });
+      toast.success('תחנה נוספה');
+    }
+    setShowAddStation(false);
+    setEditingStation(null);
+    setStationForm({ name: '', notes: '' });
+    loadStations();
+  }
+
+  async function deleteStation(s: RouteStation) {
+    if (!confirm(`למחוק את "${s.name}"?`)) return;
+    await supabase.from('route_stations').update({ is_active: false }).eq('id', s.id);
+    toast.success('תחנה הוסרה');
+    loadStations();
+    loadUsers();
+  }
+
+  function openStationModal(s: RouteStation | null) {
+    setEditingStation(s);
+    setStationForm(s ? { name: s.name, notes: s.notes || '' } : { name: '', notes: '' });
+    setShowAddStation(true);
   }
 
   async function toggleDiscipline(user: AppUser, discipline: Discipline) {
@@ -133,11 +188,18 @@ export default function Settings() {
               <option value="viewer">צופה</option>
             </select>
             {u.role === 'volunteer' && (
-              <select style={S.select} value={String(u.assigned_station || '')} onChange={e => updateStation(u.id, e.target.value)}>
-                <option value="">תחנה</option>
-                <option value="1">תחנה 1</option>
-                <option value="2">תחנה 2</option>
-                <option value="3">תחנה 3</option>
+              <select style={S.select} value={assignmentValue(u)} onChange={e => updateAssignment(u.id, e.target.value)}>
+                <option value="">בחר תחנה</option>
+                <optgroup label="תיזמון">
+                  <option value="t:1">תחנה 1 — יציאה משחייה</option>
+                  <option value="t:2">תחנה 2 — סיום אופניים</option>
+                  <option value="t:3">תחנה 3 — קו סיום</option>
+                </optgroup>
+                {stations.length > 0 && (
+                  <optgroup label="מסלול / צמתים">
+                    {stations.map(st => <option key={st.id} value={`r:${st.id}`}>{st.name}</option>)}
+                  </optgroup>
+                )}
               </select>
             )}
             {u.role === 'judge' && (
@@ -169,6 +231,38 @@ export default function Settings() {
             </span>
           </div>
         ))}
+      </div>
+
+      <div style={S.card}>
+        <div style={S.cardHeader}>
+          <span style={S.cardTitle}><MapPin size={15} style={{ display: 'inline', verticalAlign: 'text-bottom', marginLeft: 4 }} />תחנות מסלול</span>
+          <button style={S.addBtn} onClick={() => openStationModal(null)}>
+            <Plus size={14} /> תחנה חדשה
+          </button>
+        </div>
+        {stations.length === 0 && (
+          <div style={{ fontSize: 13, color: '#6b7280', padding: '12px 4px' }}>אין תחנות מסלול. הוסיפו תחנות (לדוגמה "צומת הדקל") כדי לשייך אליהן מתנדבים.</div>
+        )}
+        {stations.map(s => {
+          const assigned = users.filter(u => u.assigned_route_station === s.id);
+          return (
+            <div key={s.id} style={S.userRow}>
+              <div style={{ flex: 1 }}>
+                <div style={S.userName}>📍 {s.name}</div>
+                <div style={S.userEmail}>
+                  {s.notes ? `${s.notes} · ` : ''}
+                  {assigned.length === 0 ? 'ללא מתנדב' : assigned.map(u => u.name || displayLogin(u.email)).join(', ')}
+                </div>
+              </div>
+              <button type="button" onClick={() => openStationModal(s)} title="עריכה" style={{ background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: '#6b7280' }}>
+                <Pencil size={14} />
+              </button>
+              <button type="button" onClick={() => deleteStation(s)} title="מחיקה" style={{ background: 'white', border: '1.5px solid #fecaca', borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: '#dc2626' }}>
+                <Trash2 size={14} />
+              </button>
+            </div>
+          );
+        })}
       </div>
 
       <div style={S.infoCard}>
@@ -230,11 +324,18 @@ export default function Settings() {
               {newUser.role === 'volunteer' && (
                 <>
                   <label style={S.label}>תחנה</label>
-                  <select style={{ ...S.input, marginBottom: 14 }} value={newUser.assigned_station} onChange={e => setNewUser({...newUser, assigned_station: e.target.value})}>
+                  <select style={{ ...S.input, marginBottom: 14 }} value={newUser.assignment} onChange={e => setNewUser({...newUser, assignment: e.target.value})}>
                     <option value="">ללא</option>
-                    <option value="1">תחנה 1 — יציאה משחייה</option>
-                    <option value="2">תחנה 2 — סיום אופניים</option>
-                    <option value="3">תחנה 3 — קו סיום</option>
+                    <optgroup label="תיזמון">
+                      <option value="t:1">תחנה 1 — יציאה משחייה</option>
+                      <option value="t:2">תחנה 2 — סיום אופניים</option>
+                      <option value="t:3">תחנה 3 — קו סיום</option>
+                    </optgroup>
+                    {stations.length > 0 && (
+                      <optgroup label="מסלול / צמתים">
+                        {stations.map(st => <option key={st.id} value={`r:${st.id}`}>{st.name}</option>)}
+                      </optgroup>
+                    )}
                   </select>
                 </>
               )}
@@ -275,6 +376,27 @@ export default function Settings() {
               <div style={S.btnRow}>
                 <button type="button" style={S.btnSecondary} onClick={() => setShowAddUser(false)}>ביטול</button>
                 <button type="submit" style={S.btnPrimary} disabled={saving}>{saving ? 'יוצר...' : 'יצירה'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showAddStation && (
+        <div style={S.overlay}>
+          <div style={S.modal}>
+            <div style={S.modalHeader}>
+              <span style={S.modalTitle}>{editingStation ? 'עריכת תחנה' : 'תחנה חדשה'}</span>
+              <button style={S.closeBtn} onClick={() => { setShowAddStation(false); setEditingStation(null); }}><X size={18} /></button>
+            </div>
+            <form onSubmit={saveStation}>
+              <label style={S.label}>שם התחנה</label>
+              <input style={S.input} value={stationForm.name} onChange={e => setStationForm({ ...stationForm, name: e.target.value })} required placeholder="לדוגמה: צומת הדקל" autoFocus />
+              <label style={S.label}>הערות (אופציונלי)</label>
+              <input style={S.input} value={stationForm.notes} onChange={e => setStationForm({ ...stationForm, notes: e.target.value })} placeholder="לדוגמה: סגירת כביש משעה 8:00" />
+              <div style={S.btnRow}>
+                <button type="button" style={S.btnSecondary} onClick={() => { setShowAddStation(false); setEditingStation(null); }}>ביטול</button>
+                <button type="submit" style={S.btnPrimary}>{editingStation ? 'עדכון' : 'יצירה'}</button>
               </div>
             </form>
           </div>
