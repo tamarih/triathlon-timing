@@ -16,8 +16,8 @@ const S = {
     fontFamily: 'system-ui, -apple-system, sans-serif',
   },
   logoWrap: {
-    width: 80,
-    height: 80,
+    width: 96,
+    height: 96,
     borderRadius: '50%',
     background: 'white',
     display: 'flex',
@@ -25,12 +25,12 @@ const S = {
     justifyContent: 'center',
     marginBottom: 20,
     boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-    padding: 0,
+    padding: 6,
     overflow: 'hidden',
   } as React.CSSProperties,
   logo: {
-    width: '95%',
-    height: '95%',
+    width: '100%',
+    height: '100%',
     objectFit: 'contain' as const,
   },
   title: {
