@@ -44,9 +44,10 @@ interface RoleFormState {
   category: RoleCategory;
   title: string;
   notes: string;
+  volunteer_id: string;
 }
 
-const EMPTY_ROLE_FORM: RoleFormState = { category: 'pool', title: '', notes: '' };
+const EMPTY_ROLE_FORM: RoleFormState = { category: 'pool', title: '', notes: '', volunteer_id: '' };
 
 export default function Roles() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -103,7 +104,10 @@ export default function Roles() {
 
   function openRoleModal(cat: RoleCategory, role: Role | null) {
     setEditingRole(role);
-    setRoleForm(role ? { category: role.category, title: role.title, notes: role.notes || '' } : { ...EMPTY_ROLE_FORM, category: cat });
+    const existingAssignment = role ? assignmentsByRole[role.id]?.[0] : null;
+    setRoleForm(role
+      ? { category: role.category, title: role.title, notes: role.notes || '', volunteer_id: existingAssignment?.volunteer_id || '' }
+      : { ...EMPTY_ROLE_FORM, category: cat });
     setShowRoleModal(true);
   }
 
@@ -127,10 +131,22 @@ export default function Roles() {
     if (editingRole) {
       const { error } = await supabase.from('roles').update(payload).eq('id', editingRole.id);
       if (error) return toast.error(error.message);
+      // update assignment
+      const existing = assignmentsByRole[editingRole.id]?.[0];
+      if (roleForm.volunteer_id) {
+        if (existing) await supabase.from('role_assignments').update({ volunteer_id: roleForm.volunteer_id, external_label: null }).eq('id', existing.id);
+        else await supabase.from('role_assignments').insert({ role_id: editingRole.id, volunteer_id: roleForm.volunteer_id });
+      } else if (existing) {
+        await supabase.from('role_assignments').delete().eq('id', existing.id);
+      }
       toast.success('עודכן');
     } else {
-      const { error } = await supabase.from('roles').insert(payload);
+      const { data: newRole, error } = await supabase.from('roles').insert(payload).select().single();
       if (error) return toast.error(error.message);
+      // create assignment if volunteer selected
+      if (roleForm.volunteer_id && newRole) {
+        await supabase.from('role_assignments').insert({ role_id: newRole.id, volunteer_id: roleForm.volunteer_id });
+      }
       toast.success('נוסף');
     }
     closeRoleModal();
@@ -347,6 +363,12 @@ export default function Roles() {
 
               <label style={S.label}>הערות</label>
               <input style={S.input} value={roleForm.notes} onChange={e => setRoleForm({ ...roleForm, notes: e.target.value })} placeholder="אופציונלי" />
+
+              <label style={S.label}>שיוך מתנדב (אופציונלי)</label>
+              <select style={S.input} value={roleForm.volunteer_id} onChange={e => setRoleForm({ ...roleForm, volunteer_id: e.target.value })}>
+                <option value="">— ללא שיוך —</option>
+                {volunteers.map(v => <option key={v.id} value={v.id}>{v.name}{v.phone ? ` · ${v.phone}` : ''}</option>)}
+              </select>
 
               <div style={S.btnRow}>
                 <button type="button" style={S.btnSecondary} onClick={closeRoleModal}>ביטול</button>
