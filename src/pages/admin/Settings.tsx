@@ -50,15 +50,17 @@ export default function Settings() {
     setSaving(true);
     try {
       const loginEmail = toLoginEmail(newUser.email);
-      const { data, error } = await supabase.auth.admin.createUser({ email: loginEmail, password: newUser.password, email_confirm: true });
-      if (error) throw error;
-      await supabase.from('app_users').insert({
-        id: data.user.id,
-        email: loginEmail,
-        name: newUser.name,
-        role: newUser.role,
-        assigned_station: newUser.role === 'volunteer' && newUser.assigned_station ? Number(newUser.assigned_station) : null,
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: loginEmail,
+          password: newUser.password,
+          name: newUser.name,
+          role: newUser.role,
+          assigned_station: newUser.assigned_station,
+        },
       });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       toast.success('משתמש נוצר');
       setShowAddUser(false);
       setShowPassword(false);
