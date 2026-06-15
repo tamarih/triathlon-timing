@@ -67,7 +67,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               width: 36, height: 36, borderRadius: '50%', background: 'white',
               display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0, overflow: 'hidden',
             }}>
-              <img src="/logo.png" alt="לוגו" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src="/logo.png" alt="לוגו" style={{ width: '95%', height: '95%', objectFit: 'contain' }} />
             </div>
             <span style={{ fontWeight: 700, fontSize: 16 }}>טריאתלון יקנעם</span>
           </Link>
