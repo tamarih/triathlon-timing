@@ -19,20 +19,14 @@ const S = {
     width: 96,
     height: 96,
     borderRadius: '50%',
-    background: 'white',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: 'white',
+    backgroundImage: 'url(/logo.png)',
+    backgroundSize: '120%',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
     marginBottom: 20,
     boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-    padding: 6,
-    overflow: 'hidden',
   } as React.CSSProperties,
-  logo: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'contain' as const,
-  },
   title: {
     color: 'white',
     fontSize: 26,
@@ -127,9 +121,7 @@ export default function Login() {
 
   return (
     <div style={S.page}>
-      <div style={S.logoWrap}>
-        <img src="/logo.png" alt="לוגו" style={S.logo} />
-      </div>
+      <div style={S.logoWrap} role="img" aria-label="לוגו" />
       <h1 style={S.title}>כניסה למערכת</h1>
       <p style={S.subtitle}>טריאתלון יקנעם מושבה</p>
 
