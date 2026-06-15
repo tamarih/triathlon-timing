@@ -16,6 +16,8 @@ import AdminResults from './pages/admin/AdminResults';
 import Reports from './pages/admin/Reports';
 import Settings from './pages/admin/Settings';
 import Volunteers from './pages/admin/Volunteers';
+import Roles from './pages/admin/Roles';
+import Equipment from './pages/admin/Equipment';
 
 function ProtectedRoute({ children, role }: { children: React.ReactNode; role?: 'admin' | 'volunteer' }) {
   const { user, appUser, loading } = useAuth();
@@ -54,6 +56,12 @@ function AppRoutes() {
         } />
         <Route path="/admin/volunteers" element={
           <ProtectedRoute role="admin"><Volunteers /></ProtectedRoute>
+        } />
+        <Route path="/admin/roles" element={
+          <ProtectedRoute role="admin"><Roles /></ProtectedRoute>
+        } />
+        <Route path="/admin/equipment" element={
+          <ProtectedRoute role="admin"><Equipment /></ProtectedRoute>
         } />
         <Route path="/admin/reports" element={
           <ProtectedRoute role="admin"><Reports /></ProtectedRoute>

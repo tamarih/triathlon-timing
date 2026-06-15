@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'volunteer' | 'viewer' | 'judge';
+export type UserRole = 'admin' | 'volunteer' | 'viewer';
 
 export type Discipline = 'swim' | 'bike' | 'run';
 
@@ -172,30 +172,57 @@ export interface AppUser {
   role: UserRole;
   name?: string;
   assigned_station?: 1 | 2 | 3;
-  assigned_disciplines?: Discipline[];
-  assigned_route_station?: string;
 }
 
-export interface RouteStation {
-  id: string;
-  name: string;
-  notes?: string;
-  sort_order: number;
-  is_active: boolean;
-  created_at: string;
-}
-
-export type VolunteerAssignmentType = 'timing' | 'route' | 'judge' | null;
+export type VolunteerStatus = 'active' | 'potential' | 'unavailable';
 
 export interface Volunteer {
   id: string;
   name: string;
   phone?: string;
+  status: VolunteerStatus;
   notes?: string;
-  assignment_type: VolunteerAssignmentType;
-  assigned_station?: 1 | 2 | 3;
-  assigned_route_station?: string;
-  judge_disciplines?: Discipline[];
   created_at: string;
   updated_at: string;
+}
+
+export type RoleCategory =
+  | 'pool'        // בריכה
+  | 'bike'        // אופניים
+  | 'run'         // ריצה
+  | 'catering'    // כיבוד
+  | 'closures'    // חסימות
+  | 'extras'      // משימות נוספות
+  | 'other';      // אחר
+
+export interface Role {
+  id: string;
+  event_id: string;
+  category: RoleCategory;
+  title: string;
+  notes?: string;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface RoleAssignment {
+  id: string;
+  role_id: string;
+  volunteer_id?: string | null;
+  external_label?: string | null;
+  notes?: string;
+  is_confirmed?: boolean;
+  created_at: string;
+}
+
+export interface Equipment {
+  id: string;
+  event_id: string;
+  category: RoleCategory;
+  name: string;
+  quantity?: string;
+  unit?: string;
+  notes?: string;
+  sort_order: number;
+  created_at: string;
 }

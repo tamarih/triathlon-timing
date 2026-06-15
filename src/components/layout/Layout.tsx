@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   Home, Calendar, Users, Timer, FileText,
-  LogOut, Menu, X, Trophy, Settings, HeartHandshake,
+  LogOut, Menu, X, Trophy, Settings, HeartHandshake, ClipboardList, Package,
 } from 'lucide-react';
 
 const adminNav = [
@@ -11,6 +11,8 @@ const adminNav = [
   { to: '/admin/events', icon: Calendar, label: 'אירועים' },
   { to: '/admin/participants', icon: Users, label: 'משתתפים' },
   { to: '/admin/volunteers', icon: HeartHandshake, label: 'מתנדבים' },
+  { to: '/admin/roles', icon: ClipboardList, label: 'תפקידים' },
+  { to: '/admin/equipment', icon: Package, label: 'ציוד' },
   { to: '/admin/timing', icon: Timer, label: 'מדידת זמנים' },
   { to: '/admin/results', icon: Trophy, label: 'תוצאות' },
   { to: '/admin/reports', icon: FileText, label: 'דוחות' },

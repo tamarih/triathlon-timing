@@ -141,42 +141,58 @@ CREATE TABLE change_log (
 );
 
 -- App users (extends auth.users)
+CREATE TABLE app_users (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'viewer' CHECK (role IN ('admin','volunteer','viewer')),
+  name TEXT,
+  assigned_station INT CHECK (assigned_station IN (1,2,3)),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Volunteer roster (people)
 CREATE TABLE volunteers (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
   phone TEXT,
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','potential','unavailable')),
   notes TEXT,
-  assignment_type TEXT CHECK (assignment_type IN ('timing','route','judge')),
-  assigned_station INT CHECK (assigned_station IN (1,2,3)),
-  assigned_route_station UUID,
-  judge_disciplines TEXT[] CHECK (
-    judge_disciplines IS NULL OR
-    judge_disciplines <@ ARRAY['swim','bike','run']::TEXT[]
-  ),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE route_stations (
+-- Roles (tasks/positions per event)
+CREATE TABLE roles (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name TEXT NOT NULL,
+  event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  category TEXT NOT NULL CHECK (category IN ('pool','bike','run','catering','closures','extras','other')),
+  title TEXT NOT NULL,
   notes TEXT,
   sort_order INT NOT NULL DEFAULT 0,
-  is_active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE app_users (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email TEXT NOT NULL,
-  role TEXT NOT NULL DEFAULT 'viewer' CHECK (role IN ('admin','volunteer','viewer','judge')),
-  name TEXT,
-  assigned_station INT CHECK (assigned_station IN (1,2,3)),
-  assigned_disciplines TEXT[] CHECK (
-    assigned_disciplines IS NULL OR
-    assigned_disciplines <@ ARRAY['swim','bike','run']::TEXT[]
-  ),
-  assigned_route_station UUID REFERENCES route_stations(id) ON DELETE SET NULL,
+-- Role assignments (people or external labels assigned to roles)
+CREATE TABLE role_assignments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  role_id UUID NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+  volunteer_id UUID REFERENCES volunteers(id) ON DELETE SET NULL,
+  external_label TEXT,
+  notes TEXT,
+  is_confirmed BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Equipment (supplies/quantities per event)
+CREATE TABLE equipment (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  category TEXT NOT NULL CHECK (category IN ('pool','bike','run','catering','closures','extras','other')),
+  name TEXT NOT NULL,
+  quantity TEXT,
+  unit TEXT,
+  notes TEXT,
+  sort_order INT NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
