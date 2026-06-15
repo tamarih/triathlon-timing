@@ -21,7 +21,7 @@ import Equipment from './pages/admin/Equipment';
 
 function ProtectedRoute({ children, role }: { children: React.ReactNode; role?: 'admin' | 'volunteer' }) {
   const { user, appUser, loading } = useAuth();
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-500">טוען...</div>;
+  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280', fontFamily: 'system-ui' }}>טוען...</div>;
   if (!user) return <Navigate to="/login" />;
   if (role === 'admin' && appUser?.role !== 'admin') return <Navigate to="/" />;
   if (role === 'volunteer' && appUser?.role !== 'admin' && appUser?.role !== 'volunteer') return <Navigate to="/" />;
