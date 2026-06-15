@@ -172,7 +172,6 @@ export default function Register() {
     try {
       const cap = await checkCapacity(selectedRace);
       if (cap.full) { setWaitlist(true); setSubmitting(false); return; }
-      const age = form.birth_date ? calculateAge(form.birth_date) : null;
       const rec_cat = category;
       const approval_status = raceMismatch ? 'pending' : null;
       const { error } = await supabase.from('participants').insert({
@@ -194,7 +193,6 @@ export default function Register() {
         health_declaration: form.health_declaration,
         rules_accepted: form.rules_accepted,
         photo_consent: form.photo_consent,
-        age,
         school_grade: form.school_grade || null,
         recommended_category: rec_cat,
         selected_category: selectedRaceObj?.name || null,
@@ -226,8 +224,7 @@ export default function Register() {
       }).select().single();
       if (teamErr) throw teamErr;
       for (const [role, data] of [['swimmer', teamForm.swimmer], ['cyclist', teamForm.cyclist], ['runner', teamForm.runner]] as any[]) {
-        const age = data.birth_date ? calculateAge(data.birth_date) : null;
-        await supabase.from('participants').insert({ event_id: selectedEvent, race_id: selectedRace, team_id: teamData.id, team_role: role, first_name: data.first_name, last_name: data.last_name, phone: data.phone, birth_date: data.birth_date, gender: 'male', email: teamForm.contact_email, health_declaration: data.health, rules_accepted: data.rules, photo_consent: false, age });
+        await supabase.from('participants').insert({ event_id: selectedEvent, race_id: selectedRace, team_id: teamData.id, team_role: role, first_name: data.first_name, last_name: data.last_name, phone: data.phone, birth_date: data.birth_date, gender: 'male', email: teamForm.contact_email, health_declaration: data.health, rules_accepted: data.rules, photo_consent: false });
       }
       setStep('success');
     } catch (err: any) { toast.error(err.message || 'שגיאה בהרשמה'); }
