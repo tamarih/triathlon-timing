@@ -141,6 +141,22 @@ CREATE TABLE change_log (
 );
 
 -- App users (extends auth.users)
+CREATE TABLE volunteers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  phone TEXT,
+  notes TEXT,
+  assignment_type TEXT CHECK (assignment_type IN ('timing','route','judge')),
+  assigned_station INT CHECK (assigned_station IN (1,2,3)),
+  assigned_route_station UUID,
+  judge_disciplines TEXT[] CHECK (
+    judge_disciplines IS NULL OR
+    judge_disciplines <@ ARRAY['swim','bike','run']::TEXT[]
+  ),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE route_stations (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,

@@ -184,3 +184,18 @@ export interface RouteStation {
   is_active: boolean;
   created_at: string;
 }
+
+export type VolunteerAssignmentType = 'timing' | 'route' | 'judge' | null;
+
+export interface Volunteer {
+  id: string;
+  name: string;
+  phone?: string;
+  notes?: string;
+  assignment_type: VolunteerAssignmentType;
+  assigned_station?: 1 | 2 | 3;
+  assigned_route_station?: string;
+  judge_disciplines?: Discipline[];
+  created_at: string;
+  updated_at: string;
+}
