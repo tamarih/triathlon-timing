@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { AppUser, Discipline } from '../../lib/types';
-import { Plus, X, Eye, EyeOff } from 'lucide-react';
+import { Plus, X, Eye, EyeOff, KeyRound } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { toLoginEmail, isUsernameEmail, displayLogin } from '../../lib/utils';
 
 const S = {
   page: { padding: '0 0 40px', direction: 'rtl' as const, fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 700, margin: '0 auto' },
@@ -50,11 +51,12 @@ export default function Settings() {
     e.preventDefault();
     setSaving(true);
     try {
-      const { data, error } = await supabase.auth.admin.createUser({ email: newUser.email, password: newUser.password, email_confirm: true });
+      const loginEmail = toLoginEmail(newUser.email);
+      const { data, error } = await supabase.auth.admin.createUser({ email: loginEmail, password: newUser.password, email_confirm: true });
       if (error) throw error;
       await supabase.from('app_users').insert({
         id: data.user.id,
-        email: newUser.email,
+        email: loginEmail,
         name: newUser.name,
         role: newUser.role,
         assigned_station: newUser.role === 'volunteer' && newUser.assigned_station ? Number(newUser.assigned_station) : null,
@@ -67,6 +69,12 @@ export default function Settings() {
       loadUsers();
     } catch (err: any) { toast.error(err.message || 'שגיאה ביצירת משתמש'); }
     finally { setSaving(false); }
+  }
+
+  async function sendPasswordReset(email: string) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    if (error) toast.error(error.message || 'שגיאה בשליחת איפוס');
+    else toast.success('קישור איפוס סיסמה נשלח');
   }
 
   async function updateRole(userId: string, role: string) {
@@ -105,9 +113,19 @@ export default function Settings() {
         {users.map(u => (
           <div key={u.id} style={S.userRow}>
             <div style={{ flex: 1 }}>
-              <div style={S.userName}>{u.name || u.email}</div>
-              <div style={S.userEmail}>{u.email}</div>
+              <div style={S.userName}>{u.name || displayLogin(u.email)}</div>
+              <div style={S.userEmail}>{displayLogin(u.email)}</div>
             </div>
+            {u.role === 'admin' && !isUsernameEmail(u.email) && (
+              <button
+                type="button"
+                onClick={() => sendPasswordReset(u.email)}
+                title="שליחת קישור לאיפוס סיסמה"
+                style={{ background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: '#6b7280', display: 'flex', alignItems: 'center' }}
+              >
+                <KeyRound size={14} />
+              </button>
+            )}
             <select style={S.select} value={u.role} onChange={e => updateRole(u.id, e.target.value)}>
               <option value="admin">מנהל</option>
               <option value="volunteer">מתנדב</option>
@@ -155,7 +173,7 @@ export default function Settings() {
 
       <div style={S.infoCard}>
         <div style={{ fontWeight: 700, marginBottom: 6 }}>💡 הוספת מתנדבים</div>
-        <div>לחצו על "משתמש חדש", בחרו תפקיד "מתנדב" והקצו תחנה. המתנדב יוכל להיכנס עם האימייל והסיסמה שהגדרתם.</div>
+        <div>לחצו על "משתמש חדש", בחרו תפקיד והקצו תחנה/מקצים. מתנדב/שופט מקבל שם משתמש (ללא דוא"ל) — אם הוא שכח את הסיסמה, צרו לו משתמש חדש או שנו ידנית.</div>
       </div>
 
       {showAddUser && (
@@ -168,8 +186,21 @@ export default function Settings() {
             <form onSubmit={addUser}>
               <label style={S.label}>שם</label>
               <input style={S.input} value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} placeholder="שם מלא" />
-              <label style={S.label}>דוא"ל</label>
-              <input style={S.input} type="email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} required placeholder="email@example.com" />
+              <label style={S.label}>{newUser.role === 'admin' ? 'דוא"ל' : 'שם משתמש'}</label>
+              <input
+                style={S.input}
+                type={newUser.role === 'admin' ? 'email' : 'text'}
+                value={newUser.email}
+                onChange={e => setNewUser({...newUser, email: e.target.value})}
+                required
+                placeholder={newUser.role === 'admin' ? 'email@example.com' : 'לדוגמה: dani'}
+                autoComplete="off"
+              />
+              {newUser.role !== 'admin' && (
+                <div style={{ fontSize: 11, color: '#6b7280', marginTop: -8, marginBottom: 14 }}>
+                  ללא רווחים. ישמש לכניסה למערכת.
+                </div>
+              )}
               <label style={S.label}>סיסמה</label>
               <div style={{ position: 'relative', marginBottom: 14 }}>
                 <input

@@ -5,6 +5,23 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export const USERNAME_DOMAIN = 'triathlon.local';
+
+export function toLoginEmail(input: string): string {
+  const v = input.trim();
+  if (v.includes('@')) return v;
+  return `${v.toLowerCase().replace(/\s+/g, '')}@${USERNAME_DOMAIN}`;
+}
+
+export function isUsernameEmail(email: string | undefined | null): boolean {
+  return !!email && email.endsWith(`@${USERNAME_DOMAIN}`);
+}
+
+export function displayLogin(email: string | undefined | null): string {
+  if (!email) return '';
+  return isUsernameEmail(email) ? email.split('@')[0] : email;
+}
+
 export function formatTime(seconds: number): string {
   if (!seconds || seconds < 0) return '--:--:--';
   const h = Math.floor(seconds / 3600);

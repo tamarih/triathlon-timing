@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { toLoginEmail } from '../lib/utils';
 
 const S = {
   page: {
@@ -104,7 +105,7 @@ const S = {
 export default function Login() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -114,7 +115,7 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      await signIn(email, password);
+      await signIn(toLoginEmail(loginId), password);
       navigate('/admin');
     } catch {
       setError('שם משתמש או סיסמה שגויים');
@@ -134,13 +135,14 @@ export default function Login() {
       <div style={S.card}>
         <form onSubmit={handleSubmit}>
           <div style={S.inputWrap}>
-            <label style={S.label}>דוא"ל</label>
+            <label style={S.label}>שם משתמש</label>
             <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+              type="text"
+              value={loginId}
+              onChange={e => setLoginId(e.target.value)}
               style={S.input}
-              placeholder='הזינו דוא"ל'
+              placeholder="הזינו שם משתמש"
+              autoComplete="username"
               required
             />
           </div>
