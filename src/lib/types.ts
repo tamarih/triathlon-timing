@@ -1,4 +1,6 @@
-export type UserRole = 'admin' | 'volunteer' | 'viewer';
+export type UserRole = 'admin' | 'volunteer' | 'viewer' | 'judge';
+
+export type Discipline = 'swim' | 'bike' | 'run';
 
 export type EventStatus = 'draft' | 'open' | 'closed' | 'finished';
 
@@ -170,4 +172,5 @@ export interface AppUser {
   role: UserRole;
   name?: string;
   assigned_station?: 1 | 2 | 3;
+  assigned_disciplines?: Discipline[];
 }

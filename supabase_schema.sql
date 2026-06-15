@@ -144,9 +144,13 @@ CREATE TABLE change_log (
 CREATE TABLE app_users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
-  role TEXT NOT NULL DEFAULT 'viewer' CHECK (role IN ('admin','volunteer','viewer')),
+  role TEXT NOT NULL DEFAULT 'viewer' CHECK (role IN ('admin','volunteer','viewer','judge')),
   name TEXT,
   assigned_station INT CHECK (assigned_station IN (1,2,3)),
+  assigned_disciplines TEXT[] CHECK (
+    assigned_disciplines IS NULL OR
+    assigned_disciplines <@ ARRAY['swim','bike','run']::TEXT[]
+  ),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

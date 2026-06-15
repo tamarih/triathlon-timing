@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import type { AppUser } from '../../lib/types';
-import { Plus, X } from 'lucide-react';
+import type { AppUser, Discipline } from '../../lib/types';
+import { Plus, X, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const S = {
@@ -28,13 +28,16 @@ const S = {
   infoCard: { background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: 14, padding: '14px 16px', fontSize: 13, color: '#1d4ed8' },
 };
 
-const roleLabel: Record<string, string> = { admin: '👑 מנהל', volunteer: '🙋 מתנדב', viewer: '👁️ צופה' };
+const roleLabel: Record<string, string> = { admin: '👑 מנהל', volunteer: '🙋 מתנדב', viewer: '👁️ צופה', judge: '⚖️ שופט' };
+const disciplineLabel: Record<Discipline, string> = { swim: '🏊 שחייה', bike: '🚴 אופניים', run: '🏃 ריצה' };
+const DISCIPLINES: Discipline[] = ['swim', 'bike', 'run'];
 
 export default function Settings() {
   const [users, setUsers] = useState<AppUser[]>([]);
   const [showAddUser, setShowAddUser] = useState(false);
-  const [newUser, setNewUser] = useState({ email: '', password: '', name: '', role: 'volunteer', assigned_station: '' });
+  const [newUser, setNewUser] = useState<{ email: string; password: string; name: string; role: string; assigned_station: string; assigned_disciplines: Discipline[] }>({ email: '', password: '', name: '', role: 'volunteer', assigned_station: '', assigned_disciplines: [] });
   const [saving, setSaving] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => { loadUsers(); }, []);
 
@@ -49,10 +52,18 @@ export default function Settings() {
     try {
       const { data, error } = await supabase.auth.admin.createUser({ email: newUser.email, password: newUser.password, email_confirm: true });
       if (error) throw error;
-      await supabase.from('app_users').insert({ id: data.user.id, email: newUser.email, name: newUser.name, role: newUser.role, assigned_station: newUser.assigned_station ? Number(newUser.assigned_station) : null });
+      await supabase.from('app_users').insert({
+        id: data.user.id,
+        email: newUser.email,
+        name: newUser.name,
+        role: newUser.role,
+        assigned_station: newUser.role === 'volunteer' && newUser.assigned_station ? Number(newUser.assigned_station) : null,
+        assigned_disciplines: newUser.role === 'judge' && newUser.assigned_disciplines.length ? newUser.assigned_disciplines : null,
+      });
       toast.success('משתמש נוצר');
       setShowAddUser(false);
-      setNewUser({ email: '', password: '', name: '', role: 'volunteer', assigned_station: '' });
+      setShowPassword(false);
+      setNewUser({ email: '', password: '', name: '', role: 'volunteer', assigned_station: '', assigned_disciplines: [] });
       loadUsers();
     } catch (err: any) { toast.error(err.message || 'שגיאה ביצירת משתמש'); }
     finally { setSaving(false); }
@@ -67,6 +78,15 @@ export default function Settings() {
   async function updateStation(userId: string, station: string) {
     await supabase.from('app_users').update({ assigned_station: station ? Number(station) : null }).eq('id', userId);
     toast.success('תחנה עודכנה');
+    loadUsers();
+  }
+
+  async function toggleDiscipline(user: AppUser, discipline: Discipline) {
+    const current = user.assigned_disciplines || [];
+    const next = current.includes(discipline)
+      ? current.filter(d => d !== discipline)
+      : [...current, discipline];
+    await supabase.from('app_users').update({ assigned_disciplines: next.length ? next : null }).eq('id', user.id);
     loadUsers();
   }
 
@@ -91,6 +111,7 @@ export default function Settings() {
             <select style={S.select} value={u.role} onChange={e => updateRole(u.id, e.target.value)}>
               <option value="admin">מנהל</option>
               <option value="volunteer">מתנדב</option>
+              <option value="judge">שופט</option>
               <option value="viewer">צופה</option>
             </select>
             {u.role === 'volunteer' && (
@@ -100,6 +121,30 @@ export default function Settings() {
                 <option value="2">תחנה 2</option>
                 <option value="3">תחנה 3</option>
               </select>
+            )}
+            {u.role === 'judge' && (
+              <div style={{ display: 'flex', gap: 4 }}>
+                {DISCIPLINES.map(d => {
+                  const active = (u.assigned_disciplines || []).includes(d);
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => toggleDiscipline(u, d)}
+                      title={disciplineLabel[d]}
+                      style={{
+                        background: active ? '#1d4ed8' : 'white',
+                        color: active ? 'white' : '#374151',
+                        border: '1.5px solid ' + (active ? '#1d4ed8' : '#e5e7eb'),
+                        borderRadius: 8, padding: '4px 8px', fontSize: 12, fontWeight: 600,
+                        cursor: 'pointer', fontFamily: 'system-ui',
+                      }}
+                    >
+                      {disciplineLabel[d]}
+                    </button>
+                  );
+                })}
+              </div>
             )}
             <span style={{ fontSize: 12, background: '#eff6ff', color: '#1d4ed8', borderRadius: 20, padding: '3px 10px', fontWeight: 600 }}>
               {roleLabel[u.role] || u.role}
@@ -126,11 +171,29 @@ export default function Settings() {
               <label style={S.label}>דוא"ל</label>
               <input style={S.input} type="email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} required placeholder="email@example.com" />
               <label style={S.label}>סיסמה</label>
-              <input style={S.input} type="password" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} required placeholder="לפחות 6 תווים" />
+              <div style={{ position: 'relative', marginBottom: 14 }}>
+                <input
+                  style={{ ...S.input, marginBottom: 0, paddingLeft: 40 }}
+                  type={showPassword ? 'text' : 'password'}
+                  value={newUser.password}
+                  onChange={e => setNewUser({...newUser, password: e.target.value})}
+                  required
+                  placeholder="לפחות 6 תווים"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(s => !s)}
+                  aria-label={showPassword ? 'הסתר סיסמה' : 'הצג סיסמה'}
+                  style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: 4, display: 'flex', alignItems: 'center' }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
               <label style={S.label}>תפקיד</label>
               <select style={{ ...S.input, marginBottom: 14 }} value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})}>
                 <option value="admin">מנהל</option>
                 <option value="volunteer">מתנדב</option>
+                <option value="judge">שופט</option>
                 <option value="viewer">צופה</option>
               </select>
               {newUser.role === 'volunteer' && (
@@ -142,6 +205,40 @@ export default function Settings() {
                     <option value="2">תחנה 2 — סיום אופניים</option>
                     <option value="3">תחנה 3 — קו סיום</option>
                   </select>
+                </>
+              )}
+              {newUser.role === 'judge' && (
+                <>
+                  <label style={S.label}>מקצים לשיפוט</label>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+                    {DISCIPLINES.map(d => {
+                      const active = newUser.assigned_disciplines.includes(d);
+                      return (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() => setNewUser({
+                            ...newUser,
+                            assigned_disciplines: active
+                              ? newUser.assigned_disciplines.filter(x => x !== d)
+                              : [...newUser.assigned_disciplines, d],
+                          })}
+                          style={{
+                            background: active ? '#1d4ed8' : 'white',
+                            color: active ? 'white' : '#374151',
+                            border: '1.5px solid ' + (active ? '#1d4ed8' : '#e5e7eb'),
+                            borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600,
+                            cursor: 'pointer', fontFamily: 'system-ui',
+                          }}
+                        >
+                          {disciplineLabel[d]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#6b7280', marginTop: -8, marginBottom: 14 }}>
+                    ניתן לבחור מקצה אחד או יותר.
+                  </div>
                 </>
               )}
               <div style={S.btnRow}>

@@ -79,7 +79,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)',
                   borderRadius: 20, padding: '3px 10px', fontSize: 12, fontWeight: 600,
                 }}>
-                  {appUser.role === 'admin' ? '👑 מנהל' : appUser.role === 'volunteer' ? '🙋 מתנדב' : '👁️ צופה'}
+                  {appUser.role === 'admin' ? '👑 מנהל' : appUser.role === 'volunteer' ? '🙋 מתנדב' : appUser.role === 'judge' ? '⚖️ שופט' : '👁️ צופה'}
                 </span>
                 <button onClick={handleSignOut} style={{
                   background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)',
