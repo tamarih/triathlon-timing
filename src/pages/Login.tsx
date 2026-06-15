@@ -109,6 +109,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPass, setShowPass] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -148,14 +149,23 @@ export default function Login() {
           </div>
           <div style={S.inputWrap}>
             <label style={S.label}>סיסמה</label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              style={S.input}
-              placeholder="הזינו סיסמה"
-              required
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPass ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                style={{ ...S.input, paddingLeft: 40 }}
+                placeholder="הזינו סיסמה"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPass(s => !s)}
+                style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: 0 }}
+              >
+                {showPass ? '🙈' : '👁️'}
+              </button>
+            </div>
           </div>
 
           {error && <div style={S.error}>{error}</div>}
