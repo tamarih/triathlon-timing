@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Participant, Event } from '../../lib/types';
 import toast from 'react-hot-toast';
+import { Trash2 } from 'lucide-react';
 
 const S = {
   page: { minHeight: '100vh', background: '#111827', color: 'white', padding: 16, direction: 'rtl' as const, fontFamily: 'system-ui, -apple-system, sans-serif' },
@@ -19,10 +20,11 @@ const S = {
   submitBtn: (disabled: boolean): React.CSSProperties => ({ width: '100%', background: disabled ? '#374151' : '#16a34a', color: disabled ? '#6b7280' : 'white', border: 'none', borderRadius: 14, padding: '16px 0', fontSize: 18, fontWeight: 800, cursor: disabled ? 'not-allowed' : 'pointer' }),
   recentCard: { background: '#1f2937', borderRadius: 16, padding: 16 },
   recentTitle: { fontSize: 13, color: '#9ca3af', marginBottom: 12 },
-  recentRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#374151', borderRadius: 10, padding: '8px 12px', marginBottom: 8 },
+  recentRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#374151', borderRadius: 10, padding: '8px 12px', marginBottom: 8, gap: 8 },
   recentName: { fontWeight: 600, fontSize: 14 },
   recentBib: { fontFamily: 'monospace', color: '#60a5fa', fontSize: 13 },
   recentTime: { fontSize: 11, color: '#9ca3af', textAlign: 'right' as const },
+  undoBtn: { background: '#7f1d1d', color: '#fecaca', border: 'none', borderRadius: 8, padding: '6px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 },
 };
 
 const stationLabels: Record<number, string> = {
@@ -37,7 +39,7 @@ export default function TimingStation() {
   const [selectedEvent, setSelectedEvent] = useState('');
   const [station, setStation] = useState<1 | 2 | 3>(appUser?.assigned_station || 1);
   const [bibInput, setBibInput] = useState('');
-  const [recentRecords, setRecentRecords] = useState<Array<{ participant: Participant; time: string }>>([]);
+  const [recentRecords, setRecentRecords] = useState<Array<{ recordId: string; participant: Participant; time: string; station: 1 | 2 | 3 }>>([]);
   const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -99,7 +101,7 @@ export default function TimingStation() {
           station,
           recorded_by: appUser?.email,
         })
-        .select('recorded_at')
+        .select('id, recorded_at')
         .single();
 
       if (error) throw error;
@@ -113,7 +115,7 @@ export default function TimingStation() {
       }
 
       toast.success(`✅ ${participant.first_name} ${participant.last_name} נקלט! מס' ${bib}`, { duration: 2500 });
-      setRecentRecords(prev => [{ participant, time: serverTime }, ...prev.slice(0, 9)]);
+      setRecentRecords(prev => [{ recordId: insertedRecord.id, participant, time: serverTime, station }, ...prev.slice(0, 9)]);
       setBibInput('');
       inputRef.current?.focus();
 
@@ -130,6 +132,31 @@ export default function TimingStation() {
       toast.error(err.message || 'שגיאה');
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function undoRecord(rec: { recordId: string; participant: Participant; station: 1 | 2 | 3 }) {
+    if (!confirm(`לבטל את קליטת ${rec.participant.first_name} ${rec.participant.last_name} (מס' ${rec.participant.bib_number})?`)) return;
+    try {
+      const { error } = await supabase.from('timing_records').delete().eq('id', rec.recordId);
+      if (error) throw error;
+
+      // Revert participant status when applicable
+      if (rec.station === 3) {
+        await supabase.from('participants').update({ status: 'started' }).eq('id', rec.participant.id);
+      } else if (rec.station === 1) {
+        // Only revert to 'registered' if there are no other records for this participant
+        const { data: others } = await supabase.from('timing_records').select('id').eq('participant_id', rec.participant.id).limit(1);
+        if (!others || others.length === 0) {
+          await supabase.from('participants').update({ status: 'registered' }).eq('id', rec.participant.id);
+        }
+      }
+
+      setRecentRecords(prev => prev.filter(r => r.recordId !== rec.recordId));
+      toast.success('הקליטה בוטלה');
+      inputRef.current?.focus();
+    } catch (err: any) {
+      toast.error(err.message || 'שגיאה בביטול');
     }
   }
 
@@ -183,13 +210,16 @@ export default function TimingStation() {
         {recentRecords.length > 0 && (
           <div style={S.recentCard}>
             <div style={S.recentTitle}>נקלטו לאחרונה:</div>
-            {recentRecords.map((rec, i) => (
-              <div key={i} style={S.recentRow}>
+            {recentRecords.map(rec => (
+              <div key={rec.recordId} style={S.recentRow}>
                 <span style={S.recentName}>{rec.participant.first_name} {rec.participant.last_name}</span>
-                <div>
+                <div style={{ textAlign: 'right' as const }}>
                   <div style={S.recentBib}>{rec.participant.bib_number}</div>
                   <div style={S.recentTime}>{new Date(rec.time).toLocaleTimeString('he-IL')}</div>
                 </div>
+                <button type="button" onClick={() => undoRecord(rec)} style={S.undoBtn} title="ביטול הקליטה">
+                  <Trash2 size={14} /> בטל
+                </button>
               </div>
             ))}
           </div>
