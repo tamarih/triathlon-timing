@@ -172,6 +172,17 @@ export default function Register() {
     try {
       const cap = await checkCapacity(selectedRace);
       if (cap.full) { setWaitlist(true); setSubmitting(false); return; }
+
+      // Auto-assign lane: pick the lane with fewest participants (1-6)
+      const { data: laneData } = await supabase
+        .from('participants')
+        .select('lane')
+        .eq('race_id', selectedRace)
+        .not('lane', 'is', null);
+      const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+      for (const row of laneData || []) { if (row.lane >= 1 && row.lane <= 6) counts[row.lane]++; }
+      const assignedLane = Number(Object.entries(counts).sort((a, b) => a[1] - b[1])[0][0]);
+
       const rec_cat = category;
       const approval_status = raceMismatch ? 'pending' : null;
       const { error } = await supabase.from('participants').insert({
@@ -198,6 +209,7 @@ export default function Register() {
         selected_category: selectedRaceObj?.name || null,
         approval_status,
         approval_reason: form.approval_reason || null,
+        lane: assignedLane,
       });
       if (error) throw error;
       setStep('success');
