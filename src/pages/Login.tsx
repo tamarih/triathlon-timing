@@ -115,8 +115,10 @@ export default function Login() {
       await signIn(toLoginEmail(loginId), password);
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        const { data: au } = await supabase.from('app_users').select('role').eq('id', session.user.id).single();
-        navigate(au?.role === 'admin' ? '/admin' : '/volunteer');
+        const { data: au } = await supabase.from('app_users').select('role, pool_lane').eq('id', session.user.id).single();
+        if (au?.role === 'admin') navigate('/admin');
+        else if (au?.pool_lane) navigate('/pool');
+        else navigate('/volunteer');
       }
     } catch {
       setError('שם משתמש או סיסמה שגויים');

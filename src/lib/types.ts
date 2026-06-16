@@ -74,6 +74,8 @@ export interface Participant {
   payment_status: PaymentStatus;
   team_id?: string;
   team_role?: 'swimmer' | 'cyclist' | 'runner';
+  // Pool
+  lane?: number;
   // Classification fields
   school_grade?: string;
   recommended_category?: string;
@@ -172,6 +174,7 @@ export interface AppUser {
   role: UserRole;
   name?: string;
   assigned_station?: 1 | 2 | 3;
+  pool_lane?: number;
 }
 
 export type VolunteerStatus = 'active' | 'potential' | 'unavailable';

@@ -434,8 +434,19 @@ export default function Participants() {
                   </select>
                 </div>
               </div>
-              <label style={S.label}>הערות</label>
-              <input style={S.input} value={editParticipant.notes || ''} onChange={e => setEditParticipant({...editParticipant, notes: e.target.value})} />
+              <div style={S.grid2}>
+                <div>
+                  <label style={S.label}>מסלול בריכה</label>
+                  <select style={S.input} value={editParticipant.lane ?? ''} onChange={e => setEditParticipant({...editParticipant, lane: e.target.value ? Number(e.target.value) : undefined})}>
+                    <option value="">ללא</option>
+                    {[1,2,3,4,5,6].map(l => <option key={l} value={l}>מסלול {l}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={S.label}>הערות</label>
+                  <input style={S.input} value={editParticipant.notes || ''} onChange={e => setEditParticipant({...editParticipant, notes: e.target.value})} />
+                </div>
+              </div>
               <div style={S.btnRow}>
                 <button type="button" style={S.btnSecondary} onClick={() => setEditParticipant(null)}>ביטול</button>
                 <button type="submit" style={S.btnPrimary} disabled={saving}>{saving ? 'שומר...' : 'שמירה'}</button>

@@ -92,12 +92,13 @@ export default function PoolJudge() {
   }, [selectedRace]);
 
   async function loadParticipantsAndLaps() {
-    const { data: parts } = await supabase
+    let query = supabase
       .from('participants')
       .select('*')
       .eq('event_id', selectedEvent)
-      .eq('race_id', selectedRace)
-      .order('bib_number');
+      .eq('race_id', selectedRace);
+    if (appUser?.pool_lane) query = query.eq('lane', appUser.pool_lane);
+    const { data: parts } = await query.order('bib_number');
     setParticipants(parts || []);
 
     const partIds = (parts || []).map(p => p.id);
@@ -221,7 +222,9 @@ export default function PoolJudge() {
       <div style={S.inner}>
         <div style={S.header}>
           <div style={S.headerTitle}>🏊 שיפוט בריכה</div>
-          <div style={S.headerSub}>ספירת הקפות לכל משתתף</div>
+          <div style={S.headerSub}>
+            {appUser?.pool_lane ? `מסלול ${appUser.pool_lane}` : 'ספירת הקפות לכל משתתף'}
+          </div>
         </div>
 
         <div style={S.card}>

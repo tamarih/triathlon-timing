@@ -34,7 +34,7 @@ const roleLabel: Record<string, string> = { admin: '👑 מנהל', volunteer: '
 export default function Settings() {
   const [users, setUsers] = useState<AppUser[]>([]);
   const [showAddUser, setShowAddUser] = useState(false);
-  const [newUser, setNewUser] = useState({ email: '', password: '', name: '', role: 'admin', assigned_station: '' });
+  const [newUser, setNewUser] = useState({ email: '', password: '', name: '', role: 'admin', assigned_station: '', pool_lane: '' });
   const [saving, setSaving] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -57,6 +57,9 @@ export default function Settings() {
         p_role: newUser.role,
         p_station: newUser.assigned_station ? Number(newUser.assigned_station) : null,
       });
+      if (!error && !data?.error && newUser.pool_lane) {
+        await supabase.from('app_users').update({ pool_lane: Number(newUser.pool_lane) }).eq('email', loginEmail);
+      }
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       toast.success('משתמש נוצר');
@@ -195,13 +198,36 @@ export default function Settings() {
               </select>
               {newUser.role === 'volunteer' && (
                 <>
-                  <label style={S.label}>תחנת תיזמון</label>
-                  <select style={{ ...S.input, marginBottom: 14 }} value={newUser.assigned_station} onChange={e => setNewUser({...newUser, assigned_station: e.target.value})}>
-                    <option value="">ללא</option>
-                    <option value="1">תחנה 1 — יציאה משחייה</option>
-                    <option value="2">תחנה 2 — סיום אופניים</option>
-                    <option value="3">תחנה 3 — קו סיום</option>
+                  <label style={S.label}>סוג תפקיד</label>
+                  <select style={{ ...S.input, marginBottom: 14 }} value={newUser.pool_lane ? 'pool' : newUser.assigned_station ? 'timing' : ''} onChange={e => {
+                    if (e.target.value === 'pool') setNewUser({...newUser, assigned_station: '', pool_lane: '1'});
+                    else if (e.target.value === 'timing') setNewUser({...newUser, pool_lane: '', assigned_station: '1'});
+                    else setNewUser({...newUser, pool_lane: '', assigned_station: ''});
+                  }}>
+                    <option value="">-- בחר --</option>
+                    <option value="pool">🏊 שופט בריכה (מסלול)</option>
+                    <option value="timing">⏱️ שופט תיזמון (תחנה)</option>
                   </select>
+
+                  {newUser.pool_lane && (
+                    <>
+                      <label style={S.label}>מסלול בריכה</label>
+                      <select style={{ ...S.input, marginBottom: 14 }} value={newUser.pool_lane} onChange={e => setNewUser({...newUser, pool_lane: e.target.value})}>
+                        {[1,2,3,4,5,6].map(l => <option key={l} value={l}>מסלול {l}</option>)}
+                      </select>
+                    </>
+                  )}
+
+                  {newUser.assigned_station && (
+                    <>
+                      <label style={S.label}>תחנת תיזמון</label>
+                      <select style={{ ...S.input, marginBottom: 14 }} value={newUser.assigned_station} onChange={e => setNewUser({...newUser, assigned_station: e.target.value})}>
+                        <option value="1">תחנה 1 — יציאה משחייה</option>
+                        <option value="2">תחנה 2 — סיום אופניים</option>
+                        <option value="3">תחנה 3 — קו סיום</option>
+                      </select>
+                    </>
+                  )}
                 </>
               )}
               <div style={S.btnRow}>
