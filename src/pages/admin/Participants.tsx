@@ -320,8 +320,10 @@ export default function Participants() {
                     ) : null}
                   </td>
                   <td style={{ ...S.td, whiteSpace: 'nowrap' as const }}>
-                    <button onClick={() => setEditParticipant(p)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 4, borderRadius: 6 }}><Edit2 size={14} /></button>
-                    <button onClick={() => { setDeleteTarget(p.id); setConfirmDelete('single'); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#fca5a5', padding: 4, borderRadius: 6 }}><Trash2 size={14} /></button>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={() => setEditParticipant(p)} title="עריכה" style={{ background: '#f3f4f6', border: '1px solid #e5e7eb', cursor: 'pointer', color: '#374151', padding: '5px 7px', borderRadius: 7, display: 'flex', alignItems: 'center' }}><Edit2 size={14} /></button>
+                      <button onClick={() => { setDeleteTarget(p.id); setConfirmDelete('single'); }} title="מחיקה" style={{ background: '#fee2e2', border: '1px solid #fecaca', cursor: 'pointer', color: '#dc2626', padding: '5px 7px', borderRadius: 7, display: 'flex', alignItems: 'center' }}><Trash2 size={14} /></button>
+                    </div>
                   </td>
                 </tr>
               ))}
