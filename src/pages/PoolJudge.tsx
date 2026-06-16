@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { Event, Race, Participant } from '../lib/types';
 import toast from 'react-hot-toast';
-import { Check, Minus, LogOut } from 'lucide-react';
+import { Check, Minus, LogOut, Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const POOL_LENGTH_METERS = 25;
@@ -146,7 +146,10 @@ export default function PoolJudge() {
             <div style={{ fontSize: 20, fontWeight: 800, textAlign: 'center' }}>🏊 שיפוט בריכה</div>
             {myLane && <div style={{ textAlign: 'center', fontSize: 13, color: '#60a5fa', marginTop: 2 }}>מסלול {myLane}</div>}
           </div>
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+            <button onClick={() => navigate('/admin')} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, padding: '6px 10px', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <Home size={15} />
+            </button>
             <button onClick={handleSignOut} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, padding: '6px 12px', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: 13 }}>
               <LogOut size={15} /> יציאה
             </button>
