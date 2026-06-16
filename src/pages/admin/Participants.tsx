@@ -177,6 +177,21 @@ export default function Participants() {
     setConfirmDelete(null);
   }
 
+  async function autoAssignLanes() {
+    const raceId = selectedRace;
+    if (!raceId) { toast.error('בחרי מקצה תחילה'); return; }
+    const pool = filtered.filter(p => p.race_id === raceId);
+    if (pool.length === 0) { toast.error('אין משתתפים במקצה זה'); return; }
+    if (pool.length > 20) { toast.error('יותר מ-20 משתתפים במקצה'); return; }
+    const sorted = [...pool].sort((a, b) => (a.bib_number || '').localeCompare(b.bib_number || ''));
+    const updates = sorted.map((p, i) => ({ id: p.id, lane: (i % 6) + 1 }));
+    for (const u of updates) {
+      await supabase.from('participants').update({ lane: u.lane }).eq('id', u.id);
+    }
+    toast.success(`הוקצו ${updates.length} משתתפים ל-6 מסלולים`);
+    loadParticipants();
+  }
+
   async function approveParticipant(p: Participant, status: 'approved' | 'rejected') {
     const { error } = await supabase.from('participants').update({
       approval_status: status,
@@ -217,6 +232,7 @@ export default function Participants() {
               onClick={() => setConfirmDelete('multi')}
             ><Trash2 size={14} /> מחק נבחרים ({selectedIds.size})</button>
           )}
+          <button style={{ ...S.outlineBtn, color: '#0369a1', borderColor: '#7dd3fc' }} onClick={autoAssignLanes}>🏊 הקצאת מסלולים</button>
           <button style={S.outlineBtn} onClick={() => setShowImport(true)}><Upload size={14} /> ייבוא Excel</button>
           <button style={S.outlineBtn} onClick={exportExcel}><Download size={14} /> ייצוא</button>
         </div>
@@ -280,7 +296,7 @@ export default function Participants() {
                     onChange={toggleSelectAll}
                   />
                 </th>
-                {['מס\'', 'שם', 'קטגוריה', 'מקצה', 'מין/גיל', 'טלפון', 'סטטוס', 'תשלום', 'אישור', ''].map(h => (
+                {['מס\'', 'שם', 'מסלול', 'קטגוריה', 'מקצה', 'מין/גיל', 'טלפון', 'סטטוס', 'תשלום', 'אישור', ''].map(h => (
                   <th key={h} style={S.th}>{h}</th>
                 ))}
               </tr>
@@ -293,6 +309,9 @@ export default function Participants() {
                   </td>
                   <td style={{ ...S.td, fontFamily: 'monospace', color: '#6b7280' }}>{p.bib_number || '—'}</td>
                   <td style={{ ...S.td, fontWeight: 700, color: '#111827' }}>{p.first_name} {p.last_name}</td>
+                  <td style={S.td}>
+                    {p.lane ? <span style={{ background: '#dbeafe', color: '#1d4ed8', borderRadius: 20, padding: '2px 10px', fontSize: 12, fontWeight: 700 }}>מסלול {p.lane}</span> : <span style={{ color: '#d1d5db' }}>—</span>}
+                  </td>
                   <td style={{ ...S.td, color: '#6b7280', fontSize: 12 }}>{p.recommended_category || '—'}</td>
                   <td style={{ ...S.td, color: '#6b7280' }}>{races.find(r => r.id === p.race_id)?.name || '—'}</td>
                   <td style={{ ...S.td, color: '#6b7280' }}>{genderLabel(p.gender)} · {p.age || (p.birth_date ? calculateAge(p.birth_date) : '?')}</td>
