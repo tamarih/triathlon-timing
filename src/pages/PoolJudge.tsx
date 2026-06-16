@@ -3,7 +3,8 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { Event, Race, Participant } from '../lib/types';
 import toast from 'react-hot-toast';
-import { Search, Check, Minus } from 'lucide-react';
+import { Search, Check, Minus, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const POOL_LENGTH_METERS = 25;
 
@@ -143,13 +144,28 @@ export default function PoolJudge() {
   }
 
   const myLane = appUser?.pool_lane;
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
+
+  async function handleSignOut() {
+    await signOut();
+    navigate('/login');
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#0f172a', color: 'white', direction: 'rtl', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 
       {/* Header */}
       <div style={{ background: '#1e293b', borderBottom: '1px solid #334155', padding: '14px 16px' }}>
-        <div style={{ textAlign: 'center', fontSize: 20, fontWeight: 800, marginBottom: 2 }}>🏊 שיפוט בריכה</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+          <div style={{ flex: 1 }} />
+          <div style={{ fontSize: 20, fontWeight: 800 }}>🏊 שיפוט בריכה</div>
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+            <button onClick={handleSignOut} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, padding: '6px 12px', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: 13 }}>
+              <LogOut size={15} /> יציאה
+            </button>
+          </div>
+        </div>
         {myLane && <div style={{ textAlign: 'center', fontSize: 13, color: '#60a5fa' }}>מסלול {myLane} שלך</div>}
 
         <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
