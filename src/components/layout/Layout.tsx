@@ -14,6 +14,7 @@ const adminNav = [
   { to: '/admin/roles', icon: ClipboardList, label: 'תפקידים' },
   { to: '/admin/equipment', icon: Package, label: 'ציוד' },
   { to: '/admin/timing', icon: Timer, label: 'מדידת זמנים' },
+  { to: '/admin/lanes', icon: Waves, label: 'מסלולי בריכה' },
   { to: '/pool', icon: Waves, label: 'שיפוט בריכה' },
   { to: '/admin/results', icon: Trophy, label: 'תוצאות' },
   { to: '/admin/reports', icon: FileText, label: 'דוחות' },
