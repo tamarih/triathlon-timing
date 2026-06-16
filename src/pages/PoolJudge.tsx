@@ -81,8 +81,9 @@ export default function PoolJudge() {
 
   useEffect(() => {
     if (!selectedEvent) { setRaces([]); setSelectedRace(''); return; }
-    supabase.from('races').select('*').eq('event_id', selectedEvent).order('name').then(({ data }) => {
+    supabase.from('races').select('*').eq('event_id', selectedEvent).gt('swim_distance', 0).order('name').then(({ data }) => {
       setRaces(data || []);
+      if (data?.length === 1) setSelectedRace(data[0].id);
     });
   }, [selectedEvent]);
 
