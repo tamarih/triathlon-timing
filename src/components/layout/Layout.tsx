@@ -122,10 +122,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 60px)', background: '#f1f5f9' }}>
         {/* Desktop Sidebar */}
         {appUser && navLinks.length > 0 && (
-          <aside style={{
+          <aside className="triath-sidebar" style={{
             width: 220, background: 'white', borderLeft: '1px solid #e5e7eb',
             boxShadow: '2px 0 8px rgba(0,0,0,0.04)', flexShrink: 0,
-            display: 'flex', flexDirection: 'column',
+            flexDirection: 'column',
           }}>
             <nav style={{ padding: '12px 0' }}>
               {navLinks.map(item => (
