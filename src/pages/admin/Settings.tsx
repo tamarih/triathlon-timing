@@ -168,7 +168,7 @@ export default function Settings() {
             <button type="button" onClick={() => openEdit(u)} title="עריכה" style={S.iconBtn('#1d4ed8')}>
               <Pencil size={14} />
             </button>
-            {u.id !== currentUser?.id && (
+            {u.id !== currentUser?.id && u.role !== 'admin' && (
               <button type="button" onClick={() => setConfirmDelete(u)} title="מחיקה" style={S.iconBtn('#dc2626')}>
                 <Trash2 size={14} />
               </button>
