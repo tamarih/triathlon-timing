@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   Home, Calendar, Users, Timer, FileText,
-  LogOut, Menu, X, Trophy, Settings, HeartHandshake, ClipboardList, Package,
+  LogOut, Menu, X, Trophy, Settings, HeartHandshake, ClipboardList, Package, Waves,
 } from 'lucide-react';
 
 const adminNav = [
@@ -14,6 +14,7 @@ const adminNav = [
   { to: '/admin/roles', icon: ClipboardList, label: 'תפקידים' },
   { to: '/admin/equipment', icon: Package, label: 'ציוד' },
   { to: '/admin/timing', icon: Timer, label: 'מדידת זמנים' },
+  { to: '/pool', icon: Waves, label: 'שיפוט בריכה' },
   { to: '/admin/results', icon: Trophy, label: 'תוצאות' },
   { to: '/admin/reports', icon: FileText, label: 'דוחות' },
   { to: '/admin/settings', icon: Settings, label: 'הגדרות' },
@@ -37,6 +38,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   const navLinks = appUser?.role === 'admin' ? adminNav : appUser?.role === 'volunteer' ? [
     { to: '/volunteer', icon: Timer, label: 'קליטת זמנים' },
+    { to: '/pool', icon: Waves, label: 'שיפוט בריכה' },
   ] : [];
 
   return (

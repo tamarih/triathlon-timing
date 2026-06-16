@@ -183,6 +183,17 @@ CREATE TABLE role_assignments (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Pool lap logs (one row per lap)
+CREATE TABLE pool_lap_logs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  participant_id UUID NOT NULL REFERENCES participants(id) ON DELETE CASCADE,
+  lap_number INT NOT NULL,
+  recorded_by TEXT,
+  recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_pool_lap_participant ON pool_lap_logs(participant_id);
+
 -- Equipment (supplies/quantities per event)
 CREATE TABLE equipment (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

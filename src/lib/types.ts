@@ -215,6 +215,15 @@ export interface RoleAssignment {
   created_at: string;
 }
 
+export interface PoolLapLog {
+  id: string;
+  event_id: string;
+  participant_id: string;
+  lap_number: number;
+  recorded_by?: string;
+  recorded_at: string;
+}
+
 export interface Equipment {
   id: string;
   event_id: string;
