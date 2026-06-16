@@ -31,51 +31,58 @@ function ProtectedRoute({ children, role }: { children: React.ReactNode; role?: 
 
 function AppRoutes() {
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/results" element={<Results />} />
-        <Route path="/volunteer" element={
-          <ProtectedRoute role="volunteer"><TimingStation /></ProtectedRoute>
-        } />
-        <Route path="/admin" element={
-          <ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>
-        } />
-        <Route path="/admin/events" element={
-          <ProtectedRoute role="admin"><Events /></ProtectedRoute>
-        } />
-        <Route path="/admin/participants" element={
-          <ProtectedRoute role="admin"><Participants /></ProtectedRoute>
-        } />
-        <Route path="/admin/timing" element={
-          <ProtectedRoute role="admin"><TimingAdmin /></ProtectedRoute>
-        } />
-        <Route path="/admin/results" element={
-          <ProtectedRoute role="admin"><AdminResults /></ProtectedRoute>
-        } />
-        <Route path="/admin/volunteers" element={
-          <ProtectedRoute role="admin"><Volunteers /></ProtectedRoute>
-        } />
-        <Route path="/pool" element={
-          <ProtectedRoute role="volunteer"><PoolJudge /></ProtectedRoute>
-        } />
-        <Route path="/admin/roles" element={
-          <ProtectedRoute role="admin"><Roles /></ProtectedRoute>
-        } />
-        <Route path="/admin/equipment" element={
-          <ProtectedRoute role="admin"><Equipment /></ProtectedRoute>
-        } />
-        <Route path="/admin/reports" element={
-          <ProtectedRoute role="admin"><Reports /></ProtectedRoute>
-        } />
-        <Route path="/admin/settings" element={
-          <ProtectedRoute role="admin"><Settings /></ProtectedRoute>
-        } />
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-    </Layout>
+    <Routes>
+      {/* Full-screen pages — no sidebar layout */}
+      <Route path="/volunteer" element={
+        <ProtectedRoute role="volunteer"><TimingStation /></ProtectedRoute>
+      } />
+      <Route path="/pool" element={
+        <ProtectedRoute role="volunteer"><PoolJudge /></ProtectedRoute>
+      } />
+
+      {/* Pages with sidebar layout */}
+      <Route path="/*" element={
+        <Layout>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/results" element={<Results />} />
+            <Route path="/admin" element={
+              <ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>
+            } />
+            <Route path="/admin/events" element={
+              <ProtectedRoute role="admin"><Events /></ProtectedRoute>
+            } />
+            <Route path="/admin/participants" element={
+              <ProtectedRoute role="admin"><Participants /></ProtectedRoute>
+            } />
+            <Route path="/admin/timing" element={
+              <ProtectedRoute role="admin"><TimingAdmin /></ProtectedRoute>
+            } />
+            <Route path="/admin/results" element={
+              <ProtectedRoute role="admin"><AdminResults /></ProtectedRoute>
+            } />
+            <Route path="/admin/volunteers" element={
+              <ProtectedRoute role="admin"><Volunteers /></ProtectedRoute>
+            } />
+            <Route path="/admin/roles" element={
+              <ProtectedRoute role="admin"><Roles /></ProtectedRoute>
+            } />
+            <Route path="/admin/equipment" element={
+              <ProtectedRoute role="admin"><Equipment /></ProtectedRoute>
+            } />
+            <Route path="/admin/reports" element={
+              <ProtectedRoute role="admin"><Reports /></ProtectedRoute>
+            } />
+            <Route path="/admin/settings" element={
+              <ProtectedRoute role="admin"><Settings /></ProtectedRoute>
+            } />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </Layout>
+      } />
+    </Routes>
   );
 }
 
