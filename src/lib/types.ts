@@ -175,6 +175,7 @@ export interface AppUser {
   name?: string;
   assigned_station?: 1 | 2 | 3;
   pool_lane?: number;
+  pool_lanes?: number[];
 }
 
 export type VolunteerStatus = 'active' | 'potential' | 'unavailable';

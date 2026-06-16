@@ -34,13 +34,33 @@ const S = {
 
 const roleLabel: Record<string, string> = { admin: '👑 מנהל', volunteer: '🙋 מתנדב', viewer: '👁️ צופה' };
 
-type EditState = { id: string; name: string; role: string; assigned_station: string; pool_lane: string; newPassword: string };
+type EditState = { id: string; name: string; role: string; assigned_station: string; pool_lanes: number[]; newPassword: string };
+
+function LaneCheckboxes({ value, onChange }: { value: number[]; onChange: (v: number[]) => void }) {
+  function toggle(lane: number) {
+    onChange(value.includes(lane) ? value.filter(l => l !== lane) : [...value, lane].sort());
+  }
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+      {[1,2,3,4,5,6].map(l => (
+        <label key={l} style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer',
+          background: value.includes(l) ? '#eff6ff' : '#f9fafb',
+          border: `1.5px solid ${value.includes(l) ? '#3b82f6' : '#e5e7eb'}`,
+          borderRadius: 8, padding: '6px 12px', fontSize: 13, fontWeight: 600,
+          color: value.includes(l) ? '#1d4ed8' : '#374151' }}>
+          <input type="checkbox" checked={value.includes(l)} onChange={() => toggle(l)} style={{ display: 'none' }} />
+          🏊 מסלול {l}
+        </label>
+      ))}
+    </div>
+  );
+}
 
 export default function Settings() {
   const { appUser: currentUser } = useAuth();
   const [users, setUsers] = useState<AppUser[]>([]);
   const [showAddUser, setShowAddUser] = useState(false);
-  const [newUser, setNewUser] = useState({ email: '', password: '', name: '', role: 'admin', assigned_station: '', pool_lane: '' });
+  const [newUser, setNewUser] = useState({ email: '', password: '', name: '', role: 'admin', assigned_station: '', pool_lanes: [] as number[] });
   const [saving, setSaving] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [editUser, setEditUser] = useState<EditState | null>(null);
@@ -61,21 +81,19 @@ export default function Settings() {
     try {
       const loginEmail = toLoginEmail(newUser.email);
       const { data, error } = await supabase.rpc('create_app_user', {
-        p_email: loginEmail,
-        p_password: newUser.password,
-        p_name: newUser.name,
-        p_role: newUser.role,
+        p_email: loginEmail, p_password: newUser.password,
+        p_name: newUser.name, p_role: newUser.role,
         p_station: newUser.assigned_station ? Number(newUser.assigned_station) : null,
       });
-      if (!error && !data?.error && newUser.pool_lane) {
-        await supabase.from('app_users').update({ pool_lane: Number(newUser.pool_lane) }).eq('email', loginEmail);
+      if (!error && !data?.error && newUser.pool_lanes.length > 0) {
+        await supabase.from('app_users').update({ pool_lanes: newUser.pool_lanes }).eq('email', loginEmail);
       }
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       toast.success('משתמש נוצר');
       setShowAddUser(false);
       setShowPassword(false);
-      setNewUser({ email: '', password: '', name: '', role: 'admin', assigned_station: '', pool_lane: '' });
+      setNewUser({ email: '', password: '', name: '', role: 'admin', assigned_station: '', pool_lanes: [] });
       loadUsers();
     } catch (err: any) { toast.error(err.message || 'שגיאה ביצירת משתמש'); }
     finally { setSaving(false); }
@@ -83,11 +101,9 @@ export default function Settings() {
 
   function openEdit(u: AppUser) {
     setEditUser({
-      id: u.id,
-      name: u.name || '',
-      role: u.role,
+      id: u.id, name: u.name || '', role: u.role,
       assigned_station: u.assigned_station ? String(u.assigned_station) : '',
-      pool_lane: u.pool_lane ? String(u.pool_lane) : '',
+      pool_lanes: (u as any).pool_lanes || (u.pool_lane ? [u.pool_lane] : []),
       newPassword: '',
     });
     setShowEditPass(false);
@@ -99,20 +115,16 @@ export default function Settings() {
     setSaving(true);
     try {
       await supabase.from('app_users').update({
-        name: editUser.name,
-        role: editUser.role,
+        name: editUser.name, role: editUser.role,
         assigned_station: editUser.assigned_station ? Number(editUser.assigned_station) : null,
-        pool_lane: editUser.pool_lane ? Number(editUser.pool_lane) : null,
+        pool_lanes: editUser.pool_lanes.length > 0 ? editUser.pool_lanes : null,
+        pool_lane: editUser.pool_lanes.length === 1 ? editUser.pool_lanes[0] : editUser.pool_lanes[0] || null,
       }).eq('id', editUser.id);
 
       if (editUser.newPassword) {
-        const { error } = await supabase.rpc('change_user_password', {
-          p_user_id: editUser.id,
-          p_new_password: editUser.newPassword,
-        });
+        const { error } = await supabase.rpc('change_user_password', { p_user_id: editUser.id, p_new_password: editUser.newPassword });
         if (error) throw new Error('עדכון פרטים הצליח אך שינוי סיסמה נכשל: ' + error.message);
       }
-
       toast.success('משתמש עודכן');
       setEditUser(null);
       loadUsers();
@@ -139,7 +151,8 @@ export default function Settings() {
     else toast.success('קישור איפוס סיסמה נשלח');
   }
 
-  const editRoleType = editUser ? (editUser.pool_lane ? 'pool' : editUser.assigned_station ? 'timing' : '') : '';
+  const newIsPool = newUser.pool_lanes.length > 0;
+  const newIsTiming = !newIsPool && !!newUser.assigned_station;
 
   return (
     <div style={S.page}>
@@ -148,33 +161,33 @@ export default function Settings() {
       <div style={S.card}>
         <div style={S.cardHeader}>
           <span style={S.cardTitle}>משתמשי מערכת</span>
-          <button style={S.addBtn} onClick={() => setShowAddUser(true)}>
-            <Plus size={14} /> משתמש חדש
-          </button>
+          <button style={S.addBtn} onClick={() => setShowAddUser(true)}><Plus size={14} /> משתמש חדש</button>
         </div>
 
-        {users.map(u => (
-          <div key={u.id} style={S.userRow}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={S.userName}>{u.name || displayLogin(u.email)}</div>
-              <div style={S.userEmail}>{displayLogin(u.email)}{u.pool_lane ? ` · מסלול ${u.pool_lane}` : u.assigned_station ? ` · תחנה ${u.assigned_station}` : ''}</div>
+        {users.map(u => {
+          const lanes: number[] = (u as any).pool_lanes || (u.pool_lane ? [u.pool_lane] : []);
+          return (
+            <div key={u.id} style={S.userRow}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={S.userName}>{u.name || displayLogin(u.email)}</div>
+                <div style={S.userEmail}>
+                  {displayLogin(u.email)}
+                  {lanes.length > 0 ? ` · מסלולים: ${lanes.join(', ')}` : u.assigned_station ? ` · תחנה ${u.assigned_station}` : ''}
+                </div>
+              </div>
+              <span style={S.roleBadge}>{roleLabel[u.role] || u.role}</span>
+              {u.role === 'admin' && !isUsernameEmail(u.email) && (
+                <button type="button" onClick={() => sendPasswordReset(u.email)} title="איפוס סיסמה" style={S.iconBtn('#6b7280')}>
+                  <KeyRound size={14} />
+                </button>
+              )}
+              <button type="button" onClick={() => openEdit(u)} title="עריכה" style={S.iconBtn('#1d4ed8')}><Pencil size={14} /></button>
+              {u.id !== currentUser?.id && u.role !== 'admin' && (
+                <button type="button" onClick={() => setConfirmDelete(u)} title="מחיקה" style={S.iconBtn('#dc2626')}><Trash2 size={14} /></button>
+              )}
             </div>
-            <span style={S.roleBadge}>{roleLabel[u.role] || u.role}</span>
-            {u.role === 'admin' && !isUsernameEmail(u.email) && (
-              <button type="button" onClick={() => sendPasswordReset(u.email)} title="איפוס סיסמה" style={S.iconBtn('#6b7280')}>
-                <KeyRound size={14} />
-              </button>
-            )}
-            <button type="button" onClick={() => openEdit(u)} title="עריכה" style={S.iconBtn('#1d4ed8')}>
-              <Pencil size={14} />
-            </button>
-            {u.id !== currentUser?.id && u.role !== 'admin' && (
-              <button type="button" onClick={() => setConfirmDelete(u)} title="מחיקה" style={S.iconBtn('#dc2626')}>
-                <Trash2 size={14} />
-              </button>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div style={S.infoCard}>
@@ -182,7 +195,7 @@ export default function Settings() {
         <div>
           <strong>משתמש מערכת</strong> — מי שצריך להיכנס לאפליקציה (מנהלים, מפעילי תחנות תיזמון).
           <br/>
-          <strong>מתנדבים שעוזרים ביום האירוע</strong> (סדרני תנועה, שופטים וכו') מנוהלים בדף "מתנדבים" — אינם צריכים חשבון.
+          <strong>מתנדבים שעוזרים ביום האירוע</strong> מנוהלים בדף "מתנדבים" — אינם צריכים חשבון.
         </div>
       </div>
 
@@ -198,62 +211,47 @@ export default function Settings() {
               <label style={S.label}>שם</label>
               <input style={S.input} value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} placeholder="שם מלא" />
               <label style={S.label}>{newUser.role === 'admin' ? 'דוא"ל' : 'שם משתמש'}</label>
-              <input
-                style={S.input}
-                type={newUser.role === 'admin' ? 'email' : 'text'}
-                value={newUser.email}
-                onChange={e => setNewUser({...newUser, email: e.target.value})}
-                required
-                placeholder={newUser.role === 'admin' ? 'email@example.com' : 'לדוגמה: dani'}
-                autoComplete="off"
-              />
-              {newUser.role !== 'admin' && (
-                <div style={{ fontSize: 11, color: '#6b7280', marginTop: -8, marginBottom: 14 }}>
-                  ללא רווחים. ישמש לכניסה למערכת.
-                </div>
-              )}
+              <input style={S.input} type={newUser.role === 'admin' ? 'email' : 'text'}
+                value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})}
+                required placeholder={newUser.role === 'admin' ? 'email@example.com' : 'לדוגמה: dani'} autoComplete="off" />
+              {newUser.role !== 'admin' && <div style={{ fontSize: 11, color: '#6b7280', marginTop: -8, marginBottom: 14 }}>ללא רווחים. ישמש לכניסה למערכת.</div>}
               <label style={S.label}>סיסמה</label>
               <div style={{ position: 'relative', marginBottom: 14 }}>
-                <input
-                  style={{ ...S.input, marginBottom: 0, paddingLeft: 40 }}
-                  type={showPassword ? 'text' : 'password'}
-                  value={newUser.password}
-                  onChange={e => setNewUser({...newUser, password: e.target.value})}
-                  required
-                  placeholder="לפחות 6 תווים"
-                />
+                <input style={{ ...S.input, marginBottom: 0, paddingLeft: 40 }}
+                  type={showPassword ? 'text' : 'password'} value={newUser.password}
+                  onChange={e => setNewUser({...newUser, password: e.target.value})} required placeholder="לפחות 6 תווים" />
                 <button type="button" onClick={() => setShowPassword(s => !s)}
                   style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: 4, display: 'flex', alignItems: 'center' }}>
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
               <label style={S.label}>תפקיד</label>
-              <select style={{ ...S.input, marginBottom: 14 }} value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})}>
+              <select style={{ ...S.input, marginBottom: 14 }} value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value, pool_lanes: [], assigned_station: ''})}>
                 <option value="admin">מנהל</option>
-                <option value="volunteer">מתנדב מערכת (תחנת תיזמון)</option>
+                <option value="volunteer">מתנדב מערכת</option>
                 <option value="viewer">צופה</option>
               </select>
               {newUser.role === 'volunteer' && (
                 <>
                   <label style={S.label}>סוג תפקיד</label>
-                  <select style={{ ...S.input, marginBottom: 14 }} value={newUser.pool_lane ? 'pool' : newUser.assigned_station ? 'timing' : ''} onChange={e => {
-                    if (e.target.value === 'pool') setNewUser({...newUser, assigned_station: '', pool_lane: '1'});
-                    else if (e.target.value === 'timing') setNewUser({...newUser, pool_lane: '', assigned_station: '1'});
-                    else setNewUser({...newUser, pool_lane: '', assigned_station: ''});
-                  }}>
+                  <select style={{ ...S.input, marginBottom: 14 }}
+                    value={newIsPool ? 'pool' : newIsTiming ? 'timing' : ''}
+                    onChange={e => {
+                      if (e.target.value === 'pool') setNewUser({...newUser, assigned_station: '', pool_lanes: [1]});
+                      else if (e.target.value === 'timing') setNewUser({...newUser, pool_lanes: [], assigned_station: '1'});
+                      else setNewUser({...newUser, pool_lanes: [], assigned_station: ''});
+                    }}>
                     <option value="">-- בחר --</option>
-                    <option value="pool">🏊 שופט בריכה (מסלול)</option>
+                    <option value="pool">🏊 שופט בריכה (מסלולים)</option>
                     <option value="timing">⏱️ שופט תיזמון (תחנה)</option>
                   </select>
-                  {newUser.pool_lane && (
+                  {newIsPool && (
                     <>
-                      <label style={S.label}>מסלול בריכה</label>
-                      <select style={{ ...S.input, marginBottom: 14 }} value={newUser.pool_lane} onChange={e => setNewUser({...newUser, pool_lane: e.target.value})}>
-                        {[1,2,3,4,5,6].map(l => <option key={l} value={l}>מסלול {l}</option>)}
-                      </select>
+                      <label style={S.label}>מסלולים (ניתן לבחור מספר)</label>
+                      <LaneCheckboxes value={newUser.pool_lanes} onChange={v => setNewUser({...newUser, pool_lanes: v})} />
                     </>
                   )}
-                  {newUser.assigned_station && (
+                  {newIsTiming && (
                     <>
                       <label style={S.label}>תחנת תיזמון</label>
                       <select style={{ ...S.input, marginBottom: 14 }} value={newUser.assigned_station} onChange={e => setNewUser({...newUser, assigned_station: e.target.value})}>
@@ -299,21 +297,21 @@ export default function Settings() {
               {editUser.role === 'volunteer' && (
                 <>
                   <label style={S.label}>סוג תפקיד</label>
-                  <select style={{ ...S.input, marginBottom: 14 }} value={editRoleType} onChange={e => {
-                    if (e.target.value === 'pool') setEditUser({...editUser, assigned_station: '', pool_lane: '1'});
-                    else if (e.target.value === 'timing') setEditUser({...editUser, pool_lane: '', assigned_station: '1'});
-                    else setEditUser({...editUser, pool_lane: '', assigned_station: ''});
-                  }}>
+                  <select style={{ ...S.input, marginBottom: 14 }}
+                    value={editUser.pool_lanes.length > 0 ? 'pool' : editUser.assigned_station ? 'timing' : ''}
+                    onChange={e => {
+                      if (e.target.value === 'pool') setEditUser({...editUser, assigned_station: '', pool_lanes: [1]});
+                      else if (e.target.value === 'timing') setEditUser({...editUser, pool_lanes: [], assigned_station: '1'});
+                      else setEditUser({...editUser, pool_lanes: [], assigned_station: ''});
+                    }}>
                     <option value="">-- בחר --</option>
-                    <option value="pool">🏊 שופט בריכה (מסלול)</option>
+                    <option value="pool">🏊 שופט בריכה (מסלולים)</option>
                     <option value="timing">⏱️ שופט תיזמון (תחנה)</option>
                   </select>
-                  {editUser.pool_lane && (
+                  {editUser.pool_lanes.length > 0 && (
                     <>
-                      <label style={S.label}>מסלול בריכה</label>
-                      <select style={{ ...S.input, marginBottom: 14 }} value={editUser.pool_lane} onChange={e => setEditUser({...editUser, pool_lane: e.target.value})}>
-                        {[1,2,3,4,5,6].map(l => <option key={l} value={l}>מסלול {l}</option>)}
-                      </select>
+                      <label style={S.label}>מסלולים (ניתן לבחור מספר)</label>
+                      <LaneCheckboxes value={editUser.pool_lanes} onChange={v => setEditUser({...editUser, pool_lanes: v})} />
                     </>
                   )}
                   {editUser.assigned_station && (
@@ -331,14 +329,10 @@ export default function Settings() {
 
               <label style={S.label}>סיסמה חדשה (השאר ריק לא לשנות)</label>
               <div style={{ position: 'relative', marginBottom: 14 }}>
-                <input
-                  style={{ ...S.input, marginBottom: 0, paddingLeft: 40 }}
-                  type={showEditPass ? 'text' : 'password'}
-                  value={editUser.newPassword}
+                <input style={{ ...S.input, marginBottom: 0, paddingLeft: 40 }}
+                  type={showEditPass ? 'text' : 'password'} value={editUser.newPassword}
                   onChange={e => setEditUser({...editUser, newPassword: e.target.value})}
-                  placeholder="סיסמה חדשה (אופציונלי)"
-                  autoComplete="new-password"
-                />
+                  placeholder="סיסמה חדשה (אופציונלי)" autoComplete="new-password" />
                 <button type="button" onClick={() => setShowEditPass(s => !s)}
                   style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: 4, display: 'flex', alignItems: 'center' }}>
                   {showEditPass ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -362,15 +356,12 @@ export default function Settings() {
               <div style={{ fontSize: 40, marginBottom: 12 }}>🗑️</div>
               <div style={{ fontSize: 17, fontWeight: 800, color: '#111827', marginBottom: 8 }}>מחיקת משתמש</div>
               <div style={{ fontSize: 14, color: '#6b7280' }}>
-                למחוק את <strong>{confirmDelete.name || displayLogin(confirmDelete.email)}</strong>?<br />
-                פעולה זו אינה הפיכה.
+                למחוק את <strong>{confirmDelete.name || displayLogin(confirmDelete.email)}</strong>?<br />פעולה זו אינה הפיכה.
               </div>
             </div>
             <div style={S.btnRow}>
               <button style={S.btnSecondary} onClick={() => setConfirmDelete(null)}>ביטול</button>
-              <button style={S.btnDanger} onClick={deleteUser} disabled={deleting}>
-                {deleting ? 'מוחק...' : 'מחיקה'}
-              </button>
+              <button style={S.btnDanger} onClick={deleteUser} disabled={deleting}>{deleting ? 'מוחק...' : 'מחיקה'}</button>
             </div>
           </div>
         </div>

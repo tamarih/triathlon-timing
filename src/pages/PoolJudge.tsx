@@ -24,7 +24,9 @@ export default function PoolJudge() {
   const [selectedEvent, setSelectedEvent] = useState('');
   const [selectedRace, setSelectedRace] = useState('');
 
-  const myLane = appUser?.pool_lane;
+  const myLanes: number[] = (appUser as any)?.pool_lanes?.length
+    ? (appUser as any).pool_lanes
+    : appUser?.pool_lane ? [appUser.pool_lane] : [];
 
   useEffect(() => {
     supabase.from('events').select('*').in('status', ['open', 'closed']).order('date').then(({ data }) => {
@@ -73,11 +75,11 @@ export default function PoolJudge() {
   const race = useMemo(() => races.find(r => r.id === selectedRace), [races, selectedRace]);
   const requiredLaps = race ? requiredLapsFor(race) : 0;
 
-  // My lane swimmers (if judge has assigned lane) or all participants
+  // Filter to assigned lanes, grouped by lane, sorted
   const mySwimmers = useMemo(() => {
-    if (!myLane) return participants;
-    return participants.filter(p => p.lane === myLane);
-  }, [participants, myLane]);
+    if (!myLanes.length) return participants;
+    return participants.filter(p => p.lane && myLanes.includes(p.lane));
+  }, [participants, myLanes]);
 
   async function addLap(p: Participant) {
     const current = lapCounts[p.id] || 0;
@@ -144,7 +146,7 @@ export default function PoolJudge() {
           <div style={{ flex: 1 }} />
           <div>
             <div style={{ fontSize: 20, fontWeight: 800, textAlign: 'center' }}>🏊 שיפוט בריכה</div>
-            {myLane && <div style={{ textAlign: 'center', fontSize: 13, color: '#60a5fa', marginTop: 2 }}>מסלול {myLane}</div>}
+            {myLanes.length > 0 && <div style={{ textAlign: 'center', fontSize: 13, color: '#60a5fa', marginTop: 2 }}>מסלולים: {myLanes.join(', ')}</div>}
           </div>
           <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
             <button onClick={() => navigate('/admin')} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, padding: '6px 10px', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
@@ -170,76 +172,79 @@ export default function PoolJudge() {
         </div>
       </div>
 
-      {/* Swimmers list */}
-      <div style={{ padding: '12px 12px', maxWidth: 520, margin: '0 auto' }}>
-        {selectedRace && mySwimmers.length === 0 && (
-          <div style={{ textAlign: 'center', color: '#64748b', fontSize: 14, marginTop: 40 }}>אין שחיינים במסלול זה</div>
-        )}
+      {/* Swimmers — one column per lane when multiple lanes */}
+      {selectedRace && mySwimmers.length === 0 && (
+        <div style={{ textAlign: 'center', color: '#64748b', fontSize: 14, marginTop: 40 }}>אין שחיינים במסלולים המוגדרים</div>
+      )}
 
-        {mySwimmers.map(p => {
-          const count = lapCounts[p.id] || 0;
-          const done = count >= requiredLaps && requiredLaps > 0;
+      {selectedRace && mySwimmers.length > 0 && (() => {
+        // Group by lane
+        const grouped: Record<number, typeof mySwimmers> = {};
+        for (const p of mySwimmers) {
+          const l = p.lane || 0;
+          if (!grouped[l]) grouped[l] = [];
+          grouped[l].push(p);
+        }
+        const laneNums = Object.keys(grouped).map(Number).sort((a, b) => a - b);
+        const multiLane = laneNums.length > 1;
 
-          return (
-            <div key={p.id} style={{
-              background: done ? '#052e16' : '#1e293b',
-              border: `2px solid ${done ? '#16a34a' : '#334155'}`,
-              borderRadius: 18,
-              padding: '14px 16px',
-              marginBottom: 12,
-            }}>
-              {/* Name + bib row */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                <div style={{
-                  background: done ? '#16a34a' : '#0ea5e9',
-                  color: 'white', fontFamily: 'monospace', fontSize: 20, fontWeight: 900,
-                  borderRadius: 10, padding: '6px 14px', flexShrink: 0,
-                }}>
-                  {p.bib_number || '—'}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.2 }}>{p.first_name} {p.last_name}</div>
-                  {p.lane && <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>מסלול {p.lane}</div>}
-                </div>
-                {done && <div style={{ background: '#16a34a', color: 'white', borderRadius: 8, padding: '4px 10px', fontSize: 13, fontWeight: 700 }}>✓ סיים</div>}
-              </div>
-
-              {/* Lap counter */}
-              <div style={{ textAlign: 'center', marginBottom: 12 }}>
-                <span style={{ fontSize: 64, fontWeight: 900, fontFamily: 'monospace', lineHeight: 1 }}>{count}</span>
-                <span style={{ fontSize: 32, color: '#475569', margin: '0 8px' }}>/</span>
-                <span style={{ fontSize: 40, fontWeight: 700, color: '#94a3b8', fontFamily: 'monospace' }}>{requiredLaps}</span>
-              </div>
-
-              {/* Buttons */}
-              {!done ? (
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={() => addLap(p)} style={{
-                    flex: 1, background: '#16a34a', color: 'white', border: 'none',
-                    borderRadius: 14, padding: '18px 0', fontSize: 28, fontWeight: 900,
-                    cursor: 'pointer', boxShadow: '0 4px 14px rgba(22,163,74,0.4)',
-                    userSelect: 'none',
-                  }}>+</button>
-                  {count > 0 && (
-                    <button onClick={() => undoLap(p)} style={{
-                      background: '#7f1d1d', color: '#fca5a5', border: 'none',
-                      borderRadius: 14, padding: '18px 16px', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center',
+        return (
+          <div style={{ display: multiLane ? 'flex' : 'block', gap: 8, padding: '12px 8px', overflowX: multiLane ? 'auto' : 'visible', alignItems: 'flex-start' }}>
+            {laneNums.map(laneNum => (
+              <div key={laneNum} style={{ flex: multiLane ? '0 0 auto' : undefined, width: multiLane ? 'calc(50vw - 20px)' : undefined, maxWidth: multiLane ? 300 : 520, margin: multiLane ? undefined : '0 auto' }}>
+                {multiLane && (
+                  <div style={{ textAlign: 'center', background: '#1e40af', borderRadius: 10, padding: '6px 0', fontWeight: 800, fontSize: 14, marginBottom: 8 }}>
+                    🏊 מסלול {laneNum}
+                  </div>
+                )}
+                {grouped[laneNum].map(p => {
+                  const count = lapCounts[p.id] || 0;
+                  const done = count >= requiredLaps && requiredLaps > 0;
+                  return (
+                    <div key={p.id} style={{
+                      background: done ? '#052e16' : '#1e293b',
+                      border: `2px solid ${done ? '#16a34a' : '#334155'}`,
+                      borderRadius: 18, padding: '12px 14px', marginBottom: 10,
                     }}>
-                      <Minus size={22} />
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div style={{ background: '#16a34a', color: 'white', borderRadius: 12, padding: '12px 0', textAlign: 'center', fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                  <Check size={16} />
-                  סיים בשעה {finishedAt[p.id] ? new Date(finishedAt[p.id]).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : ''}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                        <div style={{ background: done ? '#16a34a' : '#0ea5e9', color: 'white', fontFamily: 'monospace', fontSize: multiLane ? 15 : 20, fontWeight: 900, borderRadius: 10, padding: '5px 10px', flexShrink: 0 }}>
+                          {p.bib_number || '—'}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: multiLane ? 15 : 20, fontWeight: 800, lineHeight: 1.2 }}>{p.first_name} {p.last_name}</div>
+                        </div>
+                        {done && <div style={{ background: '#16a34a', color: 'white', borderRadius: 8, padding: '3px 8px', fontSize: 12, fontWeight: 700 }}>✓</div>}
+                      </div>
+
+                      <div style={{ textAlign: 'center', marginBottom: 10 }}>
+                        <span style={{ fontSize: multiLane ? 48 : 64, fontWeight: 900, fontFamily: 'monospace', lineHeight: 1 }}>{count}</span>
+                        <span style={{ fontSize: multiLane ? 24 : 32, color: '#475569', margin: '0 6px' }}>/</span>
+                        <span style={{ fontSize: multiLane ? 28 : 40, fontWeight: 700, color: '#94a3b8', fontFamily: 'monospace' }}>{requiredLaps}</span>
+                      </div>
+
+                      {!done ? (
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button onClick={() => addLap(p)} style={{ flex: 1, background: '#16a34a', color: 'white', border: 'none', borderRadius: 12, padding: multiLane ? '14px 0' : '18px 0', fontSize: multiLane ? 22 : 28, fontWeight: 900, cursor: 'pointer', userSelect: 'none' }}>+</button>
+                          {count > 0 && (
+                            <button onClick={() => undoLap(p)} style={{ background: '#7f1d1d', color: '#fca5a5', border: 'none', borderRadius: 12, padding: '14px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                              <Minus size={18} />
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div style={{ background: '#16a34a', color: 'white', borderRadius: 10, padding: '10px 0', textAlign: 'center', fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                          <Check size={14} />
+                          {finishedAt[p.id] ? new Date(finishedAt[p.id]).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'סיים'}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        );
+      })()}
     </div>
   );
 }
