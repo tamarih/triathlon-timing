@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { toLoginEmail } from '../lib/utils';
+import { supabase } from '../lib/supabase';
 import { Eye, EyeOff } from 'lucide-react';
 
 const S = {
@@ -112,7 +113,11 @@ export default function Login() {
     setLoading(true);
     try {
       await signIn(toLoginEmail(loginId), password);
-      navigate('/admin');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: au } = await supabase.from('app_users').select('role').eq('id', session.user.id).single();
+        navigate(au?.role === 'admin' ? '/admin' : '/volunteer');
+      }
     } catch {
       setError('שם משתמש או סיסמה שגויים');
     } finally {

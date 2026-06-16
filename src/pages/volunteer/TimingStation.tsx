@@ -177,14 +177,22 @@ export default function TimingStation() {
           </select>
 
           <label style={S.label}>תחנה</label>
-          <div style={S.stationGrid}>
-            {([1, 2, 3] as const).map(s => (
-              <button key={s} onClick={() => setStation(s)} style={S.stationBtn(station === s)}>
-                תחנה {s}
-              </button>
-            ))}
-          </div>
-          <div style={S.stationLabel}>{stationLabels[station]}</div>
+          {appUser?.assigned_station ? (
+            <div style={{ background: '#2563eb', borderRadius: 10, padding: '10px 14px', fontSize: 14, fontWeight: 700, color: 'white', textAlign: 'center' as const }}>
+              {stationLabels[appUser.assigned_station]}
+            </div>
+          ) : (
+            <>
+              <div style={S.stationGrid}>
+                {([1, 2, 3] as const).map(s => (
+                  <button key={s} onClick={() => setStation(s)} style={S.stationBtn(station === s)}>
+                    תחנה {s}
+                  </button>
+                ))}
+              </div>
+              <div style={S.stationLabel}>{stationLabels[station]}</div>
+            </>
+          )}
         </div>
 
         <div style={S.card}>
