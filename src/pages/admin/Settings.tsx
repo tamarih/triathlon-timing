@@ -287,11 +287,14 @@ export default function Settings() {
               <input style={S.input} value={editUser.name} onChange={e => setEditUser({...editUser, name: e.target.value})} placeholder="שם מלא" />
 
               <label style={S.label}>תפקיד</label>
-              <select style={{ ...S.input, marginBottom: 14 }} value={editUser.role} onChange={e => setEditUser({...editUser, role: e.target.value})}>
-                <option value="admin">מנהל</option>
-                <option value="volunteer">מתנדב מערכת</option>
-                <option value="viewer">צופה</option>
-              </select>
+              {editUser.role === 'admin' ? (
+                <div style={{ ...S.input, color: '#6b7280', background: '#f3f4f6', cursor: 'not-allowed' }}>👑 מנהל</div>
+              ) : (
+                <select style={{ ...S.input, marginBottom: 14 }} value={editUser.role} onChange={e => setEditUser({...editUser, role: e.target.value})}>
+                  <option value="volunteer">מתנדב מערכת</option>
+                  <option value="viewer">צופה</option>
+                </select>
+              )}
 
               {editUser.role === 'volunteer' && (
                 <>
