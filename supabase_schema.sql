@@ -50,7 +50,7 @@ CREATE TABLE teams (
   contact_phone TEXT NOT NULL,
   contact_email TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'registered' CHECK (status IN ('registered','started','dns','dnf','dsq','finished')),
-  payment_status TEXT NOT NULL DEFAULT 'unpaid' CHECK (payment_status IN ('unpaid','paid','exempt')),
+  payment_status TEXT NOT NULL DEFAULT 'exempt' CHECK (payment_status IN ('unpaid','paid','exempt')),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -79,7 +79,7 @@ CREATE TABLE participants (
   rules_accepted BOOLEAN NOT NULL DEFAULT false,
   photo_consent BOOLEAN NOT NULL DEFAULT false,
   status TEXT NOT NULL DEFAULT 'registered' CHECK (status IN ('registered','started','dns','dnf','dsq','finished')),
-  payment_status TEXT NOT NULL DEFAULT 'unpaid' CHECK (payment_status IN ('unpaid','paid','exempt')),
+  payment_status TEXT NOT NULL DEFAULT 'exempt' CHECK (payment_status IN ('unpaid','paid','exempt')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
