@@ -93,13 +93,13 @@ export default function PoolJudge() {
   }, [selectedRace]);
 
   async function loadParticipantsAndLaps() {
-    let query = supabase
+    const { data: parts } = await supabase
       .from('participants')
       .select('*')
       .eq('event_id', selectedEvent)
-      .eq('race_id', selectedRace);
-    if (appUser?.pool_lane) query = query.eq('lane', appUser.pool_lane);
-    const { data: parts } = await query.order('bib_number');
+      .eq('race_id', selectedRace)
+      .order('lane')
+      .order('bib_number');
     setParticipants(parts || []);
 
     const partIds = (parts || []).map(p => p.id);
@@ -134,6 +134,16 @@ export default function PoolJudge() {
       (p.bib_number || '').includes(q)
     );
   }, [participants, search]);
+
+  const lanes = useMemo(() => {
+    const map: Record<number, Participant[]> = {};
+    for (const p of filteredParticipants) {
+      const lane = p.lane || 0;
+      if (!map[lane]) map[lane] = [];
+      map[lane].push(p);
+    }
+    return Object.entries(map).map(([lane, parts]) => ({ lane: Number(lane), parts })).sort((a, b) => a.lane - b.lane);
+  }, [filteredParticipants]);
 
   async function addLap(p: Participant) {
     const current = lapCounts[p.id] || 0;
@@ -255,40 +265,60 @@ export default function PoolJudge() {
           </div>
         )}
 
-        {filteredParticipants.map(p => {
-          const count = lapCounts[p.id] || 0;
-          const done = count >= requiredLaps && requiredLaps > 0;
-          const finishTime = finishedAt[p.id];
+        {lanes.map(({ lane, parts }) => {
+          const isMyLane = !appUser?.pool_lane || appUser.pool_lane === lane;
           return (
-            <div key={p.id} style={S.partCard(done)}>
-              <div style={S.partTopRow}>
-                <div style={done ? S.bibBadgeDone : S.bibBadge}>{p.bib_number || '—'}</div>
-                <div style={S.partName}>{p.first_name} {p.last_name}</div>
-                {done && <div style={S.doneBanner}>✓ סיים</div>}
+            <div key={lane} style={{ marginBottom: 20 }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10,
+                padding: '8px 14px', borderRadius: 10,
+                background: isMyLane ? '#1e40af' : '#1e293b',
+                border: isMyLane ? '2px solid #60a5fa' : '2px solid #334155',
+              }}>
+                <span style={{ fontSize: 15, fontWeight: 800 }}>🏊 מסלול {lane}</span>
+                {isMyLane && appUser?.pool_lane && <span style={{ fontSize: 12, background: '#60a5fa', color: '#1e3a8a', borderRadius: 20, padding: '2px 10px', fontWeight: 700 }}>המסלול שלי</span>}
               </div>
 
-              <div style={S.countRow}>
-                <span style={S.countMain}>{count}</span>
-                <span style={S.countSlash}>/</span>
-                <span style={S.countTotal}>{requiredLaps}</span>
-              </div>
+              {parts.map(p => {
+                const count = lapCounts[p.id] || 0;
+                const done = count >= requiredLaps && requiredLaps > 0;
+                const finishTime = finishedAt[p.id];
+                const canEdit = isMyLane;
+                return (
+                  <div key={p.id} style={{ ...S.partCard(done), opacity: canEdit ? 1 : 0.6 }}>
+                    <div style={S.partTopRow}>
+                      <div style={done ? S.bibBadgeDone : S.bibBadge}>{p.bib_number || '—'}</div>
+                      <div style={S.partName}>{p.first_name} {p.last_name}</div>
+                      {done && <div style={S.doneBanner}>✓ סיים</div>}
+                    </div>
 
-              <div style={S.btnRow}>
-                <button style={S.bigPlus(done)} onClick={() => addLap(p)} disabled={done}>
-                  {done ? '✓ הושלם' : '+ בריכה'}
-                </button>
-                {count > 0 && (
-                  <button style={S.undoBtn} onClick={() => undoLap(p)} title="ביטול">
-                    <Minus size={20} />
-                  </button>
-                )}
-              </div>
+                    <div style={S.countRow}>
+                      <span style={S.countMain}>{count}</span>
+                      <span style={S.countSlash}>/</span>
+                      <span style={S.countTotal}>{requiredLaps}</span>
+                    </div>
 
-              {done && finishTime && (
-                <div style={S.finishDone}>
-                  <Check size={16} /> זמן סיום: {new Date(finishTime).toLocaleTimeString('he-IL')}
-                </div>
-              )}
+                    {canEdit && (
+                      <div style={S.btnRow}>
+                        <button style={S.bigPlus(done)} onClick={() => addLap(p)} disabled={done}>
+                          {done ? '✓ הושלם' : '+ בריכה'}
+                        </button>
+                        {count > 0 && (
+                          <button style={S.undoBtn} onClick={() => undoLap(p)} title="ביטול">
+                            <Minus size={20} />
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {done && finishTime && (
+                      <div style={S.finishDone}>
+                        <Check size={16} /> זמן סיום: {new Date(finishTime).toLocaleTimeString('he-IL')}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           );
         })}
