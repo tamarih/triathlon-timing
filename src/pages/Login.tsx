@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { toLoginEmail } from '../lib/utils';
+import { Eye, EyeOff } from 'lucide-react';
 
 const S = {
   page: {
@@ -155,7 +156,7 @@ export default function Login() {
                 onClick={() => setShowPass(s => !s)}
                 style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: 0 }}
               >
-                {showPass ? '🙈' : '👁️'}
+                {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </div>
