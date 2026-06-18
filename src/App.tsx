@@ -17,6 +17,7 @@ import Reports from './pages/admin/Reports';
 import Settings from './pages/admin/Settings';
 import Volunteers from './pages/admin/Volunteers';
 import PoolJudge from './pages/PoolJudge';
+import ChooseRole from './pages/ChooseRole';
 import LaneView from './pages/admin/LaneView';
 import Roles from './pages/admin/Roles';
 import Equipment from './pages/admin/Equipment';
@@ -39,6 +40,9 @@ function AppRoutes() {
       } />
       <Route path="/pool" element={
         <ProtectedRoute role="volunteer"><PoolJudge /></ProtectedRoute>
+      } />
+      <Route path="/choose-role" element={
+        <ProtectedRoute role="volunteer"><ChooseRole /></ProtectedRoute>
       } />
 
       {/* Pages with sidebar layout */}

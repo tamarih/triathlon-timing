@@ -115,9 +115,12 @@ export default function Login() {
       await signIn(toLoginEmail(loginId), password);
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        const { data: au } = await supabase.from('app_users').select('role, pool_lane').eq('id', session.user.id).single();
-        if (au?.role === 'admin') navigate('/admin');
-        else if (au?.pool_lane) navigate('/pool');
+        const { data: au } = await supabase.from('app_users').select('role, pool_lane, pool_lanes, assigned_station').eq('id', session.user.id).single();
+        if (au?.role === 'admin') { navigate('/admin'); return; }
+        const hasPool = (au?.pool_lanes?.length > 0) || !!au?.pool_lane;
+        const hasTiming = !!au?.assigned_station;
+        if (hasPool && hasTiming) navigate('/choose-role');
+        else if (hasPool) navigate('/pool');
         else navigate('/volunteer');
       }
     } catch {

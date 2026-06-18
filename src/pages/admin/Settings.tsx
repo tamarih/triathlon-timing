@@ -36,6 +36,55 @@ const roleLabel: Record<string, string> = { admin: '👑 מנהל', volunteer: '
 
 type EditState = { id: string; name: string; role: string; assigned_station: string; pool_lanes: number[]; newPassword: string };
 
+function RoleBlocks({ poolLanes, station, onPoolChange, onStationChange }: {
+  poolLanes: number[]; station: string;
+  onPoolChange: (v: number[]) => void; onStationChange: (v: string) => void;
+}) {
+  const isPool = poolLanes.length > 0;
+  const isTiming = !!station;
+  const blockStyle = (active: boolean): React.CSSProperties => ({
+    border: `2px solid ${active ? '#3b82f6' : '#e5e7eb'}`,
+    borderRadius: 12, padding: '10px 14px', marginBottom: 10,
+    background: active ? '#eff6ff' : '#f9fafb', cursor: 'pointer',
+  });
+  return (
+    <>
+      <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 8 }}>תפקידים (ניתן לבחור כמה)</label>
+      {/* Pool block */}
+      <div style={blockStyle(isPool)} onClick={() => onPoolChange(isPool ? [] : [1])}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input type="checkbox" checked={isPool} onChange={() => {}} style={{ width: 16, height: 16 }} />
+          <span style={{ fontWeight: 700, fontSize: 14 }}>🏊 שופט בריכה</span>
+        </div>
+        {isPool && (
+          <div style={{ marginTop: 10 }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6 }}>מסלולים:</div>
+            <LaneCheckboxes value={poolLanes} onChange={onPoolChange} />
+          </div>
+        )}
+      </div>
+      {/* Timing block */}
+      <div style={blockStyle(isTiming)} onClick={() => onStationChange(isTiming ? '' : '1')}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input type="checkbox" checked={isTiming} onChange={() => {}} style={{ width: 16, height: 16 }} />
+          <span style={{ fontWeight: 700, fontSize: 14 }}>⏱️ שופט תיזמון</span>
+        </div>
+        {isTiming && (
+          <div style={{ marginTop: 10 }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6 }}>תחנה:</div>
+            <select style={{ border: '1.5px solid #e5e7eb', borderRadius: 8, padding: '7px 10px', fontSize: 13, background: 'white', outline: 'none', fontFamily: 'system-ui', width: '100%' }}
+              value={station} onChange={e => onStationChange(e.target.value)}>
+              <option value="1">תחנה 1 — יציאה משחייה</option>
+              <option value="2">תחנה 2 — סיום אופניים</option>
+              <option value="3">תחנה 3 — קו סיום</option>
+            </select>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
 function LaneCheckboxes({ value, onChange }: { value: number[]; onChange: (v: number[]) => void }) {
   function toggle(lane: number) {
     onChange(value.includes(lane) ? value.filter(l => l !== lane) : [...value, lane].sort());
@@ -152,7 +201,7 @@ export default function Settings() {
   }
 
   const newIsPool = newUser.pool_lanes.length > 0;
-  const newIsTiming = !newIsPool && !!newUser.assigned_station;
+  const newIsTiming = !!newUser.assigned_station;
 
   return (
     <div style={S.page}>
@@ -172,7 +221,7 @@ export default function Settings() {
                 <div style={S.userName}>{u.name || displayLogin(u.email)}</div>
                 <div style={S.userEmail}>
                   {displayLogin(u.email)}
-                  {lanes.length > 0 ? ` · מסלולים: ${lanes.join(', ')}` : u.assigned_station ? ` · תחנה ${u.assigned_station}` : ''}
+                  {[lanes.length > 0 ? `🏊 מסלולים: ${lanes.join(', ')}` : '', u.assigned_station ? `⏱️ תחנה ${u.assigned_station}` : ''].filter(Boolean).join(' · ') || ''}
                 </div>
               </div>
               <span style={S.roleBadge}>{roleLabel[u.role] || u.role}</span>
@@ -233,34 +282,12 @@ export default function Settings() {
               </select>
               {newUser.role === 'volunteer' && (
                 <>
-                  <label style={S.label}>סוג תפקיד</label>
-                  <select style={{ ...S.input, marginBottom: 14 }}
-                    value={newIsPool ? 'pool' : newIsTiming ? 'timing' : ''}
-                    onChange={e => {
-                      if (e.target.value === 'pool') setNewUser({...newUser, assigned_station: '', pool_lanes: [1]});
-                      else if (e.target.value === 'timing') setNewUser({...newUser, pool_lanes: [], assigned_station: '1'});
-                      else setNewUser({...newUser, pool_lanes: [], assigned_station: ''});
-                    }}>
-                    <option value="">-- בחר --</option>
-                    <option value="pool">🏊 שופט בריכה (מסלולים)</option>
-                    <option value="timing">⏱️ שופט תיזמון (תחנה)</option>
-                  </select>
-                  {newIsPool && (
-                    <>
-                      <label style={S.label}>מסלולים (ניתן לבחור מספר)</label>
-                      <LaneCheckboxes value={newUser.pool_lanes} onChange={v => setNewUser({...newUser, pool_lanes: v})} />
-                    </>
-                  )}
-                  {newIsTiming && (
-                    <>
-                      <label style={S.label}>תחנת תיזמון</label>
-                      <select style={{ ...S.input, marginBottom: 14 }} value={newUser.assigned_station} onChange={e => setNewUser({...newUser, assigned_station: e.target.value})}>
-                        <option value="1">תחנה 1 — יציאה משחייה</option>
-                        <option value="2">תחנה 2 — סיום אופניים</option>
-                        <option value="3">תחנה 3 — קו סיום</option>
-                      </select>
-                    </>
-                  )}
+                  <RoleBlocks
+                    poolLanes={newUser.pool_lanes}
+                    station={newUser.assigned_station}
+                    onPoolChange={v => setNewUser({...newUser, pool_lanes: v})}
+                    onStationChange={v => setNewUser({...newUser, assigned_station: v})}
+                  />
                 </>
               )}
               <div style={S.btnRow}>
@@ -295,36 +322,12 @@ export default function Settings() {
               )}
 
               {editUser.role === 'volunteer' && (
-                <>
-                  <label style={S.label}>סוג תפקיד</label>
-                  <select style={{ ...S.input, marginBottom: 14 }}
-                    value={editUser.pool_lanes.length > 0 ? 'pool' : editUser.assigned_station ? 'timing' : ''}
-                    onChange={e => {
-                      if (e.target.value === 'pool') setEditUser({...editUser, assigned_station: '', pool_lanes: [1]});
-                      else if (e.target.value === 'timing') setEditUser({...editUser, pool_lanes: [], assigned_station: '1'});
-                      else setEditUser({...editUser, pool_lanes: [], assigned_station: ''});
-                    }}>
-                    <option value="">-- בחר --</option>
-                    <option value="pool">🏊 שופט בריכה (מסלולים)</option>
-                    <option value="timing">⏱️ שופט תיזמון (תחנה)</option>
-                  </select>
-                  {editUser.pool_lanes.length > 0 && (
-                    <>
-                      <label style={S.label}>מסלולים (ניתן לבחור מספר)</label>
-                      <LaneCheckboxes value={editUser.pool_lanes} onChange={v => setEditUser({...editUser, pool_lanes: v})} />
-                    </>
-                  )}
-                  {editUser.assigned_station && (
-                    <>
-                      <label style={S.label}>תחנת תיזמון</label>
-                      <select style={{ ...S.input, marginBottom: 14 }} value={editUser.assigned_station} onChange={e => setEditUser({...editUser, assigned_station: e.target.value})}>
-                        <option value="1">תחנה 1 — יציאה משחייה</option>
-                        <option value="2">תחנה 2 — סיום אופניים</option>
-                        <option value="3">תחנה 3 — קו סיום</option>
-                      </select>
-                    </>
-                  )}
-                </>
+                <RoleBlocks
+                  poolLanes={editUser.pool_lanes}
+                  station={editUser.assigned_station}
+                  onPoolChange={v => setEditUser({...editUser, pool_lanes: v})}
+                  onStationChange={v => setEditUser({...editUser, assigned_station: v})}
+                />
               )}
 
               <label style={S.label}>סיסמה חדשה (השאר ריק לא לשנות)</label>
