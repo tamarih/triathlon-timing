@@ -24,6 +24,7 @@ export default function PoolJudge() {
   const [lastTap, setLastTap] = useState<Record<string, number>>({});
   const [selectedEvent, setSelectedEvent] = useState('');
   const [selectedRace, setSelectedRace] = useState('');
+  const [countdown, setCountdown] = useState<number | null>(null); // null=off, 3/2/1=counting, 0=go
 
   const myLanes: number[] = (appUser as any)?.pool_lanes?.length
     ? (appUser as any).pool_lanes
@@ -145,6 +146,35 @@ export default function PoolJudge() {
     navigate('/login');
   }
 
+  function startCountdown() {
+    setCountdown(3);
+    let n = 3;
+    // beep helper
+    function beep(freq: number, duration: number) {
+      try {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        osc.connect(ctx.destination);
+        osc.frequency.value = freq;
+        osc.start();
+        setTimeout(() => osc.stop(), duration);
+      } catch {}
+    }
+    beep(880, 150);
+    const iv = setInterval(() => {
+      n--;
+      if (n > 0) {
+        setCountdown(n);
+        beep(880, 150);
+      } else {
+        setCountdown(0);
+        beep(1320, 600);
+        setTimeout(() => setCountdown(null), 2000);
+        clearInterval(iv);
+      }
+    }, 1000);
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: '#0f172a', color: 'white', direction: 'rtl', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 
@@ -166,6 +196,17 @@ export default function PoolJudge() {
           </div>
         </div>
 
+        {selectedRace && (
+          <button onClick={startCountdown} disabled={countdown !== null} style={{
+            width: '100%', background: countdown !== null ? '#374151' : 'linear-gradient(135deg,#dc2626,#f97316)',
+            color: 'white', border: 'none', borderRadius: 10, padding: '12px 0',
+            fontSize: 17, fontWeight: 900, cursor: countdown !== null ? 'not-allowed' : 'pointer',
+            marginBottom: 10, letterSpacing: 1,
+          }}>
+            🏁 הזנק!
+          </button>
+        )}
+
         <div style={{ display: 'flex', gap: 8 }}>
           <select value={selectedEvent} onChange={e => setSelectedEvent(e.target.value)}
             style={{ flex: 1, background: '#334155', border: '1px solid #475569', borderRadius: 8, padding: '8px 10px', color: 'white', fontSize: 14, outline: 'none' }}>
@@ -181,6 +222,31 @@ export default function PoolJudge() {
       </div>
 
       {/* Swimmers — one column per lane when multiple lanes */}
+      {/* Countdown overlay */}
+      {countdown !== null && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          background: countdown === 0 ? 'rgba(22,163,74,0.95)' : 'rgba(15,23,42,0.95)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          transition: 'background 0.3s',
+        }}>
+          {countdown > 0 ? (
+            <>
+              <div style={{ fontSize: 180, fontWeight: 900, fontFamily: 'monospace', lineHeight: 1, color: countdown === 1 ? '#f97316' : 'white' }}>
+                {countdown}
+              </div>
+              <div style={{ fontSize: 22, color: 'rgba(255,255,255,0.7)', marginTop: 16 }}>התכוננו...</div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: 72, fontWeight: 900, color: 'white', textAlign: 'center', lineHeight: 1.2 }}>
+                🏁 צאו לדרך!
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {selectedRace && mySwimmers.length === 0 && (
         <div style={{ textAlign: 'center', color: '#64748b', fontSize: 14, marginTop: 40 }}>אין שחיינים במסלולים המוגדרים</div>
       )}
