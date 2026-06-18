@@ -21,6 +21,7 @@ export default function PoolJudge() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [lapCounts, setLapCounts] = useState<Record<string, number>>({});
   const [finishedAt, setFinishedAt] = useState<Record<string, string>>({});
+  const [lastTap, setLastTap] = useState<Record<string, number>>({});
   const [selectedEvent, setSelectedEvent] = useState('');
   const [selectedRace, setSelectedRace] = useState('');
 
@@ -82,6 +83,13 @@ export default function PoolJudge() {
   }, [participants, myLanes]);
 
   async function addLap(p: Participant) {
+    const now = Date.now();
+    if (lastTap[p.id] && now - lastTap[p.id] < 7000) {
+      const remaining = Math.ceil((7000 - (now - lastTap[p.id])) / 1000);
+      toast.error(`המתן עוד ${remaining} שניות`, { id: p.id, duration: 1500 });
+      return;
+    }
+    setLastTap(prev => ({ ...prev, [p.id]: now }));
     const current = lapCounts[p.id] || 0;
     if (current >= requiredLaps) return;
     const nextLap = current + 1;
@@ -224,7 +232,14 @@ export default function PoolJudge() {
 
                       {!done ? (
                         <div style={{ display: 'flex', gap: 6 }}>
-                          <button onClick={() => addLap(p)} style={{ flex: 1, background: '#16a34a', color: 'white', border: 'none', borderRadius: 12, padding: multiLane ? '14px 0' : '18px 0', fontSize: multiLane ? 22 : 28, fontWeight: 900, cursor: 'pointer', userSelect: 'none' }}>+</button>
+                          {(() => {
+                            const cooldown = lastTap[p.id] && Date.now() - lastTap[p.id] < 7000;
+                            return (
+                              <button onClick={() => addLap(p)} style={{ flex: 1, background: cooldown ? '#166534' : '#16a34a', color: cooldown ? '#86efac' : 'white', border: 'none', borderRadius: 12, padding: multiLane ? '14px 0' : '18px 0', fontSize: multiLane ? 22 : 28, fontWeight: 900, cursor: cooldown ? 'not-allowed' : 'pointer', userSelect: 'none', opacity: cooldown ? 0.6 : 1 }}>
+                                {cooldown ? '⏳' : '+'}
+                              </button>
+                            );
+                          })()}
                           {count > 0 && (
                             <button onClick={() => undoLap(p)} style={{ background: '#7f1d1d', color: '#fca5a5', border: 'none', borderRadius: 12, padding: '14px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                               <Minus size={18} />
