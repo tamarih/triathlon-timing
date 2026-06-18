@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { Event, Race, Participant } from '../lib/types';
@@ -24,7 +24,8 @@ export default function PoolJudge() {
   const [lastTap, setLastTap] = useState<Record<string, number>>({});
   const [selectedEvent, setSelectedEvent] = useState('');
   const [selectedRace, setSelectedRace] = useState('');
-  const [countdown, setCountdown] = useState<number | null>(null); // null=off, 3/2/1=counting, 0=go
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const myLanes: number[] = (appUser as any)?.pool_lanes?.length
     ? (appUser as any).pool_lanes
@@ -48,6 +49,14 @@ export default function PoolJudge() {
   useEffect(() => {
     if (!selectedRace) { setParticipants([]); return; }
     loadAll();
+
+    // Subscribe to race start broadcasts
+    if (channelRef.current) supabase.removeChannel(channelRef.current);
+    const ch = supabase.channel(`race-start:${selectedRace}`)
+      .on('broadcast', { event: 'start' }, () => runCountdown())
+      .subscribe();
+    channelRef.current = ch;
+    return () => { supabase.removeChannel(ch); };
   }, [selectedRace]);
 
   async function loadAll() {
@@ -146,20 +155,20 @@ export default function PoolJudge() {
     navigate('/login');
   }
 
-  function startCountdown() {
+  function beep(freq: number, duration: number) {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      osc.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.start();
+      setTimeout(() => osc.stop(), duration);
+    } catch {}
+  }
+
+  function runCountdown() {
     setCountdown(3);
     let n = 3;
-    // beep helper
-    function beep(freq: number, duration: number) {
-      try {
-        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        osc.connect(ctx.destination);
-        osc.frequency.value = freq;
-        osc.start();
-        setTimeout(() => osc.stop(), duration);
-      } catch {}
-    }
     beep(880, 150);
     const iv = setInterval(() => {
       n--;
@@ -173,6 +182,14 @@ export default function PoolJudge() {
         clearInterval(iv);
       }
     }, 1000);
+  }
+
+  function startCountdown() {
+    // Broadcast to all judges, then run locally
+    if (channelRef.current) {
+      channelRef.current.send({ type: 'broadcast', event: 'start', payload: {} });
+    }
+    runCountdown();
   }
 
   return (
@@ -196,7 +213,7 @@ export default function PoolJudge() {
           </div>
         </div>
 
-        {selectedRace && (
+        {selectedRace && appUser?.role === 'admin' && (
           <button onClick={startCountdown} disabled={countdown !== null} style={{
             width: '100%', background: countdown !== null ? '#374151' : 'linear-gradient(135deg,#dc2626,#f97316)',
             color: 'white', border: 'none', borderRadius: 10, padding: '12px 0',
