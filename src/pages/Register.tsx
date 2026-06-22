@@ -446,10 +446,7 @@ export default function Register() {
                   <Field label="טלפון" type="tel" value={form.phone} onChange={v => setForm({...form, phone: v})} required />
                   <Field label='דוא"ל' type="email" value={form.email} onChange={v => setForm({...form, email: v})} required />
                 </div>
-                <div style={S.grid2}>
-                  <Field label="יישוב" value={form.city} onChange={v => setForm({...form, city: v})} />
-                  <Field label="קבוצה/מועדון" value={form.club} onChange={v => setForm({...form, club: v})} />
-                </div>
+                <Field label="יישוב" value={form.city} onChange={v => setForm({...form, city: v})} />
                 <div style={S.fieldWrap}>
                   <label style={S.label}>מידה לחולצה</label>
                   <select style={S.select} value={form.shirt_size} onChange={e => setForm({...form, shirt_size: e.target.value})}>
