@@ -189,7 +189,6 @@ export default function Register() {
     e.preventDefault();
     if (!allHealthChecked) { toast.error('יש לאשר את כל סעיפי הצהרת הבריאות'); return; }
     if (!form.rules_accepted) { toast.error('יש לאשר את התקנון'); return; }
-    if (raceMismatch && !form.approval_reason) { toast.error('יש לבחור סיבה לרישום למקצה שאינו מתאים לגיל'); return; }
     setSubmitting(true);
     try {
       const cap = await checkCapacity(selectedRace);
@@ -227,8 +226,8 @@ export default function Register() {
         school_grade: form.school_grade || null,
         recommended_category: rec_cat,
         selected_category: selectedRaceObj?.name || null,
-        approval_status,
-        approval_reason: form.approval_reason || null,
+        approval_status: null,
+        approval_reason: null,
         lane: assignedLane,
       });
       if (error) throw error;
@@ -322,9 +321,10 @@ export default function Register() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {races.map(r => {
                     const isRec = category ? isRaceMatchCategory(category, r.name) : false;
+                    const isDisabled = !!category && !isRec;
                     return (
-                      <button key={r.id} onClick={() => setSelectedRace(r.id)}
-                        style={S.raceBtn(selectedRace === r.id, isRec)}>
+                      <button key={r.id} onClick={() => !isDisabled && setSelectedRace(r.id)}
+                        style={{ ...S.raceBtn(selectedRace === r.id, isRec), ...(isDisabled ? S.raceDisabled : {}) }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                           <div>
                             <div style={S.raceName}>{r.name.replace(/שליחים\s*ו/, '')} <span style={{ fontSize: 12, fontWeight: 500, color: '#6b7280' }}>({getRaceCriteria(r.name)})</span></div>
@@ -455,26 +455,6 @@ export default function Register() {
                     style={{ ...S.input, resize: 'vertical' as const }} />
                 </div>
 
-                {/* Mismatch warning + reason */}
-                {raceMismatch && (
-                  <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#dc2626', marginBottom: 8 }}>
-                      ⚠️ שים לב — המקצה שנבחר אינו תואם לקטגוריית הגיל שלך ({category})
-                    </div>
-                    <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 12 }}>
-                      ניתן להירשם למקצה אחר, אך ההרשמה תועבר לאישור הועדה.
-                    </div>
-                    <label style={{ ...S.label, color: '#dc2626' }}>סיבה לרישום למקצה שאינו מתאים לגיל *</label>
-                    <select
-                      style={{ ...S.select, border: '1.5px solid #fca5a5' }}
-                      value={form.approval_reason}
-                      onChange={e => setForm({...form, approval_reason: e.target.value})}
-                      required
-                    >
-                      <option value="">-- בחרו סיבה --</option>
-                      {APPROVAL_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
-                    </select>
-                  </div>
                 )}
 
                 <div style={S.divider} />
@@ -532,7 +512,7 @@ export default function Register() {
                 <div style={S.btnRow}>
                   <button type="button" onClick={() => setStep('select')} style={S.btnSecondary}>חזרה</button>
                   <button type="submit" disabled={submitting} style={S.btnPrimary}>
-                    {submitting ? 'שולח...' : raceMismatch ? 'שליחה לאישור ✓' : 'אישור הרשמה ✓'}
+                    {submitting ? 'שולח...' : 'אישור הרשמה ✓'}
                   </button>
                 </div>
               </form>
