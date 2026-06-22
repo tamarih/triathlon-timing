@@ -50,10 +50,11 @@ function getRecommendedRaceId(cat: Category, races: Race[]): string | null {
 }
 
 function isRaceMatchCategory(cat: Category, raceName: string): boolean {
+  // שלשות (relay) is open to everyone
+  if (raceName.includes('שלשות') || raceName.includes('שליחים')) return true;
   if (cat === 'ילדים א') return raceName.includes('ילדים א');
   if (cat === 'ילדים ב') return raceName.includes('ילדים ב');
   if (cat === 'נוער') return raceName.includes('נוער');
-  // בוגרים can freely choose any adult race
   return raceName.includes('קלאסי') || raceName.includes('ספרינטון');
 }
 
@@ -165,12 +166,17 @@ export default function Register() {
     supabase.from('races').select('*').eq('event_id', selectedEvent).eq('is_open', true).then(({ data }) => setRaces(data || []));
   }, [selectedEvent]);
 
-  // Auto-set recommended race when birth_date or races change
+  // Auto-set recommended race when birth_date or races change, clear if mismatch
   useEffect(() => {
     if (!form.birth_date || races.length === 0) return;
     const cat = calcCategory(form.birth_date);
     const recId = getRecommendedRaceId(cat, races);
-    if (recId && !selectedRace) setSelectedRace(recId);
+    if (selectedRace) {
+      const cur = races.find(r => r.id === selectedRace);
+      if (cur && !isRaceMatchCategory(cat, cur.name)) setSelectedRace(recId || '');
+    } else if (recId) {
+      setSelectedRace(recId);
+    }
   }, [form.birth_date, races]);
 
   const category: Category | null = form.birth_date ? calcCategory(form.birth_date) : null;
@@ -323,8 +329,9 @@ export default function Register() {
                     const isRec = category ? isRaceMatchCategory(category, r.name) : false;
                     const isDisabled = !!category && !isRec;
                     return (
-                      <button key={r.id} onClick={() => !isDisabled && setSelectedRace(r.id)}
-                        style={{ ...S.raceBtn(selectedRace === r.id, isRec), ...(isDisabled ? S.raceDisabled : {}) }}>
+                      <button key={r.id} onClick={() => setSelectedRace(r.id)}
+                        disabled={isDisabled}
+                        style={{ ...S.raceBtn(selectedRace === r.id, isRec), ...(isDisabled ? { opacity: 0.3, cursor: 'not-allowed', pointerEvents: 'none' } : {}) }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                           <div>
                             <div style={S.raceName}>{r.name.replace(/שליחים\s*ו/, '')} <span style={{ fontSize: 12, fontWeight: 500, color: '#6b7280' }}>({getRaceCriteria(r.name)})</span></div>
