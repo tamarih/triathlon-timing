@@ -58,6 +58,16 @@ function isRaceMatchCategory(cat: Category, raceName: string): boolean {
   return raceName.includes('קלאסי') || raceName.includes('ספרינטון');
 }
 
+const SWIM_LAPS: Record<number, number> = { 75: 3, 125: 5, 375: 15, 525: 21 };
+const BIKE_OVERRIDE: Record<string, number> = { 'קלאסי': 10, 'ספרינטון': 10, 'שלשות': 10, 'שליחים': 10 };
+
+function getBikeDisplay(raceName: string, bikeDist: number): string {
+  for (const key of Object.keys(BIKE_OVERRIDE)) {
+    if (raceName.includes(key)) return `${BIKE_OVERRIDE[key]}ק"מ`;
+  }
+  return `${bikeDist}ק"מ`;
+}
+
 const APPROVAL_REASONS = [
   'רצון להתחרות עם אח/אחות',
   'רצון להתחרות עם חברים',
@@ -341,7 +351,7 @@ export default function Register() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                           <div>
                             <div style={S.raceName}>{r.name.replace(/שליחים\s*ו/, '')} <span style={{ fontSize: 12, fontWeight: 500, color: '#6b7280' }}>({getRaceCriteria(r.name)})</span></div>
-                            <div style={S.raceSub}>{r.type === 'relay' ? 'שלשות' : 'אישי'} · שחייה {r.swim_distance}מ' · אופניים {r.bike_distance}ק"מ · ריצה {r.run_distance}ק"מ</div>
+                            <div style={S.raceSub}>{r.type === 'relay' ? 'שלשות' : 'אישי'} · שחייה {r.swim_distance}מ'{SWIM_LAPS[r.swim_distance] ? ` (${SWIM_LAPS[r.swim_distance]} בריכות)` : ''} · אופניים {getBikeDisplay(r.name, r.bike_distance)} · ריצה {r.run_distance}ק"מ</div>
                           </div>
                           {isRec && category && (
                             <span style={{ fontSize: 11, fontWeight: 700, background: '#fef9c3', color: '#92400e', borderRadius: 20, padding: '2px 8px', whiteSpace: 'nowrap', marginRight: 8 }}>
