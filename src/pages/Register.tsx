@@ -158,9 +158,9 @@ export default function Register() {
 
   const [teamForm, setTeamForm] = useState({
     name: '', contact_name: '', contact_phone: '', contact_email: '',
-    swimmer: { first_name: '', last_name: '', phone: '', birth_date: '' },
-    cyclist: { first_name: '', last_name: '', phone: '', birth_date: '' },
-    runner: { first_name: '', last_name: '', phone: '', birth_date: '' },
+    swimmer: { first_name: '', last_name: '', phone: '', birth_date: '', parent_name: '' },
+    cyclist: { first_name: '', last_name: '', phone: '', birth_date: '', parent_name: '' },
+    runner: { first_name: '', last_name: '', phone: '', birth_date: '', parent_name: '' },
     health_declaration: false,
     rules_accepted: false,
   });
@@ -563,6 +563,12 @@ export default function Register() {
                       <Field label="טלפון" type="tel" value={member.phone} onChange={v => setTeamForm({...teamForm, [role]: {...member, phone: v}})} required />
                       <Field label="תאריך לידה" type="date" value={member.birth_date} onChange={v => setTeamForm({...teamForm, [role]: {...member, birth_date: v}})} required />
                     </div>
+                    {member.birth_date && calculateAge(member.birth_date) < 18 && (
+                      <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 10, padding: '12px 14px', marginTop: 4 }}>
+                        <div style={{ fontSize: 12, color: '#92400e', marginBottom: 8 }}>משתתף קטין — נדרשת הסכמת הורה</div>
+                        <Field label="שם מלא של ההורה / אפוטרופוס" value={member.parent_name} onChange={v => setTeamForm({...teamForm, [role]: {...member, parent_name: v}})} required />
+                      </div>
+                    )}
                   </div>
                 );
               })}
