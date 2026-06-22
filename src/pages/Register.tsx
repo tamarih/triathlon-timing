@@ -148,10 +148,14 @@ export default function Register() {
 
   const [teamForm, setTeamForm] = useState({
     name: '', contact_name: '', contact_phone: '', contact_email: '',
-    swimmer: { first_name: '', last_name: '', phone: '', birth_date: '', health: false, rules: false },
-    cyclist: { first_name: '', last_name: '', phone: '', birth_date: '', health: false, rules: false },
-    runner: { first_name: '', last_name: '', phone: '', birth_date: '', health: false, rules: false },
+    swimmer: { first_name: '', last_name: '', phone: '', birth_date: '' },
+    cyclist: { first_name: '', last_name: '', phone: '', birth_date: '' },
+    runner: { first_name: '', last_name: '', phone: '', birth_date: '' },
+    health_declaration: false,
+    rules_accepted: false,
   });
+  const [teamHealthItems, setTeamHealthItems] = useState<boolean[]>(HEALTH_ITEMS.map(() => false));
+  const allTeamHealthChecked = teamHealthItems.every(Boolean);
 
   useEffect(() => {
     supabase.from('events').select('*').eq('status', 'open').order('date').then(({ data }) => {
@@ -253,6 +257,8 @@ export default function Register() {
 
   async function submitTeam(e: React.FormEvent) {
     e.preventDefault();
+    if (!allTeamHealthChecked) { toast.error('יש לאשר את כל סעיפי הצהרת הבריאות'); return; }
+    if (!teamForm.rules_accepted) { toast.error('יש לאשר את התקנון'); return; }
     setSubmitting(true);
     try {
       const { data: teamData, error: teamErr } = await supabase.from('teams').insert({
@@ -261,7 +267,7 @@ export default function Register() {
       }).select().single();
       if (teamErr) throw teamErr;
       for (const [role, data] of [['swimmer', teamForm.swimmer], ['cyclist', teamForm.cyclist], ['runner', teamForm.runner]] as any[]) {
-        await supabase.from('participants').insert({ event_id: selectedEvent, race_id: selectedRace, team_id: teamData.id, team_role: role, first_name: data.first_name, last_name: data.last_name, phone: data.phone, birth_date: data.birth_date, gender: 'male', email: teamForm.contact_email, health_declaration: data.health, rules_accepted: data.rules, photo_consent: false });
+        await supabase.from('participants').insert({ event_id: selectedEvent, race_id: selectedRace, team_id: teamData.id, team_role: role, first_name: data.first_name, last_name: data.last_name, phone: data.phone, birth_date: data.birth_date, gender: 'male', email: teamForm.contact_email, health_declaration: true, rules_accepted: true, photo_consent: false });
       }
       setStep('success');
     } catch (err: any) { toast.error(err.message || 'שגיאה בהרשמה'); }
@@ -547,11 +553,47 @@ export default function Register() {
                       <Field label="טלפון" type="tel" value={member.phone} onChange={v => setTeamForm({...teamForm, [role]: {...member, phone: v}})} required />
                       <Field label="תאריך לידה" type="date" value={member.birth_date} onChange={v => setTeamForm({...teamForm, [role]: {...member, birth_date: v}})} required />
                     </div>
-                    <CheckField label="מאשר/ת הצהרת בריאות" checked={member.health} onChange={v => setTeamForm({...teamForm, [role]: {...member, health: v}})} />
-                    <CheckField label="מאשר/ת תקנון" checked={member.rules} onChange={v => setTeamForm({...teamForm, [role]: {...member, rules: v}})} />
                   </div>
                 );
               })}
+
+              <div style={S.divider} />
+
+              {/* Health declaration for team */}
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 4 }}>חלק א' — הצהרת בריאות</div>
+                <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 12 }}>הרושם מאשר בשם כל חברי הקבוצה — לאחר שווידא עמם את הסכמתם</div>
+                <div style={{ border: '1.5px solid #e5e7eb', borderRadius: 12, padding: '12px 16px', background: '#f9fafb' }}>
+                  {HEALTH_ITEMS.map((item, i) => (
+                    <label key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: i < HEALTH_ITEMS.length - 1 ? 12 : 0, cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={teamHealthItems[i]}
+                        onChange={e => { const next = [...teamHealthItems]; next[i] = e.target.checked; setTeamHealthItems(next); }}
+                        style={{ width: 16, height: 16, marginTop: 2, flexShrink: 0 }}
+                      />
+                      <span style={{ fontSize: 13, color: '#374151', lineHeight: 1.5 }}>{item}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Rules + legal declaration for team */}
+              <div style={{ border: '1.5px solid #e5e7eb', borderRadius: 12, padding: '14px 16px', marginBottom: 12, background: '#f9fafb' }}>
+                <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.7, marginBottom: 12 }}>
+                  הנני מצהיר/ה בזאת שכל הפרטים שמסרתי נכונים ומצבם הגופני והנפשי של כל חברי הקבוצה נבדק ואושר בטרם השתתפותם בטריאתלון בידי רופא מוסמך ולא נמצא כל ממצא חריג. ידוע לי כי הוועדה המארגנת של האירוע, יועצי האירוע, הגוף המארח, הגוף המארגן, המארגן בפועל ונותני החסויות לא ישאו בכל אחריות לנזק כלשהו שייגרם לרבות נזקי גוף שיגרמו טרם האירוע, במהלכו או אחריו, ואף לא בגין אובדן ציוד כלשהוא. על כן אני החתום/ה מטה מוותר/ת על כל זכות לתביעת נזיקין כלשהי נגד הגופים הנ"ל בשם כל חברי הקבוצה. ידוע לי שתנאי זה מהווה יסוד להסכמתם של מארגני המרוץ והממונים עליו לשתפנו.
+                </div>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: allTeamHealthChecked ? 'pointer' : 'not-allowed' }}>
+                  <input
+                    type="checkbox"
+                    checked={teamForm.rules_accepted}
+                    onChange={e => { if (!allTeamHealthChecked) { toast.error('יש לאשר תחילה את כל סעיפי הצהרת הבריאות'); return; } setTeamForm({...teamForm, rules_accepted: e.target.checked}); }}
+                    style={{ width: 16, height: 16, marginTop: 2, flexShrink: 0 }}
+                  />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>קראתי ואני מאשר/ת את התקנון ואת ההצהרה לעיל בשם כל חברי הקבוצה</span>
+                </label>
+              </div>
+
               <div style={S.btnRow}>
                 <button type="button" onClick={() => setStep('select')} style={S.btnSecondary}>חזרה</button>
                 <button type="submit" disabled={submitting} style={S.btnPrimary}>{submitting ? 'שולח...' : 'אישור הרשמה ✓'}</button>
