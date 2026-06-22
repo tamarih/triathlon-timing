@@ -8,13 +8,28 @@ import toast from 'react-hot-toast';
 type RegType = 'personal' | 'team' | null;
 type Category = 'ילדים א' | 'ילדים ב' | 'נוער' | 'בוגרים';
 
+const HEALTH_ITEMS = [
+  'אני מצהיר/ה כי אני נמצא/ת בכושר גופני תקין ומסוגל/ת להשתתף בתחרות טריאתלון',
+  'אין לי מחלת לב, לחץ דם גבוה, מחלת ריאות, סוכרת או כל מחלה כרונית אחרת שעלולה להוות סיכון לפעילות',
+  'לא אובחנתי לאחרונה עם כל מצב רפואי העלול להשפיע על כושר הגופני שלי',
+  'לא קיבלתי הנחיה רפואית להימנע מפעילות גופנית מאומצת',
+  'אני מתחייב/ת לפנות לטיפול רפואי מיד אם אחוש בכל אי-נוחות במהלך האירוע',
+];
+
 // Classify participant by birth year (event is Sept 2026)
 function calcCategory(birthDate: string): Category {
   const year = new Date(birthDate).getFullYear();
-  if (year >= 2018) return 'ילדים א';
-  if (year >= 2016) return 'ילדים ב';
-  if (year >= 2012) return 'נוער';
+  if (year >= 2017) return 'ילדים א';
+  if (year >= 2015) return 'ילדים ב';
+  if (year >= 2011) return 'נוער';
   return 'בוגרים';
+}
+
+function getRaceCriteria(raceName: string): string {
+  if (raceName.includes('ילדים א')) return 'ילידי 2017 ואילך · גיל עד 8';
+  if (raceName.includes('ילדים ב')) return 'ילידי 2015–2016 · גיל 9–10';
+  if (raceName.includes('נוער')) return 'ילידי 2011–2014 · גיל 11–14';
+  return 'ילידי 2010 ואילך · גיל 15+';
 }
 
 function getCategoryEmoji(cat: Category) {
@@ -85,6 +100,7 @@ const S = {
   }),
   raceName: { fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 3 },
   raceSub: { fontSize: 12, color: '#6b7280' },
+  raceDisabled: { opacity: 0.35, pointerEvents: 'none' as const },
   typeBtn: {
     border: '2px solid #e5e7eb', borderRadius: 14, padding: '16px',
     textAlign: 'center' as const, background: 'white', cursor: 'pointer',
@@ -123,10 +139,11 @@ export default function Register() {
   const [form, setForm] = useState({
     first_name: '', last_name: '', id_number: '', birth_date: '',
     gender: 'male', phone: '', email: '', city: '', club: '',
-    emergency_contact: '', emergency_phone: '', shirt_size: 'M',
-    notes: '', health_declaration: false, rules_accepted: false, photo_consent: false,
-    school_grade: '', approval_reason: '',
+    shirt_size: 'M', notes: '', rules_accepted: false, photo_consent: false,
+    school_grade: '', approval_reason: '', parent_name: '',
   });
+  const [healthItems, setHealthItems] = useState<boolean[]>(HEALTH_ITEMS.map(() => false));
+  const allHealthChecked = healthItems.every(Boolean);
 
   const [teamForm, setTeamForm] = useState({
     name: '', contact_name: '', contact_phone: '', contact_email: '',
@@ -136,7 +153,11 @@ export default function Register() {
   });
 
   useEffect(() => {
-    supabase.from('events').select('*').eq('status', 'open').order('date').then(({ data }) => setEvents(data || []));
+    supabase.from('events').select('*').eq('status', 'open').order('date').then(({ data }) => {
+      const list = data || [];
+      setEvents(list);
+      if (list.length === 1 && !selectedEvent) setSelectedEvent(list[0].id);
+    });
   }, []);
 
   useEffect(() => {
@@ -166,7 +187,8 @@ export default function Register() {
 
   async function submitPersonal(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.health_declaration || !form.rules_accepted) { toast.error('יש לאשר את הצהרת הבריאות והתקנון'); return; }
+    if (!allHealthChecked) { toast.error('יש לאשר את כל סעיפי הצהרת הבריאות'); return; }
+    if (!form.rules_accepted) { toast.error('יש לאשר את התקנון'); return; }
     if (raceMismatch && !form.approval_reason) { toast.error('יש לבחור סיבה לרישום למקצה שאינו מתאים לגיל'); return; }
     setSubmitting(true);
     try {
@@ -197,13 +219,11 @@ export default function Register() {
         email: form.email,
         city: form.city,
         club: form.club,
-        emergency_contact: form.emergency_contact,
-        emergency_phone: form.emergency_phone,
         shirt_size: form.shirt_size,
         notes: form.notes,
-        health_declaration: form.health_declaration,
+        health_declaration: allHealthChecked,
         rules_accepted: form.rules_accepted,
-        photo_consent: form.photo_consent,
+        photo_consent: false,
         school_grade: form.school_grade || null,
         recommended_category: rec_cat,
         selected_category: selectedRaceObj?.name || null,
@@ -269,14 +289,6 @@ export default function Register() {
 
         {step === 'select' && (
           <div style={S.card}>
-            <div style={S.fieldWrap}>
-              <label style={S.label}>בחרו אירוע</label>
-              <select style={S.select} value={selectedEvent} onChange={e => { setSelectedEvent(e.target.value); setSelectedRace(''); setRegType(null); }}>
-                <option value="">-- בחרו אירוע --</option>
-                {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
-              </select>
-            </div>
-
             {selectedEvent && (
               <div style={S.fieldWrap}>
                 <label style={S.label}>תאריך לידה (לסיווג קטגוריה)</label>
@@ -298,18 +310,25 @@ export default function Register() {
               </div>
             )}
 
-            {selectedEvent && races.length > 0 && (
+            {selectedEvent && races.length > 0 && !form.birth_date && (
+              <div style={{ padding: '12px 16px', background: '#fef9c3', border: '1.5px solid #fde68a', borderRadius: 12, fontSize: 13, color: '#92400e', textAlign: 'center' as const }}>
+                יש לבחור תאריך לידה לפני בחירת מקצה
+              </div>
+            )}
+
+            {selectedEvent && races.length > 0 && form.birth_date && (
               <div style={S.fieldWrap}>
                 <label style={S.label}>בחרו מקצה</label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {races.map(r => {
                     const isRec = category ? isRaceMatchCategory(category, r.name) : false;
                     return (
-                      <button key={r.id} onClick={() => setSelectedRace(r.id)} style={S.raceBtn(selectedRace === r.id, isRec)}>
+                      <button key={r.id} onClick={() => setSelectedRace(r.id)}
+                        style={S.raceBtn(selectedRace === r.id, isRec)}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                           <div>
-                            <div style={S.raceName}>{r.name}</div>
-                            <div style={S.raceSub}>{r.type === 'relay' ? 'שליחים' : 'אישי'} · שחייה {r.swim_distance}מ' · אופניים {r.bike_distance}ק"מ · ריצה {r.run_distance}ק"מ</div>
+                            <div style={S.raceName}>{r.name.replace(/שליחים\s*ו/, '')} <span style={{ fontSize: 12, fontWeight: 500, color: '#6b7280' }}>({getRaceCriteria(r.name)})</span></div>
+                            <div style={S.raceSub}>{r.type === 'relay' ? 'שלשות' : 'אישי'} · שחייה {r.swim_distance}מ' · אופניים {r.bike_distance}ק"מ · ריצה {r.run_distance}ק"מ</div>
                           </div>
                           {isRec && category && (
                             <span style={{ fontSize: 11, fontWeight: 700, background: '#fef9c3', color: '#92400e', borderRadius: 20, padding: '2px 8px', whiteSpace: 'nowrap', marginRight: 8 }}>
@@ -320,6 +339,12 @@ export default function Register() {
                       </button>
                     );
                   })}
+                  {selectedRace && selectedRaceObj?.type === 'relay' && (
+                    <div style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: 12, padding: '12px 16px', marginTop: 4, fontSize: 13, color: '#1d4ed8', lineHeight: 1.6 }}>
+                      <strong>שימו לב — שלשות:</strong> רק אחד מחברי הקבוצה צריך להירשם. אין צורך שכל שלושת המשתתפים יירשמו בנפרד.<br/>
+                      אם יש שינוי בהרכב הקבוצה לאחר ההרשמה, יש לפנות לבן אהובי לעדכון.
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -418,10 +443,6 @@ export default function Register() {
                   <Field label="יישוב" value={form.city} onChange={v => setForm({...form, city: v})} />
                   <Field label="קבוצה/מועדון" value={form.club} onChange={v => setForm({...form, club: v})} />
                 </div>
-                <div style={S.grid2}>
-                  <Field label="איש קשר לחירום" value={form.emergency_contact} onChange={v => setForm({...form, emergency_contact: v})} />
-                  <Field label="טלפון לחירום" type="tel" value={form.emergency_phone} onChange={v => setForm({...form, emergency_phone: v})} />
-                </div>
                 <div style={S.fieldWrap}>
                   <label style={S.label}>מידה לחולצה</label>
                   <select style={S.select} value={form.shirt_size} onChange={e => setForm({...form, shirt_size: e.target.value})}>
@@ -457,9 +478,47 @@ export default function Register() {
                 )}
 
                 <div style={S.divider} />
-                <CheckField label="מאשר/ת הצהרת בריאות" checked={form.health_declaration} onChange={v => setForm({...form, health_declaration: v})} />
-                <CheckField label="קראתי ואני מאשר/ת את התקנון" checked={form.rules_accepted} onChange={v => setForm({...form, rules_accepted: v})} />
-                <CheckField label="מאשר/ת צילום ופרסום" checked={form.photo_consent} onChange={v => setForm({...form, photo_consent: v})} />
+
+                {/* Health declaration */}
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 4 }}>חלק א' — הצהרת בריאות</div>
+                  <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 12 }}>יש לסמן V על כל סעיף</div>
+                  <div style={{ border: '1.5px solid #e5e7eb', borderRadius: 12, padding: '12px 16px', background: '#f9fafb' }}>
+                    {HEALTH_ITEMS.map((item, i) => (
+                      <label key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: i < HEALTH_ITEMS.length - 1 ? 12 : 0, cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={healthItems[i]}
+                          onChange={e => { const next = [...healthItems]; next[i] = e.target.checked; setHealthItems(next); }}
+                          style={{ width: 16, height: 16, marginTop: 2, flexShrink: 0 }}
+                        />
+                        <span style={{ fontSize: 13, color: '#374151', lineHeight: 1.5 }}>{item}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Minor parent consent */}
+                {form.birth_date && calculateAge(form.birth_date) < 18 && (
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 4 }}>חלק ב' — הסכמת הורה / אפוטרופוס</div>
+                    <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 12 }}>
+                      משתתף שטרם מלאו לו 18 שנה יצרף את הסכמת הורה חתומה.
+                    </div>
+                    <div style={{ border: '1.5px solid #fde68a', borderRadius: 12, padding: '14px 16px', background: '#fffbeb' }}>
+                      <div style={{ fontSize: 13, color: '#92400e', marginBottom: 12, lineHeight: 1.6 }}>
+                        אני, ההורה / האפוטרופוס החתום מטה, מסכים/ה להשתתפות הקטין/ה באירוע ומאשר/ת את הצהרת הבריאות לעיל.
+                      </div>
+                      <Field label="שם מלא של ההורה / אפוטרופוס" value={form.parent_name} onChange={v => setForm({...form, parent_name: v})} required />
+                    </div>
+                  </div>
+                )}
+
+                <CheckField
+                  label="קראתי ואני מאשר/ת את התקנון"
+                  checked={form.rules_accepted}
+                  onChange={v => { if (!allHealthChecked) { toast.error('יש לאשר תחילה את כל סעיפי הצהרת הבריאות'); return; } setForm({...form, rules_accepted: v}); }}
+                />
 
                 <div style={S.btnRow}>
                   <button type="button" onClick={() => setStep('select')} style={S.btnSecondary}>חזרה</button>
