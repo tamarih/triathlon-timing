@@ -341,7 +341,12 @@ export default function Register() {
               <div style={S.fieldWrap}>
                 <label style={S.label}>בחרו מקצה</label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {races.map(r => {
+                  {[...races].sort((a, b) => {
+                    const order = ['ילדים א', 'ילדים ב', 'נוער', 'קלאסי', 'ספרינטון', 'שלשות', 'שליחים'];
+                    const ai = order.findIndex(k => a.name.includes(k));
+                    const bi = order.findIndex(k => b.name.includes(k));
+                    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+                  }).map(r => {
                     const isRec = category ? isRaceMatchCategory(category, r.name) : false;
                     const isDisabled = !!category && !isRec;
                     return (
