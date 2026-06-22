@@ -514,11 +514,20 @@ export default function Register() {
                   </div>
                 )}
 
-                <CheckField
-                  label="קראתי ואני מאשר/ת את התקנון"
-                  checked={form.rules_accepted}
-                  onChange={v => { if (!allHealthChecked) { toast.error('יש לאשר תחילה את כל סעיפי הצהרת הבריאות'); return; } setForm({...form, rules_accepted: v}); }}
-                />
+                <div style={{ border: '1.5px solid #e5e7eb', borderRadius: 12, padding: '14px 16px', marginBottom: 12, background: '#f9fafb' }}>
+                  <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.7, marginBottom: 12 }}>
+                    הנני מצהיר/ה בזאת שכל הפרטים שמסרתי נכונים ומצבי הגופני והנפשי נבדק ואושר בטרם השתתפותי בטריאתלון בידי רופא מוסמך ולא נמצא כל ממצא חריג. ידוע לי כי הוועדה המארגנת של האירוע, יועצי האירוע, הגוף המארח, הגוף המארגן, המארגן בפועל ונותני החסויות לא ישאו בכל אחריות לנזק כלשהו שייגרם לי לרבות נזקי גוף שיגרמו לי טרם האירוע, במהלכו או אחריו, ואף לא בגין אובדן ציוד כלשהוא. על כן אני החתום/ה מטה מוותר/ת על כל זכות לתביעת נזיקין כלשהי נגד הגופים הנ"ל. ידוע לי שתנאי זה מהווה יסוד להסכמתם של מארגני המרוץ והממונים עליו לשתפני.
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: allHealthChecked ? 'pointer' : 'not-allowed' }}>
+                    <input
+                      type="checkbox"
+                      checked={form.rules_accepted}
+                      onChange={e => { if (!allHealthChecked) { toast.error('יש לאשר תחילה את כל סעיפי הצהרת הבריאות'); return; } setForm({...form, rules_accepted: e.target.checked}); }}
+                      style={{ width: 16, height: 16, marginTop: 2, flexShrink: 0 }}
+                    />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>קראתי ואני מאשר/ת את התקנון ואת ההצהרה לעיל</span>
+                  </label>
+                </div>
 
                 <div style={S.btnRow}>
                   <button type="button" onClick={() => setStep('select')} style={S.btnSecondary}>חזרה</button>
