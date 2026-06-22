@@ -455,8 +455,6 @@ export default function Register() {
                     style={{ ...S.input, resize: 'vertical' as const }} />
                 </div>
 
-                )}
-
                 <div style={S.divider} />
 
                 {/* Health declaration */}
