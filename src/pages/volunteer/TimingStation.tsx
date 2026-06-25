@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Participant, Event } from '../../lib/types';
 import toast from 'react-hot-toast';
-import { Trash2 } from 'lucide-react';
+import { Home, LogOut, Trash2 } from 'lucide-react';
 
 const S = {
   page: { minHeight: '100vh', background: '#111827', color: 'white', padding: 16, direction: 'rtl' as const, fontFamily: 'system-ui, -apple-system, sans-serif' },
@@ -34,7 +35,13 @@ const stationLabels: Record<number, string> = {
 };
 
 export default function TimingStation() {
-  const { appUser } = useAuth();
+  const { appUser, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  async function handleSignOut() {
+    await signOut();
+    navigate('/login');
+  }
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState('');
   const [station, setStation] = useState<1 | 2 | 3>(appUser?.assigned_station || 1);
@@ -66,6 +73,14 @@ export default function TimingStation() {
         .eq('bib_number', bib);
 
       if (!participants || participants.length === 0) {
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(220, ctx.currentTime);
+        gain.gain.setValueAtTime(0.4, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+        osc.start(); osc.stop(ctx.currentTime + 0.4);
         toast.error(`מספר ${bib} לא נמצא!`, { duration: 3000 });
         setBibInput('');
         inputRef.current?.focus();
@@ -165,16 +180,31 @@ export default function TimingStation() {
   return (
     <div style={S.page}>
       <div style={S.inner}>
-        <div style={S.header}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+          <div style={{ flex: 1 }} />
           <div style={S.headerTitle}>⏱️ קליטת זמנים</div>
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+            <button onClick={() => navigate(appUser?.role === 'admin' ? '/admin' : '/')} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, padding: '6px 10px', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <Home size={15} />
+            </button>
+            <button onClick={handleSignOut} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, padding: '6px 12px', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: 13 }}>
+              <LogOut size={15} /> יציאה
+            </button>
+          </div>
         </div>
 
         <div style={S.card}>
           <label style={S.label}>אירוע</label>
-          <select value={selectedEvent} onChange={e => setSelectedEvent(e.target.value)} style={S.select}>
-            <option value="">-- בחרו אירוע --</option>
-            {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
-          </select>
+          {selectedEvent ? (
+            <div style={{ ...S.select, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'default' }}>
+              <span>{events.find(ev => ev.id === selectedEvent)?.name}</span>
+            </div>
+          ) : (
+            <select value={selectedEvent} onChange={e => setSelectedEvent(e.target.value)} style={S.select}>
+              <option value="">-- בחרו אירוע --</option>
+              {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+            </select>
+          )}
 
           <label style={S.label}>תחנה</label>
           {appUser?.assigned_station ? (
