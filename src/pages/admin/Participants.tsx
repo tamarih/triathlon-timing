@@ -310,7 +310,14 @@ export default function Participants() {
                   <td style={{ ...S.td, fontFamily: 'monospace', color: '#6b7280' }}>{p.bib_number || '—'}</td>
                   <td style={{ ...S.td, fontWeight: 700, color: '#111827' }}>{p.first_name} {p.last_name}</td>
                   <td style={S.td}>
-                    {p.lane ? <span style={{ background: '#dbeafe', color: '#1d4ed8', borderRadius: 20, padding: '2px 10px', fontSize: 12, fontWeight: 700 }}>מסלול {p.lane}</span> : <span style={{ color: '#d1d5db' }}>—</span>}
+                    <select
+                      value={p.lane ?? ''}
+                      onChange={e => updateParticipantField(p.id, 'lane', e.target.value || null as any)}
+                      style={{ background: p.lane ? '#dbeafe' : '#f3f4f6', color: p.lane ? '#1d4ed8' : '#9ca3af', border: 'none', borderRadius: 20, padding: '3px 8px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'system-ui', outline: 'none' }}
+                    >
+                      <option value="">—</option>
+                      {[1,2,3,4,5,6].map(l => <option key={l} value={l}>מסלול {l}</option>)}
+                    </select>
                   </td>
                   <td style={{ ...S.td, color: '#6b7280', fontSize: 12 }}>{p.recommended_category || '—'}</td>
                   <td style={{ ...S.td, color: '#6b7280' }}>{races.find(r => r.id === p.race_id)?.name || '—'}</td>
