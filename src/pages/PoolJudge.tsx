@@ -22,10 +22,24 @@ export default function PoolJudge() {
   const [lapCounts, setLapCounts] = useState<Record<string, number>>({});
   const [finishedAt, setFinishedAt] = useState<Record<string, string>>({});
   const [lastTap, setLastTap] = useState<Record<string, number>>({});
+  const [, setTick] = useState(0);
   const [selectedEvent, setSelectedEvent] = useState('');
   const [selectedRace, setSelectedRace] = useState('');
   const [countdown, setCountdown] = useState<number | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  // Clear cooldowns when they expire
+  useEffect(() => {
+    const active = Object.entries(lastTap).filter(([, t]) => Date.now() - t < 7000);
+    if (active.length === 0) return;
+    const timers = active.map(([id, t]) => {
+      const remaining = 7000 - (Date.now() - t);
+      return setTimeout(() => {
+        setLastTap(prev => { const next = { ...prev }; delete next[id]; return next; });
+      }, remaining + 50);
+    });
+    return () => timers.forEach(clearTimeout);
+  }, [lastTap]);
 
   const myLanes: number[] = (appUser as any)?.pool_lanes?.length
     ? (appUser as any).pool_lanes
@@ -213,18 +227,7 @@ export default function PoolJudge() {
           </div>
         </div>
 
-        {selectedRace && appUser?.role === 'admin' && (
-          <button onClick={startCountdown} disabled={countdown !== null} style={{
-            width: '100%', background: countdown !== null ? '#374151' : 'linear-gradient(135deg,#dc2626,#f97316)',
-            color: 'white', border: 'none', borderRadius: 10, padding: '12px 0',
-            fontSize: 17, fontWeight: 900, cursor: countdown !== null ? 'not-allowed' : 'pointer',
-            marginBottom: 10, letterSpacing: 1,
-          }}>
-            🏁 הזנק!
-          </button>
-        )}
-
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: appUser?.role === 'admin' ? 8 : 0 }}>
           <select value={selectedEvent} onChange={e => setSelectedEvent(e.target.value)}
             style={{ flex: 1, background: '#334155', border: '1px solid #475569', borderRadius: 8, padding: '8px 10px', color: 'white', fontSize: 14, outline: 'none' }}>
             <option value="">-- אירוע --</option>
@@ -236,6 +239,18 @@ export default function PoolJudge() {
             {races.map(r => <option key={r.id} value={r.id}>{r.name} ({requiredLapsFor(r)} הק')</option>)}
           </select>
         </div>
+
+        {appUser?.role === 'admin' && (
+          <button onClick={startCountdown} disabled={!selectedRace || countdown !== null}
+            style={{
+              width: '100%', border: 'none', borderRadius: 10, padding: '13px 0',
+              fontSize: 18, fontWeight: 900, letterSpacing: 1, cursor: !selectedRace || countdown !== null ? 'not-allowed' : 'pointer',
+              background: !selectedRace ? '#374151' : countdown !== null ? '#374151' : 'linear-gradient(135deg,#dc2626,#f97316)',
+              color: !selectedRace ? '#6b7280' : 'white',
+            }}>
+            🏁 הזנק!
+          </button>
+        )}
       </div>
 
       {/* Swimmers — one column per lane when multiple lanes */}
