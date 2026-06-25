@@ -292,61 +292,78 @@ export default function PoolJudge() {
           grouped[l].push(p);
         }
         const laneNums = Object.keys(grouped).map(Number).sort((a, b) => a - b);
-        const multiLane = laneNums.length > 1;
+        const numLanes = laneNums.length;
+        const maxPerLane = Math.max(...laneNums.map(l => grouped[l].length));
+        // Font/size scaling based on number of rows
+        const compact = maxPerLane > 4 || (numLanes > 1 && maxPerLane > 3);
+        const tiny = maxPerLane > 6;
 
         return (
-          <div style={{ display: multiLane ? 'flex' : 'block', gap: 8, padding: '12px 8px', overflowX: multiLane ? 'auto' : 'visible', alignItems: 'flex-start' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: numLanes > 1 ? `repeat(${numLanes}, 1fr)` : '1fr',
+            gap: 6,
+            padding: '6px 8px',
+            height: 'calc(100dvh - 130px)',
+            boxSizing: 'border-box' as const,
+          }}>
             {laneNums.map(laneNum => (
-              <div key={laneNum} style={{ flex: multiLane ? '0 0 auto' : undefined, width: multiLane ? 'calc(50vw - 20px)' : undefined, maxWidth: multiLane ? 300 : 520, margin: multiLane ? undefined : '0 auto' }}>
-                {multiLane && (
-                  <div style={{ textAlign: 'center', background: '#1e40af', borderRadius: 10, padding: '6px 0', fontWeight: 800, fontSize: 14, marginBottom: 8 }}>
+              <div key={laneNum} style={{
+                display: 'flex', flexDirection: 'column' as const, gap: 5,
+                height: '100%',
+              }}>
+                {numLanes > 1 && (
+                  <div style={{ textAlign: 'center', background: '#1e40af', borderRadius: 8, padding: '4px 0', fontWeight: 800, fontSize: 12, flexShrink: 0 }}>
                     🏊 מסלול {laneNum}
                   </div>
                 )}
                 {grouped[laneNum].map(p => {
                   const count = lapCounts[p.id] || 0;
                   const done = count >= requiredLaps && requiredLaps > 0;
+                  const cooldown = !!(lastTap[p.id] && Date.now() - lastTap[p.id] < 7000);
                   return (
                     <div key={p.id} style={{
                       background: done ? '#052e16' : '#1e293b',
                       border: `2px solid ${done ? '#16a34a' : '#334155'}`,
-                      borderRadius: 18, padding: '12px 14px', marginBottom: 10,
+                      borderRadius: 12,
+                      padding: tiny ? '4px 8px' : compact ? '6px 10px' : '10px 12px',
+                      flex: 1,
+                      display: 'flex', flexDirection: 'column' as const, justifyContent: 'space-between',
+                      minHeight: 0,
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                        <div style={{ background: done ? '#16a34a' : '#0ea5e9', color: 'white', fontFamily: 'monospace', fontSize: multiLane ? 15 : 20, fontWeight: 900, borderRadius: 10, padding: '5px 10px', flexShrink: 0 }}>
+                      {/* Name + bib */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ background: done ? '#16a34a' : '#0ea5e9', color: 'white', fontFamily: 'monospace', fontSize: tiny ? 11 : compact ? 13 : 17, fontWeight: 900, borderRadius: 7, padding: tiny ? '2px 5px' : '3px 8px', flexShrink: 0 }}>
                           {p.bib_number || '—'}
                         </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: multiLane ? 15 : 20, fontWeight: 800, lineHeight: 1.2 }}>{p.first_name} {p.last_name}</div>
+                        <div style={{ fontSize: tiny ? 12 : compact ? 14 : 18, fontWeight: 800, lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const, flex: 1 }}>
+                          {p.first_name} {p.last_name}
                         </div>
-                        {done && <div style={{ background: '#16a34a', color: 'white', borderRadius: 8, padding: '3px 8px', fontSize: 12, fontWeight: 700 }}>✓</div>}
+                        {done && <div style={{ background: '#16a34a', color: 'white', borderRadius: 6, padding: '1px 6px', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>✓</div>}
                       </div>
 
-                      <div style={{ textAlign: 'center', marginBottom: 10 }}>
-                        <span style={{ fontSize: multiLane ? 48 : 64, fontWeight: 900, fontFamily: 'monospace', lineHeight: 1 }}>{count}</span>
-                        <span style={{ fontSize: multiLane ? 24 : 32, color: '#475569', margin: '0 6px' }}>/</span>
-                        <span style={{ fontSize: multiLane ? 28 : 40, fontWeight: 700, color: '#94a3b8', fontFamily: 'monospace' }}>{requiredLaps}</span>
+                      {/* Counter */}
+                      <div style={{ textAlign: 'center', lineHeight: 1 }}>
+                        <span style={{ fontSize: tiny ? 28 : compact ? 36 : 52, fontWeight: 900, fontFamily: 'monospace' }}>{count}</span>
+                        <span style={{ fontSize: tiny ? 14 : compact ? 18 : 26, color: '#475569', margin: '0 4px' }}>/</span>
+                        <span style={{ fontSize: tiny ? 18 : compact ? 22 : 32, fontWeight: 700, color: '#94a3b8', fontFamily: 'monospace' }}>{requiredLaps}</span>
                       </div>
 
+                      {/* Button */}
                       {!done ? (
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          {(() => {
-                            const cooldown = lastTap[p.id] && Date.now() - lastTap[p.id] < 7000;
-                            return (
-                              <button onClick={() => addLap(p)} style={{ flex: 1, background: cooldown ? '#166534' : '#16a34a', color: cooldown ? '#86efac' : 'white', border: 'none', borderRadius: 12, padding: multiLane ? '14px 0' : '18px 0', fontSize: multiLane ? 22 : 28, fontWeight: 900, cursor: cooldown ? 'not-allowed' : 'pointer', userSelect: 'none', opacity: cooldown ? 0.6 : 1 }}>
-                                {cooldown ? '⏳' : '+'}
-                              </button>
-                            );
-                          })()}
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          <button onClick={() => addLap(p)} style={{ flex: 1, background: cooldown ? '#166534' : '#16a34a', color: cooldown ? '#86efac' : 'white', border: 'none', borderRadius: 9, padding: tiny ? '6px 0' : compact ? '10px 0' : '14px 0', fontSize: tiny ? 18 : compact ? 22 : 28, fontWeight: 900, cursor: cooldown ? 'not-allowed' : 'pointer', userSelect: 'none' as const, opacity: cooldown ? 0.6 : 1 }}>
+                            {cooldown ? '⏳' : '+'}
+                          </button>
                           {count > 0 && (
-                            <button onClick={() => undoLap(p)} style={{ background: '#7f1d1d', color: '#fca5a5', border: 'none', borderRadius: 12, padding: '14px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                              <Minus size={18} />
+                            <button onClick={() => undoLap(p)} style={{ background: '#7f1d1d', color: '#fca5a5', border: 'none', borderRadius: 9, padding: tiny ? '6px 8px' : '10px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                              <Minus size={tiny ? 14 : 16} />
                             </button>
                           )}
                         </div>
                       ) : (
-                        <div style={{ background: '#16a34a', color: 'white', borderRadius: 10, padding: '10px 0', textAlign: 'center', fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-                          <Check size={14} />
+                        <div style={{ background: '#16a34a', color: 'white', borderRadius: 8, padding: '6px 0', textAlign: 'center', fontWeight: 700, fontSize: tiny ? 11 : 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                          <Check size={12} />
                           {finishedAt[p.id] ? new Date(finishedAt[p.id]).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'סיים'}
                         </div>
                       )}
