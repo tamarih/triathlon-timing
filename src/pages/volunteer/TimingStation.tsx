@@ -4,7 +4,8 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Participant, Event } from '../../lib/types';
 import toast from 'react-hot-toast';
-import { Home, LogOut, Trash2 } from 'lucide-react';
+import { Home, LogOut, Trash2, QrCode, X } from 'lucide-react';
+import { Html5Qrcode } from 'html5-qrcode';
 
 const S = {
   page: { minHeight: '100vh', background: '#111827', color: 'white', padding: 16, direction: 'rtl' as const, fontFamily: 'system-ui, -apple-system, sans-serif' },
@@ -48,7 +49,10 @@ export default function TimingStation() {
   const [bibInput, setBibInput] = useState('');
   const [recentRecords, setRecentRecords] = useState<Array<{ recordId: string; participant: Participant; time: string; station: 1 | 2 | 3 }>>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const qrRef = useRef<Html5Qrcode | null>(null);
+  const qrDivId = 'qr-reader';
 
   useEffect(() => {
     supabase.from('events').select('*').in('status', ['open', 'closed']).order('date').then(({ data }) => {
@@ -59,9 +63,29 @@ export default function TimingStation() {
 
   useEffect(() => { inputRef.current?.focus(); }, []);
 
-  async function handleSubmit(e?: React.FormEvent) {
-    e?.preventDefault();
-    const bib = bibInput.trim();
+  useEffect(() => {
+    if (!scanning) return;
+    const qr = new Html5Qrcode(qrDivId);
+    qrRef.current = qr;
+    qr.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      (decoded) => {
+        const bib = decoded.trim();
+        setScanning(false);
+        setBibInput(bib);
+        // auto-submit on next tick after state settles
+        setTimeout(() => processSubmit(bib), 150);
+      },
+      () => {}
+    ).catch(() => {
+      toast.error('לא ניתן לגשת למצלמה');
+      setScanning(false);
+    });
+    return () => { qr.stop().catch(() => {}); };
+  }, [scanning]);
+
+  async function processSubmit(bib: string) {
     if (!bib || !selectedEvent) return;
     setSubmitting(true);
 
@@ -150,6 +174,11 @@ export default function TimingStation() {
     }
   }
 
+  function handleSubmit(e?: React.FormEvent) {
+    e?.preventDefault();
+    processSubmit(bibInput.trim());
+  }
+
   async function undoRecord(rec: { recordId: string; participant: Participant; station: 1 | 2 | 3 }) {
     if (!confirm(`לבטל את קליטת ${rec.participant.first_name} ${rec.participant.last_name} (מס' ${rec.participant.bib_number})?`)) return;
     try {
@@ -227,7 +256,22 @@ export default function TimingStation() {
 
         <div style={S.card}>
           <form onSubmit={handleSubmit}>
-            <label style={S.label}>מספר משתתף</label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <label style={{ ...S.label, margin: 0 }}>מספר משתתף</label>
+              <button
+                type="button"
+                onClick={() => setScanning(s => !s)}
+                disabled={!selectedEvent}
+                style={{ background: scanning ? '#dc2626' : '#2563eb', border: 'none', borderRadius: 8, padding: '5px 10px', color: 'white', cursor: selectedEvent ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 600 }}
+              >
+                {scanning ? <><X size={14} /> סגור מצלמה</> : <><QrCode size={14} /> סריקת QR</>}
+              </button>
+            </div>
+            {scanning && (
+              <div style={{ marginBottom: 12 }}>
+                <div id={qrDivId} style={{ borderRadius: 12, overflow: 'hidden' }} />
+              </div>
+            )}
             <input
               ref={inputRef}
               type="text"
