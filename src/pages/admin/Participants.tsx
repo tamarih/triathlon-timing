@@ -177,6 +177,41 @@ export default function Participants() {
     setConfirmDelete(null);
   }
 
+  function printBarcodes() {
+    const toprint = filtered.filter(p => p.bib_number);
+    if (toprint.length === 0) { toast.error('אין משתתפים עם מספר להדפסה'); return; }
+    const rows = toprint.map(p => {
+      const race = races.find(r => r.id === p.race_id)?.name?.replace(/שליחים\s*ו/, '') || '';
+      return `<div class="card">
+        <svg class="barcode" data-bib="${p.bib_number}"></svg>
+        <div class="num">${p.bib_number}</div>
+        <div class="name">${p.first_name} ${p.last_name}</div>
+        <div class="race">${race}</div>
+      </div>`;
+    }).join('');
+    const html = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"><title>ברקודים</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>
+    <style>
+      body { margin:0; font-family: system-ui, sans-serif; background:#fff; }
+      .grid { display:grid; grid-template-columns: repeat(4,1fr); gap:12px; padding:12px; }
+      .card { border:1px solid #ccc; border-radius:8px; padding:10px; text-align:center; break-inside:avoid; }
+      .barcode { width:100%; height:60px; }
+      .num { font-size:28px; font-weight:900; margin:4px 0 2px; }
+      .name { font-size:12px; color:#333; }
+      .race { font-size:11px; color:#666; }
+      @media print { @page { margin:10mm; } }
+    </style></head><body>
+    <div class="grid">${rows}</div>
+    <script>
+      document.querySelectorAll('.barcode').forEach(el => {
+        JsBarcode(el, el.dataset.bib, { format:'CODE128', displayValue:false, margin:4 });
+      });
+      window.onload = () => window.print();
+    <\/script></body></html>`;
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); }
+  }
+
   async function autoAssignLanes() {
     const raceId = selectedRace;
     if (!raceId) { toast.error('בחרי מקצה תחילה'); return; }
@@ -232,6 +267,7 @@ export default function Participants() {
               onClick={() => setConfirmDelete('multi')}
             ><Trash2 size={14} /> מחק נבחרים ({selectedIds.size})</button>
           )}
+          <button style={{ ...S.outlineBtn, color: '#7c3aed', borderColor: '#c4b5fd' }} onClick={printBarcodes}>🖨️ ברקודים</button>
           <button style={{ ...S.outlineBtn, color: '#0369a1', borderColor: '#7dd3fc' }} onClick={autoAssignLanes}>🏊 הקצאת מסלולים</button>
           <button style={S.outlineBtn} onClick={() => setShowImport(true)}><Upload size={14} /> ייבוא Excel</button>
           <button style={S.outlineBtn} onClick={exportExcel}><Download size={14} /> ייצוא</button>

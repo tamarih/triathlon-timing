@@ -224,6 +224,16 @@ export default function Register() {
       for (const row of laneData || []) { if (row.lane >= 1 && row.lane <= 6) counts[row.lane]++; }
       const assignedLane = Number(Object.entries(counts).sort((a, b) => a[1] - b[1])[0][0]);
 
+      // Auto-assign bib number: max existing + 1 within this event
+      const { data: bibData } = await supabase
+        .from('participants')
+        .select('bib_number')
+        .eq('event_id', selectedEvent)
+        .not('bib_number', 'is', null)
+        .order('bib_number', { ascending: false })
+        .limit(1);
+      const nextBib = bibData && bibData.length > 0 ? (Number(bibData[0].bib_number) + 1) : 1;
+
       const rec_cat = category;
       const approval_status = raceMismatch ? 'pending' : null;
       const { error } = await supabase.from('participants').insert({
@@ -249,6 +259,7 @@ export default function Register() {
         approval_status: null,
         approval_reason: null,
         lane: assignedLane,
+        bib_number: nextBib,
       });
       if (error) throw error;
       setStep('success');
@@ -276,8 +287,16 @@ export default function Register() {
         contact_name: teamForm.contact_name, contact_phone: teamForm.contact_phone, contact_email: teamForm.contact_email,
       }).select().single();
       if (teamErr) throw teamErr;
+      const { data: teamBibData } = await supabase
+        .from('participants')
+        .select('bib_number')
+        .eq('event_id', selectedEvent)
+        .not('bib_number', 'is', null)
+        .order('bib_number', { ascending: false })
+        .limit(1);
+      let nextTeamBib = teamBibData && teamBibData.length > 0 ? (Number(teamBibData[0].bib_number) + 1) : 1;
       for (const [role, data] of [['swimmer', teamForm.swimmer], ['cyclist', teamForm.cyclist], ['runner', teamForm.runner]] as any[]) {
-        await supabase.from('participants').insert({ event_id: selectedEvent, race_id: selectedRace, team_id: teamData.id, team_role: role, first_name: data.first_name, last_name: data.last_name, phone: data.phone, birth_date: data.birth_date, gender: 'male', email: teamForm.contact_email, health_declaration: true, rules_accepted: true, photo_consent: false });
+        await supabase.from('participants').insert({ event_id: selectedEvent, race_id: selectedRace, team_id: teamData.id, team_role: role, first_name: data.first_name, last_name: data.last_name, phone: data.phone, birth_date: data.birth_date, gender: 'male', email: teamForm.contact_email, health_declaration: true, rules_accepted: true, photo_consent: false, bib_number: nextTeamBib++ });
       }
       setStep('success');
     } catch (err: any) { toast.error(err.message || 'שגיאה בהרשמה'); }
