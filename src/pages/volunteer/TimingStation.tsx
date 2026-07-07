@@ -85,8 +85,9 @@ export default function TimingStation() {
     return () => { qr.stop().catch(() => {}); };
   }, [scanning]);
 
-  async function processSubmit(bib: string) {
-    if (!bib || !selectedEvent) return;
+  async function processSubmit(rawBib: string) {
+    const bib = String(parseInt(rawBib, 10) || 0) === '0' ? rawBib : String(parseInt(rawBib, 10));
+    if (!bib || bib === '0' || !selectedEvent) return;
     setSubmitting(true);
 
     try {
