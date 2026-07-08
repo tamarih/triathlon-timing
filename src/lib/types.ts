@@ -204,6 +204,7 @@ export interface Role {
   event_id: string;
   category: RoleCategory;
   title: string;
+  location?: string;
   notes?: string;
   sort_order: number;
   created_at: string;
