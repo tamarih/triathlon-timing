@@ -89,7 +89,7 @@ export default function TimingStation() {
     // Search by both the raw value (e.g. "0001") and the numeric value (e.g. "1")
     const bib = rawBib.trim();
     const bibNumeric = String(parseInt(bib, 10));
-    console.log('searching bib:', bib, 'numeric:', bibNumeric, 'event:', selectedEvent);
+    const bibPadded4 = bibNumeric.padStart(4, '0');
     if (!bib || !selectedEvent) return;
     setSubmitting(true);
 
@@ -98,7 +98,7 @@ export default function TimingStation() {
         .from('participants')
         .select('*')
         .eq('event_id', selectedEvent)
-        .in('bib_number', [bib, bibNumeric]);
+        .in('bib_number', [bib, bibNumeric, bibPadded4]);
 
       if (!participants || participants.length === 0) {
         const ctx = new AudioContext();
