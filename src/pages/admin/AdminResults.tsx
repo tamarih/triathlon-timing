@@ -108,7 +108,7 @@ export default function AdminResults() {
     const name = `${result.participant.first_name} ${result.participant.last_name}`;
     const year = event?.date ? new Date(event.date).getFullYear() : new Date().getFullYear();
     const raceName = result.race?.name?.replace(/שליחים\s*ו/, '') || '';
-    const logo = logoUrl || event?.logo_url || '';
+    const logo = logoUrl || event?.logo_url || '/logo.png';
     const fmt = (s?: number) => s ? formatTime(s) : '—';
 
     return `<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="utf-8">
