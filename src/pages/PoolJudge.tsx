@@ -192,6 +192,10 @@ export default function PoolJudge() {
       } else {
         setCountdown(0);
         beep(1320, 600);
+        // Save actual gun time to DB
+        if (selectedRace) {
+          supabase.from('races').update({ gun_time: new Date().toISOString() }).eq('id', selectedRace);
+        }
         setTimeout(() => setCountdown(null), 2000);
         clearInterval(iv);
       }
