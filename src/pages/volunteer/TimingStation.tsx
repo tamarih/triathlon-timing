@@ -86,8 +86,10 @@ export default function TimingStation() {
   }, [scanning]);
 
   async function processSubmit(rawBib: string) {
-    const bib = String(parseInt(rawBib, 10) || 0) === '0' ? rawBib : String(parseInt(rawBib, 10));
-    if (!bib || bib === '0' || !selectedEvent) return;
+    // Search by both the raw value (e.g. "0001") and the numeric value (e.g. "1")
+    const bib = rawBib.trim();
+    const bibNumeric = String(parseInt(bib, 10));
+    if (!bib || !selectedEvent) return;
     setSubmitting(true);
 
     try {
@@ -95,7 +97,7 @@ export default function TimingStation() {
         .from('participants')
         .select('*')
         .eq('event_id', selectedEvent)
-        .eq('bib_number', bib);
+        .in('bib_number', [bib, bibNumeric]);
 
       if (!participants || participants.length === 0) {
         const ctx = new AudioContext();
