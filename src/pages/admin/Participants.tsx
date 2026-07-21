@@ -193,18 +193,33 @@ export default function Participants() {
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>
     <style>
       body { margin:0; font-family: system-ui, sans-serif; background:#fff; }
-      .grid { display:grid; grid-template-columns: repeat(4,1fr); gap:12px; padding:12px; }
-      .card { border:1px solid #ccc; border-radius:8px; padding:10px; text-align:center; break-inside:avoid; }
-      .barcode { width:100%; height:60px; }
-      .num { font-size:28px; font-weight:900; margin:4px 0 2px; }
-      .name { font-size:12px; color:#333; }
-      .race { font-size:11px; color:#666; }
-      @media print { @page { margin:10mm; } }
+      /* שני ברקודים לעמוד A4 - כל ברקוד בגודל חצי דף */
+      .card {
+        box-sizing:border-box;
+        height:135mm;
+        border:1px solid #ccc;
+        border-radius:10px;
+        padding:14mm 12mm;
+        margin:6mm 0;
+        text-align:center;
+        break-inside:avoid;
+        page-break-inside:avoid;
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        justify-content:center;
+        gap:8mm;
+      }
+      .barcode { width:90%; height:130px; }
+      .num { font-size:80px; font-weight:900; line-height:1; }
+      .name { font-size:26px; color:#333; }
+      .race { font-size:20px; color:#666; }
+      @media print { @page { size:A4; margin:10mm; } .card { margin:0 0 7mm; } }
     </style></head><body>
-    <div class="grid">${rows}</div>
+    ${rows}
     <script>
       document.querySelectorAll('.barcode').forEach(el => {
-        JsBarcode(el, el.dataset.bib, { format:'CODE128', displayValue:false, margin:4 });
+        JsBarcode(el, el.dataset.bib, { format:'CODE128', displayValue:false, margin:4, width:3, height:130 });
       });
       window.onload = () => window.print();
     <\/script></body></html>`;
