@@ -73,7 +73,7 @@ CREATE TABLE participants (
   club TEXT,
   emergency_contact TEXT,
   emergency_phone TEXT,
-  shirt_size TEXT CHECK (shirt_size IN ('XS','S','M','L','XL','XXL')),
+  shirt_size TEXT CHECK (shirt_size IN ('8','10','12','14','16','XS','S','M','L','XL','XXL')),
   notes TEXT,
   health_declaration BOOLEAN NOT NULL DEFAULT false,
   rules_accepted BOOLEAN NOT NULL DEFAULT false,

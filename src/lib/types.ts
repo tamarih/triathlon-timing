@@ -10,7 +10,7 @@ export type ParticipantStatus = 'registered' | 'started' | 'dns' | 'dnf' | 'dsq'
 
 export type PaymentStatus = 'unpaid' | 'paid' | 'exempt';
 
-export type ShirtSize = 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL';
+export type ShirtSize = '8' | '10' | '12' | '14' | '16' | 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL';
 
 export type Gender = 'male' | 'female';
 
