@@ -262,9 +262,30 @@ export default function Register() {
         bib_number: nextBib,
       });
       if (error) throw error;
+      sendConfirmationEmail({
+        email: form.email,
+        first_name: form.first_name,
+        last_name: form.last_name,
+        bib_number: nextBib,
+        race_name: selectedRaceObj?.name,
+        event_name: events.find(ev => ev.id === selectedEvent)?.name,
+        shirt_size: form.shirt_size,
+        category: category || undefined,
+      });
       setStep('success');
     } catch (err: any) { toast.error(err.message || 'שגיאה בהרשמה'); }
     finally { setSubmitting(false); }
+  }
+
+  // Fire-and-forget: a failed email must never block a successful registration.
+  function sendConfirmationEmail(payload: {
+    email: string; first_name?: string; last_name?: string;
+    bib_number?: number | string; race_name?: string; event_name?: string;
+    shirt_size?: string; category?: string;
+  }) {
+    if (!payload.email) return;
+    supabase.functions.invoke('send-registration-email', { body: payload })
+      .catch(() => { /* ignore — confirmation email is best-effort */ });
   }
 
   async function submitWaitlist() {
@@ -298,6 +319,12 @@ export default function Register() {
       for (const [role, data] of [['swimmer', teamForm.swimmer], ['cyclist', teamForm.cyclist], ['runner', teamForm.runner]] as any[]) {
         await supabase.from('participants').insert({ event_id: selectedEvent, race_id: selectedRace, team_id: teamData.id, team_role: role, first_name: data.first_name, last_name: data.last_name, phone: data.phone, birth_date: data.birth_date, gender: 'male', email: teamForm.contact_email, health_declaration: true, rules_accepted: true, photo_consent: false, bib_number: nextTeamBib++ });
       }
+      sendConfirmationEmail({
+        email: teamForm.contact_email,
+        first_name: teamForm.contact_name,
+        race_name: selectedRaceObj?.name,
+        event_name: events.find(ev => ev.id === selectedEvent)?.name,
+      });
       setStep('success');
     } catch (err: any) { toast.error(err.message || 'שגיאה בהרשמה'); }
     finally { setSubmitting(false); }
