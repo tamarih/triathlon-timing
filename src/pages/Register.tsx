@@ -317,9 +317,20 @@ export default function Register() {
               ? 'ההרשמה שלך נשלחה לאישור הועדה. נחזור אליך בהקדם.'
               : 'הרשמתך נקלטה בהצלחה! שיהיה בהצלחה 🏊🚴🏃'}
         </p>
-        <p style={{ color: '#6b7280', marginBottom: 24, lineHeight: 1.6, fontSize: 14 }}>
-          לבירורים נוספים מוזמנים לפנות ל<strong>בן אהובי</strong>, <strong>גלעד רוזמרין</strong> או <strong>תמר הופמן</strong>.
-        </p>
+        <div style={{ marginBottom: 24, textAlign: 'right' as const, background: '#f9fafb', border: '1px solid #f3f4f6', borderRadius: 12, padding: '12px 16px' }}>
+          <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 10, textAlign: 'center' as const }}>לבירורים נוספים ניתן לפנות ל:</div>
+          {[
+            { name: 'בן אהובי', phone: '0528073399', display: '052-807-3399' },
+            { name: 'גלעד רוזמרין', phone: '0546370307', display: '054-637-0307' },
+            { name: 'ליאור זהר פפרמן', phone: '0543177312', display: '054-317-3312' },
+            { name: 'תמר הופמן', phone: '0546420020', display: '054-642-0020' },
+          ].map(c => (
+            <div key={c.phone} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '6px 0', borderTop: '1px solid #f3f4f6' }}>
+              <span style={{ fontWeight: 700, color: '#111827', fontSize: 14 }}>{c.name}</span>
+              <a href={`tel:${c.phone}`} style={{ color: '#1d4ed8', fontWeight: 600, textDecoration: 'none', fontFamily: 'monospace', fontSize: 14, direction: 'ltr' as const }}>{c.display}</a>
+            </div>
+          ))}
+        </div>
         <Link to="/" style={{ display: 'block', background: 'linear-gradient(135deg,#1d4ed8,#0ea5e9)', color: 'white', borderRadius: 12, padding: '13px 0', fontWeight: 700, textDecoration: 'none', marginBottom: 8 }}>חזרה לדף הבית</Link>
       </div>
     </div>
