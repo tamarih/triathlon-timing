@@ -310,12 +310,15 @@ export default function Register() {
         <h2 style={{ fontSize: 22, fontWeight: 800, color: '#111827', marginBottom: 8 }}>
           {waitlist ? 'נרשמת לרשימת המתנה!' : raceMismatch ? 'ההרשמה התקבלה — ממתינה לאישור' : 'ההרשמה הושלמה!'}
         </h2>
-        <p style={{ color: '#6b7280', marginBottom: 24, lineHeight: 1.6 }}>
+        <p style={{ color: '#6b7280', marginBottom: 16, lineHeight: 1.6 }}>
           {waitlist
             ? 'נעדכן אותך אם יפנה מקום.'
             : raceMismatch
               ? 'ההרשמה שלך נשלחה לאישור הועדה. נחזור אליך בהקדם.'
-              : 'ברוכים הבאים לאירוע! 🏊🚴🏃'}
+              : 'הרשמתך נקלטה בהצלחה! שיהיה בהצלחה 🏊🚴🏃'}
+        </p>
+        <p style={{ color: '#6b7280', marginBottom: 24, lineHeight: 1.6, fontSize: 14 }}>
+          לבירורים נוספים מוזמנים לפנות ל<strong>בן אהובי</strong>, <strong>גלעד רוזמרין</strong> או <strong>תמר הופמן</strong>.
         </p>
         <Link to="/" style={{ display: 'block', background: 'linear-gradient(135deg,#1d4ed8,#0ea5e9)', color: 'white', borderRadius: 12, padding: '13px 0', fontWeight: 700, textDecoration: 'none', marginBottom: 8 }}>חזרה לדף הבית</Link>
       </div>
