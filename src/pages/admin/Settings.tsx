@@ -77,6 +77,7 @@ function RoleBlocks({ poolLanes, station, onPoolChange, onStationChange }: {
               <option value="1">תחנה 1 — יציאה משחייה</option>
               <option value="2">תחנה 2 — סיום אופניים</option>
               <option value="3">תחנה 3 — קו סיום</option>
+              <option value="4">תחנה 4 — נקודת הסתובבות</option>
             </select>
           </div>
         )}

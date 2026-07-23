@@ -106,7 +106,7 @@ export interface TimingRecord {
   event_id: string;
   participant_id?: string;
   team_id?: string;
-  station: 1 | 2 | 3;
+  station: 1 | 2 | 3 | 4;
   recorded_at: string;
   recorded_by?: string;
   notes?: string;
@@ -173,7 +173,7 @@ export interface AppUser {
   email: string;
   role: UserRole;
   name?: string;
-  assigned_station?: 1 | 2 | 3;
+  assigned_station?: 1 | 2 | 3 | 4;
   pool_lane?: number;
   pool_lanes?: number[];
 }

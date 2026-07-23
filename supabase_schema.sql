@@ -90,7 +90,7 @@ CREATE TABLE timing_records (
   event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
   participant_id UUID REFERENCES participants(id) ON DELETE CASCADE,
   team_id UUID REFERENCES teams(id) ON DELETE CASCADE,
-  station INT NOT NULL CHECK (station IN (1,2,3)),
+  station INT NOT NULL CHECK (station IN (1,2,3,4)),
   recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   recorded_by TEXT,
   notes TEXT,
@@ -146,7 +146,7 @@ CREATE TABLE app_users (
   email TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'viewer' CHECK (role IN ('admin','volunteer','viewer')),
   name TEXT,
-  assigned_station INT CHECK (assigned_station IN (1,2,3)),
+  assigned_station INT CHECK (assigned_station IN (1,2,3,4)),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

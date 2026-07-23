@@ -11,6 +11,7 @@ interface TimingRow {
   t1?: TimingRecord;
   t2?: TimingRecord;
   t3?: TimingRecord;
+  t4?: TimingRecord;
   swim?: number;
   bike?: number;
   run?: number;
@@ -49,7 +50,7 @@ export default function TimingAdmin() {
   const [selectedRace, setSelectedRace] = useState('');
   const [rows, setRows] = useState<TimingRow[]>([]);
   const [search, setSearch] = useState('');
-  const [editRecord, setEditRecord] = useState<{ participantId: string; station: 1|2|3; existing?: TimingRecord } | null>(null);
+  const [editRecord, setEditRecord] = useState<{ participantId: string; station: 1|2|3|4; existing?: TimingRecord } | null>(null);
   const [editTime, setEditTime] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -79,12 +80,13 @@ export default function TimingAdmin() {
       const t1 = timings?.find(t => t.participant_id === p.id && t.station === 1);
       const t2 = timings?.find(t => t.participant_id === p.id && t.station === 2);
       const t3 = timings?.find(t => t.participant_id === p.id && t.station === 3);
+      const t4 = timings?.find(t => t.participant_id === p.id && t.station === 4);
       let swim, bike, run, total;
       if (race && t1) swim = timeDiffSeconds(`1970-01-01T${race.gun_time}`, t1.recorded_at);
       if (t1 && t2) bike = timeDiffSeconds(t1.recorded_at, t2.recorded_at);
       if (t2 && t3) run = timeDiffSeconds(t2.recorded_at, t3.recorded_at);
       if (race && t3) total = timeDiffSeconds(`1970-01-01T${race.gun_time}`, t3.recorded_at);
-      return { participant: p, race, t1, t2, t3, swim, bike, run, total };
+      return { participant: p, race, t1, t2, t3, t4, swim, bike, run, total };
     });
     setRows(computed);
   }
@@ -122,7 +124,7 @@ export default function TimingAdmin() {
     loadData();
   }
 
-  function openEdit(participantId: string, station: 1|2|3, existing?: TimingRecord) {
+  function openEdit(participantId: string, station: 1|2|3|4, existing?: TimingRecord) {
     setEditRecord({ participantId, station, existing });
     setEditTime(existing ? new Date(existing.recorded_at).toTimeString().slice(0, 5) : '');
   }
@@ -135,7 +137,7 @@ export default function TimingAdmin() {
     return matchSearch && matchRace;
   });
 
-  const stationColors = ['#3b82f6', '#f97316', '#22c55e'];
+  const stationColors = ['#3b82f6', '#f97316', '#22c55e', '#a855f7'];
 
   return (
     <div style={S.page}>
@@ -163,7 +165,7 @@ export default function TimingAdmin() {
           <div style={S.modal}>
             <div style={S.modalHeader}>
               <span style={S.modalTitle}>
-                {['🏊','🚴','🏃'][editRecord.station - 1]} תחנה {editRecord.station}
+                {['🏊','🚴','🏃','🔄'][editRecord.station - 1]} {editRecord.station === 4 ? 'נקודת הסתובבות' : `תחנה ${editRecord.station}`}
               </span>
               <button style={S.closeBtn} onClick={() => setEditRecord(null)}><X size={18} /></button>
             </div>
@@ -195,6 +197,7 @@ export default function TimingAdmin() {
                 <th style={{ ...S.th, color: stationColors[0] }}>🏊 שחייה</th>
                 <th style={{ ...S.th, color: stationColors[1] }}>🚴 אופניים</th>
                 <th style={{ ...S.th, color: stationColors[2] }}>🏃 ריצה</th>
+                <th style={{ ...S.th, color: stationColors[3] }}>🔄 הסתובבות</th>
                 <th style={S.th}>סה"כ</th>
               </tr>
             </thead>
@@ -241,6 +244,29 @@ export default function TimingAdmin() {
                       </td>
                     );
                   })}
+                  <td style={S.td}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span style={{ fontFamily: 'monospace', fontSize: 12, color: row.t4 ? stationColors[3] : '#d1d5db' }}>
+                        {row.t4 ? new Date(row.t4.recorded_at).toLocaleTimeString('he-IL') : '—'}
+                      </span>
+                      <button
+                        style={S.iconBtn(row.t4 ? stationColors[3] : '#9ca3af')}
+                        onClick={() => openEdit(row.participant.id, 4, row.t4)}
+                        title={row.t4 ? 'ערוך' : 'הוסף'}
+                      >
+                        {row.t4 ? <Edit2 size={11} /> : <Plus size={11} />}
+                      </button>
+                      {row.t4 && (
+                        <button
+                          style={S.iconBtn('#ef4444')}
+                          onClick={() => deleteTime(row.t4!)}
+                          title="מחק"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      )}
+                    </div>
+                  </td>
                   <td style={{ ...S.td, fontFamily: 'monospace', fontWeight: 800, color: row.total ? '#111827' : '#d1d5db' }}>
                     {row.total ? formatTime(row.total) : '—'}
                   </td>

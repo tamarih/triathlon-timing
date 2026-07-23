@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 
 interface Stats {
   total: number; paid: number; started: number; finished: number;
-  dnf: number; dns: number; dsq: number; swim_done: number; bike_done: number;
+  dnf: number; dns: number; dsq: number; swim_done: number; bike_done: number; turnaround_done: number;
 }
 
 const S = {
@@ -66,6 +66,7 @@ export default function AdminDashboard() {
         dsq: parts.filter(p => p.status === 'dsq').length,
         swim_done: timings?.filter(t => t.station === 1).length || 0,
         bike_done: timings?.filter(t => t.station === 2).length || 0,
+        turnaround_done: timings?.filter(t => t.station === 4).length || 0,
       });
     }
   }
@@ -119,6 +120,7 @@ export default function AdminDashboard() {
               {[
                 { label: '🏊 סיימו שחייה', value: stats.swim_done, color: '#3b82f6' },
                 { label: '🚴 סיימו אופניים', value: stats.bike_done, color: '#f97316' },
+                { label: '🔄 עברו הסתובבות', value: stats.turnaround_done, color: '#a855f7' },
                 { label: '🏃 חצו קו סיום', value: stats.finished, color: '#22c55e' },
               ].map(pb => {
                 const pct = stats.total > 0 ? Math.round((pb.value / stats.total) * 100) : 0;

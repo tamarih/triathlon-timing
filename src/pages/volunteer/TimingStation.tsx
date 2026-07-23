@@ -15,7 +15,7 @@ const S = {
   card: { background: '#1f2937', borderRadius: 16, padding: 16, marginBottom: 20 },
   label: { display: 'block', fontSize: 13, color: '#9ca3af', marginBottom: 6 },
   select: { width: '100%', background: '#374151', border: '1px solid #4b5563', borderRadius: 10, padding: '8px 12px', color: 'white', fontSize: 14, outline: 'none', fontFamily: 'system-ui', marginBottom: 12, boxSizing: 'border-box' as const },
-  stationGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 8 },
+  stationGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 },
   stationBtn: (active: boolean): React.CSSProperties => ({ padding: '10px 0', borderRadius: 10, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', background: active ? '#2563eb' : '#374151', color: active ? 'white' : '#d1d5db', transition: 'background 0.15s' }),
   stationLabel: { fontSize: 12, color: '#60a5fa', textAlign: 'center' as const, marginTop: 6 },
   bibInput: { width: '100%', background: '#111827', border: '2px solid #4b5563', borderRadius: 14, padding: '20px 16px', fontSize: 48, fontWeight: 800, textAlign: 'center' as const, color: 'white', outline: 'none', boxSizing: 'border-box' as const, marginBottom: 14, fontFamily: 'monospace' },
@@ -33,6 +33,7 @@ const stationLabels: Record<number, string> = {
   1: 'תחנה 1 — יציאה משחייה',
   2: 'תחנה 2 — סיום אופניים',
   3: 'תחנה 3 — קו סיום',
+  4: 'תחנה 4 — נקודת הסתובבות',
 };
 
 export default function TimingStation() {
@@ -45,9 +46,9 @@ export default function TimingStation() {
   }
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState('');
-  const [station, setStation] = useState<1 | 2 | 3>(appUser?.assigned_station || 1);
+  const [station, setStation] = useState<1 | 2 | 3 | 4>(appUser?.assigned_station || 1);
   const [bibInput, setBibInput] = useState('');
-  const [recentRecords, setRecentRecords] = useState<Array<{ recordId: string; participant: Participant; time: string; station: 1 | 2 | 3 }>>([]);
+  const [recentRecords, setRecentRecords] = useState<Array<{ recordId: string; participant: Participant; time: string; station: 1 | 2 | 3 | 4 }>>([]);
   const [submitting, setSubmitting] = useState(false);
   const [scanning, setScanning] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -183,7 +184,7 @@ export default function TimingStation() {
     processSubmit(bibInput.trim());
   }
 
-  async function undoRecord(rec: { recordId: string; participant: Participant; station: 1 | 2 | 3 }) {
+  async function undoRecord(rec: { recordId: string; participant: Participant; station: 1 | 2 | 3 | 4 }) {
     if (!confirm(`לבטל את קליטת ${rec.participant.first_name} ${rec.participant.last_name} (מס' ${rec.participant.bib_number})?`)) return;
     try {
       const { error } = await supabase.from('timing_records').delete().eq('id', rec.recordId);
@@ -247,9 +248,9 @@ export default function TimingStation() {
           ) : (
             <>
               <div style={S.stationGrid}>
-                {([1, 2, 3] as const).map(s => (
+                {([1, 2, 3, 4] as const).map(s => (
                   <button key={s} onClick={() => setStation(s)} style={S.stationBtn(station === s)}>
-                    תחנה {s}
+                    {s === 4 ? '🔄 הסתובבות' : `תחנה ${s}`}
                   </button>
                 ))}
               </div>
