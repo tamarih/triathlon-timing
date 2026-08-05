@@ -248,7 +248,6 @@ export default function Register() {
         email: form.email,
         city: form.city,
         club: form.club,
-        shirt_size: form.shirt_size,
         notes: form.notes,
         health_declaration: allHealthChecked,
         rules_accepted: form.rules_accepted,
@@ -269,7 +268,6 @@ export default function Register() {
         bib_number: nextBib,
         race_name: selectedRaceObj?.name,
         event_name: events.find(ev => ev.id === selectedEvent)?.name,
-        shirt_size: form.shirt_size,
         category: category || undefined,
       });
       setStep('success');
@@ -528,12 +526,6 @@ export default function Register() {
                   <Field label='דוא"ל' type="email" value={form.email} onChange={v => setForm({...form, email: v})} required />
                 </div>
                 <Field label="יישוב" value={form.city} onChange={v => setForm({...form, city: v})} />
-                <div style={S.fieldWrap}>
-                  <label style={S.label}>מידה לחולצה</label>
-                  <select style={S.select} value={form.shirt_size} onChange={e => setForm({...form, shirt_size: e.target.value})}>
-                    {['8','10','12','14','16','XS','S','M','L','XL','XXL'].map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
                 <div style={S.fieldWrap}>
                   <label style={S.label}>הערות</label>
                   <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} rows={2}
