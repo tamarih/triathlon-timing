@@ -224,15 +224,15 @@ export default function Register() {
       for (const row of laneData || []) { if (row.lane >= 1 && row.lane <= 6) counts[row.lane]++; }
       const assignedLane = Number(Object.entries(counts).sort((a, b) => a[1] - b[1])[0][0]);
 
-      // Auto-assign bib number: max existing + 1 within this event
+      // Auto-assign bib number: numeric max existing + 1 within this event.
+      // bib_number is a TEXT column, so a DB sort ranks "9" above "10" and would
+      // hand out the same number repeatedly — compute the max numerically.
       const { data: bibData } = await supabase
         .from('participants')
         .select('bib_number')
         .eq('event_id', selectedEvent)
-        .not('bib_number', 'is', null)
-        .order('bib_number', { ascending: false })
-        .limit(1);
-      const nextBib = bibData && bibData.length > 0 ? (Number(bibData[0].bib_number) + 1) : 1;
+        .not('bib_number', 'is', null);
+      const nextBib = (bibData || []).reduce((m, r) => Math.max(m, Number(r.bib_number) || 0), 0) + 1;
 
       const rec_cat = category;
       const approval_status = raceMismatch ? 'pending' : null;
@@ -310,10 +310,8 @@ export default function Register() {
         .from('participants')
         .select('bib_number')
         .eq('event_id', selectedEvent)
-        .not('bib_number', 'is', null)
-        .order('bib_number', { ascending: false })
-        .limit(1);
-      let nextTeamBib = teamBibData && teamBibData.length > 0 ? (Number(teamBibData[0].bib_number) + 1) : 1;
+        .not('bib_number', 'is', null);
+      let nextTeamBib = (teamBibData || []).reduce((m, r) => Math.max(m, Number(r.bib_number) || 0), 0) + 1;
       for (const [role, data] of [['swimmer', teamForm.swimmer], ['cyclist', teamForm.cyclist], ['runner', teamForm.runner]] as any[]) {
         await supabase.from('participants').insert({ event_id: selectedEvent, race_id: selectedRace, team_id: teamData.id, team_role: role, first_name: data.first_name, last_name: data.last_name, phone: data.phone, birth_date: data.birth_date, gender: 'male', email: teamForm.contact_email, health_declaration: true, rules_accepted: true, photo_consent: false, bib_number: nextTeamBib++ });
       }

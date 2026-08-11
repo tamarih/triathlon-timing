@@ -85,8 +85,10 @@ export default function Participants() {
 
   async function loadParticipants() {
     if (!selectedEvent) return;
-    const { data } = await supabase.from('participants').select('*').eq('event_id', selectedEvent).order('bib_number');
-    setParticipants(data || []);
+    const { data } = await supabase.from('participants').select('*').eq('event_id', selectedEvent);
+    // bib_number is TEXT, so sort numerically here (a text sort ranks 10 before 2).
+    const sorted = (data || []).sort((a, b) => (Number(a.bib_number) || 0) - (Number(b.bib_number) || 0));
+    setParticipants(sorted);
   }
 
   async function updateParticipantField(id: string, field: string, value: string) {

@@ -70,7 +70,7 @@ export default function TimingAdmin() {
   async function loadData() {
     if (!selectedEvent) return;
     const [{ data: parts }, { data: timings }] = await Promise.all([
-      supabase.from('participants').select('*').eq('event_id', selectedEvent).order('bib_number'),
+      supabase.from('participants').select('*').eq('event_id', selectedEvent),
       supabase.from('timing_records').select('*').eq('event_id', selectedEvent),
     ]);
     const racesData = races.length ? races : (await supabase.from('races').select('*').eq('event_id', selectedEvent)).data || [];
@@ -88,6 +88,8 @@ export default function TimingAdmin() {
       if (race && t3) total = timeDiffSeconds(`1970-01-01T${race.gun_time}`, t3.recorded_at);
       return { participant: p, race, t1, t2, t3, t4, swim, bike, run, total };
     });
+    // bib_number is TEXT, so sort numerically (a text sort ranks 10 before 2).
+    computed.sort((a, b) => (Number(a.participant.bib_number) || 0) - (Number(b.participant.bib_number) || 0));
     setRows(computed);
   }
 
