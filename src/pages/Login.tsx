@@ -117,6 +117,7 @@ export default function Login() {
       if (session?.user) {
         const { data: au } = await supabase.from('app_users').select('role, pool_lane, pool_lanes, assigned_station').eq('id', session.user.id).single();
         if (au?.role === 'admin') { navigate('/admin'); return; }
+        if (au?.role === 'viewer') { navigate('/registrants'); return; }
         const hasPool = (au?.pool_lanes?.length > 0) || !!au?.pool_lane;
         const hasTiming = !!au?.assigned_station;
         if (hasPool && hasTiming) navigate('/choose-role');
