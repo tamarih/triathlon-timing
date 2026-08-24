@@ -73,7 +73,14 @@ export default function Reports() {
     const d = await fetchData();
     if (!d) { setLoading(false); return; }
 
-    const rows = d.parts.map(p => {
+    const rows = d.parts.filter(p => {
+      // Final report: only those who completed all three legs — finished their
+      // pool laps (station 1), were marked at bike (station 2) and run (station 3).
+      const has1 = d.timings.some(t => t.participant_id === p.id && t.station === 1);
+      const has2 = d.timings.some(t => t.participant_id === p.id && t.station === 2);
+      const has3 = d.timings.some(t => t.participant_id === p.id && t.station === 3);
+      return has1 && has2 && has3;
+    }).map(p => {
       const race = d.races.find(r => r.id === p.race_id);
       const gunStr = race ? `1970-01-01T${race.gun_time}` : '';
       const t1 = d.timings.find(t => t.participant_id === p.id && t.station === 1);
@@ -137,7 +144,13 @@ export default function Reports() {
     doc.text(event ? `${event.date} | ${event.location}` : '', 14, 28);
 
     const rows = d.parts
-      .filter(p => p.status === 'finished')
+      .filter(p => {
+        // Only participants who completed all three legs (stations 1, 2 and 3).
+        const has1 = d.timings.some(t => t.participant_id === p.id && t.station === 1);
+        const has2 = d.timings.some(t => t.participant_id === p.id && t.station === 2);
+        const has3 = d.timings.some(t => t.participant_id === p.id && t.station === 3);
+        return has1 && has2 && has3;
+      })
       .map((p, i) => {
         const race = d.races.find(r => r.id === p.race_id);
         const gunStr = race ? `1970-01-01T${race.gun_time}` : '';

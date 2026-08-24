@@ -212,10 +212,10 @@ export default function Participants() {
         justify-content:center;
         gap:8mm;
       }
-      .barcode { width:90%; height:130px; }
-      .num { font-size:80px; font-weight:900; line-height:1; }
-      .name { font-size:26px; color:#333; }
-      .race { font-size:20px; color:#666; }
+      .barcode { width:90%; height:150px; }
+      .num { font-size:150px; font-weight:900; line-height:1; }
+      .name { font-size:30px; color:#333; }
+      .race { font-size:22px; color:#666; }
       @media print { @page { size:A4; margin:10mm; } .card { margin:0 0 7mm; } }
     </style></head><body>
     ${rows}
