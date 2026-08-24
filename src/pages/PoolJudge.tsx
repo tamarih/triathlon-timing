@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { Event, Race, Participant } from '../lib/types';
+import { formatTime } from '../lib/utils';
 import toast from 'react-hot-toast';
 import { Check, Minus, LogOut, Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -41,6 +42,12 @@ export default function PoolJudge() {
     return () => timers.forEach(clearTimeout);
   }, [lastTap]);
 
+  // Tick every second so the background race timer updates.
+  useEffect(() => {
+    const iv = setInterval(() => setTick(t => t + 1), 1000);
+    return () => clearInterval(iv);
+  }, []);
+
   const myLanes: number[] = (appUser as any)?.pool_lanes?.length
     ? (appUser as any).pool_lanes
     : appUser?.pool_lane ? [appUser.pool_lane] : [];
@@ -67,7 +74,7 @@ export default function PoolJudge() {
     // Subscribe to race start broadcasts
     if (channelRef.current) supabase.removeChannel(channelRef.current);
     const ch = supabase.channel(`race-start:${selectedRace}`)
-      .on('broadcast', { event: 'start' }, () => runCountdown())
+      .on('broadcast', { event: 'start' }, () => runCountdown(false))
       .subscribe();
     channelRef.current = ch;
     return () => { supabase.removeChannel(ch); };
@@ -99,6 +106,9 @@ export default function PoolJudge() {
 
   const race = useMemo(() => races.find(r => r.id === selectedRace), [races, selectedRace]);
   const requiredLaps = race ? requiredLapsFor(race) : 0;
+  const elapsedStr = race?.started_at
+    ? formatTime(Math.floor((Date.now() - new Date(race.started_at).getTime()) / 1000))
+    : null;
 
   // Filter to assigned lanes, grouped by lane, sorted
   const mySwimmers = useMemo(() => {
@@ -180,7 +190,7 @@ export default function PoolJudge() {
     } catch {}
   }
 
-  function runCountdown() {
+  function runCountdown(isInitiator = false) {
     setCountdown(3);
     let n = 3;
     beep(880, 150);
@@ -192,10 +202,18 @@ export default function PoolJudge() {
       } else {
         setCountdown(0);
         beep(1320, 600);
-        // Save actual gun time to DB
-        if (selectedRace) {
-          supabase.from('races').update({ gun_time: new Date().toISOString() }).eq('id', selectedRace);
-        }
+        // Record the gun time once. The guarded update (is null) makes it
+        // idempotent, and everyone re-syncs started_at so timers agree.
+        (async () => {
+          if (!selectedRace) return;
+          if (isInitiator) {
+            await supabase.from('races')
+              .update({ started_at: new Date().toISOString() })
+              .eq('id', selectedRace).is('started_at', null);
+          }
+          const { data } = await supabase.from('races').select('started_at').eq('id', selectedRace).single();
+          if (data) setRaces(prev => prev.map(r => r.id === selectedRace ? { ...r, started_at: data.started_at } : r));
+        })();
         setTimeout(() => setCountdown(null), 2000);
         clearInterval(iv);
       }
@@ -203,11 +221,12 @@ export default function PoolJudge() {
   }
 
   function startCountdown() {
-    // Broadcast to all judges, then run locally
+    if (race?.started_at) { toast.error('המקצה כבר הוזנק'); return; }
+    // Broadcast to all judges, then run locally as the initiator
     if (channelRef.current) {
       channelRef.current.send({ type: 'broadcast', event: 'start', payload: {} });
     }
-    runCountdown();
+    runCountdown(true);
   }
 
   return (
@@ -231,7 +250,7 @@ export default function PoolJudge() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 8, marginBottom: appUser?.role === 'admin' ? 8 : 0 }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: (appUser?.role === 'admin' || race?.started_at) ? 8 : 0 }}>
           <select value={selectedEvent} onChange={e => setSelectedEvent(e.target.value)}
             style={{ flex: 1, background: '#334155', border: '1px solid #475569', borderRadius: 8, padding: '8px 10px', color: 'white', fontSize: 14, outline: 'none' }}>
             <option value="">-- אירוע --</option>
@@ -244,7 +263,18 @@ export default function PoolJudge() {
           </select>
         </div>
 
-        {appUser?.role === 'admin' && (
+        {selectedRace && race?.started_at ? (
+          <div style={{
+            width: '100%', borderRadius: 10, padding: '10px 0', textAlign: 'center',
+            background: '#052e16', border: '1px solid #16a34a',
+          }}>
+            <span style={{ fontSize: 13, color: '#86efac' }}>⏱️ המקצה רץ</span>{' '}
+            <span style={{ fontFamily: 'monospace', fontSize: 22, fontWeight: 900, color: 'white' }}>{elapsedStr}</span>
+            <div style={{ fontSize: 11, color: '#86efac', marginTop: 2 }}>
+              הוזנק בשעה {new Date(race.started_at).toLocaleTimeString('he-IL')}
+            </div>
+          </div>
+        ) : appUser?.role === 'admin' && (
           <button onClick={startCountdown} disabled={!selectedRace || countdown !== null}
             style={{
               width: '100%', border: 'none', borderRadius: 10, padding: '13px 0',

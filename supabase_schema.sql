@@ -28,6 +28,7 @@ CREATE TABLE races (
   description TEXT,
   type TEXT NOT NULL DEFAULT 'individual' CHECK (type IN ('individual','relay')),
   gun_time TIME NOT NULL,
+  started_at TIMESTAMPTZ,
   swim_distance DECIMAL(6,2) NOT NULL DEFAULT 0,
   bike_distance DECIMAL(6,2) NOT NULL DEFAULT 0,
   run_distance DECIMAL(6,2) NOT NULL DEFAULT 0,

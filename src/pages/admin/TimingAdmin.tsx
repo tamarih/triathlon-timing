@@ -82,10 +82,11 @@ export default function TimingAdmin() {
       const t3 = timings?.find(t => t.participant_id === p.id && t.station === 3);
       const t4 = timings?.find(t => t.participant_id === p.id && t.station === 4);
       let swim, bike, run, total;
-      if (race && t1) swim = timeDiffSeconds(`1970-01-01T${race.gun_time}`, t1.recorded_at);
+      const gunStr = race?.started_at || (race ? `1970-01-01T${race.gun_time}` : '');
+      if (race && t1) swim = timeDiffSeconds(gunStr, t1.recorded_at);
       if (t1 && t2) bike = timeDiffSeconds(t1.recorded_at, t2.recorded_at);
       if (t2 && t3) run = timeDiffSeconds(t2.recorded_at, t3.recorded_at);
-      if (race && t3) total = timeDiffSeconds(`1970-01-01T${race.gun_time}`, t3.recorded_at);
+      if (race && t3) total = timeDiffSeconds(gunStr, t3.recorded_at);
       return { participant: p, race, t1, t2, t3, t4, swim, bike, run, total };
     });
     // bib_number is TEXT, so sort numerically (a text sort ranks 10 before 2).

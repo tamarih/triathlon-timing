@@ -37,6 +37,7 @@ export interface Race {
   description?: string;
   type: RaceType;
   gun_time: string;
+  started_at?: string | null;
   swim_distance: number;
   bike_distance: number;
   run_distance: number;

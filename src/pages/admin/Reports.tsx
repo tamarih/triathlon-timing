@@ -82,7 +82,7 @@ export default function Reports() {
       return has1 && has2 && has3;
     }).map(p => {
       const race = d.races.find(r => r.id === p.race_id);
-      const gunStr = race ? `1970-01-01T${race.gun_time}` : '';
+      const gunStr = race?.started_at || (race ? `1970-01-01T${race.gun_time}` : '');
       const t1 = d.timings.find(t => t.participant_id === p.id && t.station === 1);
       const t2 = d.timings.find(t => t.participant_id === p.id && t.station === 2);
       const t3 = d.timings.find(t => t.participant_id === p.id && t.station === 3);
@@ -153,7 +153,7 @@ export default function Reports() {
       })
       .map((p, i) => {
         const race = d.races.find(r => r.id === p.race_id);
-        const gunStr = race ? `1970-01-01T${race.gun_time}` : '';
+        const gunStr = race?.started_at || (race ? `1970-01-01T${race.gun_time}` : '');
         const t3 = d.timings.find(t => t.participant_id === p.id && t.station === 3);
         const total = t3 && gunStr ? timeDiffSeconds(gunStr, t3.recorded_at) : null;
         return [i + 1, p.bib_number || '', `${p.first_name} ${p.last_name}`, race?.name || '', genderLabel(p.gender), total ? formatTime(total) : ''];

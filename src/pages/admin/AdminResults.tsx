@@ -70,7 +70,9 @@ export default function AdminResults() {
     const raceList = racesData || [];
     const computed: RankedResult[] = (parts || []).map(p => {
       const race = raceList.find(r => r.id === p.race_id);
-      const gunStr = race ? `1970-01-01T${race.gun_time}` : '';
+      // Prefer the real gun time (started_at, a full timestamp); fall back to
+      // the planned gun_time only if the race was never started.
+      const gunStr = race?.started_at || (race ? `1970-01-01T${race.gun_time}` : '');
       const t1 = timings?.find(t => t.participant_id === p.id && t.station === 1);
       const t2 = timings?.find(t => t.participant_id === p.id && t.station === 2);
       const t3 = timings?.find(t => t.participant_id === p.id && t.station === 3);
