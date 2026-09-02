@@ -368,11 +368,16 @@ export default function Register() {
           const ev = events.find(e => e.id === selectedEvent) || events[0];
           if (!ev?.date) return null;
           return (
-            <div style={{ textAlign: 'center', color: '#1d4ed8', fontWeight: 700, fontSize: 16, marginTop: -6, marginBottom: 18 }}>
+            <div style={{ textAlign: 'center', color: '#1d4ed8', fontWeight: 700, fontSize: 16, marginTop: -6, marginBottom: 12 }}>
               📅 {formatDate(ev.date)}{ev.location ? ` · ${ev.location}` : ''}
             </div>
           );
         })()}
+        <div style={{ textAlign: 'center', marginBottom: 18 }}>
+          <Link to="/info" style={{ display: 'inline-block', background: '#eff6ff', color: '#1d4ed8', border: '1.5px solid #bfdbfe', borderRadius: 999, padding: '8px 18px', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
+            📋 פרטי האירוע ומפות המסלולים
+          </Link>
+        </div>
 
         {step === 'select' && (
           <div style={S.card}>
