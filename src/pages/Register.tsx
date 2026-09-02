@@ -354,7 +354,8 @@ export default function Register() {
             </div>
           ))}
         </div>
-        <Link to="/" style={{ display: 'block', background: 'linear-gradient(135deg,#1d4ed8,#0ea5e9)', color: 'white', borderRadius: 12, padding: '13px 0', fontWeight: 700, textDecoration: 'none', marginBottom: 8 }}>חזרה לדף הבית</Link>
+        <Link to="/info" style={{ display: 'block', background: 'linear-gradient(135deg,#1d4ed8,#0ea5e9)', color: 'white', borderRadius: 12, padding: '13px 0', fontWeight: 700, textDecoration: 'none', marginBottom: 10 }}>📋 פרטי האירוע ומפות המסלולים</Link>
+        <Link to="/" style={{ display: 'block', background: 'white', color: '#1d4ed8', border: '1.5px solid #bfdbfe', borderRadius: 12, padding: '12px 0', fontWeight: 700, textDecoration: 'none', marginBottom: 8 }}>חזרה לדף הבית</Link>
       </div>
     </div>
   );

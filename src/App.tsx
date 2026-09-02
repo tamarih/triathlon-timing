@@ -7,6 +7,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Results from './pages/Results';
+import EventInfo from './pages/EventInfo';
 import TimingStation from './pages/volunteer/TimingStation';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Events from './pages/admin/Events';
@@ -57,6 +58,7 @@ function AppRoutes() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/info" element={<EventInfo />} />
             <Route path="/results" element={<Results />} />
             <Route path="/admin" element={
               <ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>
