@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Event, Race } from '../lib/types';
-import { calculateAge } from '../lib/utils';
+import { calculateAge, formatDate } from '../lib/utils';
 import toast from 'react-hot-toast';
 
 type RegType = 'personal' | 'team' | null;
@@ -363,6 +363,15 @@ export default function Register() {
     <div style={S.page}>
       <div style={S.inner}>
         <h1 style={S.title}>🏁 הרשמה לאירוע</h1>
+        {(() => {
+          const ev = events.find(e => e.id === selectedEvent) || events[0];
+          if (!ev?.date) return null;
+          return (
+            <div style={{ textAlign: 'center', color: '#1d4ed8', fontWeight: 700, fontSize: 16, marginTop: -6, marginBottom: 18 }}>
+              📅 {formatDate(ev.date)}{ev.location ? ` · ${ev.location}` : ''}
+            </div>
+          );
+        })()}
 
         {step === 'select' && (
           <div style={S.card}>
