@@ -60,6 +60,7 @@ export default function Participants() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [editParticipant, setEditParticipant] = useState<Participant | null>(null);
   const [saving, setSaving] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -265,13 +266,14 @@ export default function Participants() {
       const name = `${p.first_name} ${p.last_name}`.toLowerCase();
       return (!search || name.includes(search.toLowerCase()) || (p.bib_number || '').includes(search))
         && (!selectedRace || p.race_id === selectedRace)
+        && (!categoryFilter || (p.recommended_category || '') === categoryFilter)
         && (!statusFilter || p.status === statusFilter)
-        && (!paymentFilter || p.payment_status === paymentFilter)
         && (!approvalFilter || p.approval_status === approvalFilter);
     });
   }
 
   const filtered = getFiltered();
+  const categoryOptions = [...new Set(participants.map(p => p.recommended_category).filter(Boolean))].sort() as string[];
 
   return (
     <div style={S.page}>
@@ -303,9 +305,9 @@ export default function Participants() {
           <option value="">כל הסטטוסים</option>
           {statusOptions.map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}
         </select>
-        <select style={S.filterSelect} value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)}>
-          <option value="">כל התשלומים</option>
-          {paymentOptions.map(s => <option key={s} value={s}>{paymentLabel(s)}</option>)}
+        <select style={S.filterSelect} value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
+          <option value="">כל הקטגוריות</option>
+          {categoryOptions.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
         <div style={S.searchWrap}>
           <span style={S.searchIcon}><Search size={14} /></span>
