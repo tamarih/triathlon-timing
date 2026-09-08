@@ -70,9 +70,10 @@ export default function AdminResults() {
     const raceList = racesData || [];
     const computed: RankedResult[] = (parts || []).map(p => {
       const race = raceList.find(r => r.id === p.race_id);
-      // Prefer the real gun time (started_at, a full timestamp); fall back to
-      // the planned gun_time only if the race was never started.
-      const gunStr = race?.started_at || (race ? `1970-01-01T${race.gun_time}` : '');
+      // Swim/total are measured from the real gun time (started_at). If the
+      // race was never started in the app we leave them blank rather than
+      // computing a garbage value from the planned time-of-day gun_time.
+      const gunStr = race?.started_at || '';
       const t1 = timings?.find(t => t.participant_id === p.id && t.station === 1);
       const t2 = timings?.find(t => t.participant_id === p.id && t.station === 2);
       const t3 = timings?.find(t => t.participant_id === p.id && t.station === 3);
