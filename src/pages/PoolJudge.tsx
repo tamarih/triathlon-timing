@@ -127,6 +127,7 @@ export default function PoolJudge() {
   const elapsedStr = race?.started_at
     ? formatTime(Math.floor((Date.now() - new Date(race.started_at).getTime()) / 1000))
     : null;
+  const notStarted = !!selectedRace && !race?.started_at;
 
   // Filter to assigned lanes, grouped by lane, sorted
   const mySwimmers = useMemo(() => {
@@ -135,6 +136,7 @@ export default function PoolJudge() {
   }, [participants, myLanes]);
 
   async function addLap(p: Participant) {
+    if (!race?.started_at) { toast.error('המקצה טרם הוזנק — נא להמתין להזנקת האדמין', { id: 'not-started', duration: 2500 }); return; }
     const now = Date.now();
     if (lastTap[p.id] && now - lastTap[p.id] < 7000) {
       const remaining = Math.ceil((7000 - (now - lastTap[p.id])) / 1000);
@@ -404,10 +406,10 @@ export default function PoolJudge() {
                       {/* Button */}
                       {!done ? (
                         <div style={{ display: 'flex', gap: 4 }}>
-                          <button onClick={() => addLap(p)} style={{ flex: 1, background: cooldown ? '#166534' : '#16a34a', color: cooldown ? '#86efac' : 'white', border: 'none', borderRadius: 9, padding: tiny ? '6px 0' : compact ? '10px 0' : '14px 0', fontSize: tiny ? 18 : compact ? 22 : 28, fontWeight: 900, cursor: cooldown ? 'not-allowed' : 'pointer', userSelect: 'none' as const, opacity: cooldown ? 0.6 : 1 }}>
-                            {cooldown ? '⏳' : '+'}
+                          <button onClick={() => addLap(p)} disabled={notStarted || cooldown} style={{ flex: 1, background: notStarted ? '#374151' : cooldown ? '#166534' : '#16a34a', color: notStarted ? '#94a3b8' : cooldown ? '#86efac' : 'white', border: 'none', borderRadius: 9, padding: tiny ? '6px 0' : compact ? '10px 0' : '14px 0', fontSize: notStarted ? (tiny ? 12 : 15) : (tiny ? 18 : compact ? 22 : 28), fontWeight: 900, cursor: (notStarted || cooldown) ? 'not-allowed' : 'pointer', userSelect: 'none' as const, opacity: notStarted ? 0.9 : cooldown ? 0.6 : 1 }}>
+                            {notStarted ? '🔒 ממתין להזנקה' : cooldown ? '⏳' : '+'}
                           </button>
-                          {count > 0 && (
+                          {count > 0 && !notStarted && (
                             <button onClick={() => undoLap(p)} style={{ background: '#7f1d1d', color: '#fca5a5', border: 'none', borderRadius: 9, padding: tiny ? '6px 8px' : '10px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                               <Minus size={tiny ? 14 : 16} />
                             </button>
