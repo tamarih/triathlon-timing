@@ -364,7 +364,14 @@ export default function Participants() {
                     <input type="checkbox" checked={selectedIds.has(p.id)} onChange={() => toggleSelect(p.id)} />
                   </td>
                   <td style={{ ...S.td, fontFamily: 'monospace', color: '#6b7280' }}>{p.bib_number || '—'}</td>
-                  <td style={{ ...S.td, fontWeight: 700, color: '#111827' }}>{p.first_name} {p.last_name}</td>
+                  <td style={{ ...S.td, fontWeight: 700, color: '#111827' }}>
+                    {p.first_name} {p.last_name}
+                    {p.team_role && (
+                      <span style={{ marginRight: 6, fontSize: 11, fontWeight: 700, background: '#ede9fe', color: '#6d28d9', borderRadius: 20, padding: '2px 8px', whiteSpace: 'nowrap' as const }}>
+                        {p.team_role === 'swimmer' ? '🏊 שחיין' : p.team_role === 'cyclist' ? '🚴 רוכב' : '🏃 רץ'}
+                      </span>
+                    )}
+                  </td>
                   <td style={S.td}>
                     <select
                       value={p.lane ?? ''}
