@@ -460,18 +460,17 @@ export default function Register() {
               <div style={S.fieldWrap}>
                 <label style={S.label}>סוג הרשמה</label>
                 <div style={{ display: 'flex', gap: 10 }}>
-                  {selectedRaceObj?.type !== 'relay' && (
-                    <button onClick={() => { setRegType('personal'); setStep('form'); }} style={S.typeBtn}>
-                      <div style={{ fontSize: 28, marginBottom: 4 }}>👤</div>
-                      <div style={{ fontWeight: 700, color: '#111827' }}>הרשמה אישית</div>
-                    </button>
-                  )}
-                  {selectedRaceObj?.type === 'relay' && (
-                    <button onClick={() => { setRegType('team'); setStep('form'); }} style={S.typeBtn}>
-                      <div style={{ fontSize: 28, marginBottom: 4 }}>👥</div>
-                      <div style={{ fontWeight: 700, color: '#111827' }}>הרשמה קבוצתית</div>
-                    </button>
-                  )}
+                  <button onClick={() => { setRegType('personal'); setStep('form'); }} style={S.typeBtn}>
+                    <div style={{ fontSize: 28, marginBottom: 4 }}>👤</div>
+                    <div style={{ fontWeight: 700, color: '#111827' }}>הרשמה אישית</div>
+                  </button>
+                  <button onClick={() => { setRegType('team'); setStep('form'); }} style={S.typeBtn}>
+                    <div style={{ fontSize: 28, marginBottom: 4 }}>👥</div>
+                    <div style={{ fontWeight: 700, color: '#111827' }}>הרשמה כשלשה</div>
+                  </button>
+                </div>
+                <div style={{ fontSize: 12, color: '#6b7280', marginTop: 8, lineHeight: 1.5 }}>
+                  בשלשה שלושה משתתפים חולקים את המקצה: שחיין, רוכב ורץ. המקצה נקבע לפי גיל השחיין — ודאו שתאריך הלידה למעלה הוא של השחיין.
                 </div>
               </div>
             )}
