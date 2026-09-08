@@ -215,6 +215,8 @@ CREATE SEQUENCE bib_number_seq START 1;
 CREATE INDEX idx_participants_event ON participants(event_id);
 CREATE INDEX idx_participants_race ON participants(race_id);
 CREATE INDEX idx_participants_bib ON participants(bib_number);
+-- Enforce unique bib numbers within an event (guards against concurrent sign-ups)
+CREATE UNIQUE INDEX participants_event_bib_uniq ON participants(event_id, bib_number) WHERE bib_number IS NOT NULL;
 CREATE INDEX idx_timing_participant ON timing_records(participant_id);
 CREATE INDEX idx_timing_event ON timing_records(event_id);
 

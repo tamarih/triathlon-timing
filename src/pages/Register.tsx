@@ -224,19 +224,7 @@ export default function Register() {
       for (const row of laneData || []) { if (row.lane >= 1 && row.lane <= 6) counts[row.lane]++; }
       const assignedLane = Number(Object.entries(counts).sort((a, b) => a[1] - b[1])[0][0]);
 
-      // Auto-assign bib number: numeric max existing + 1 within this event.
-      // bib_number is a TEXT column, so a DB sort ranks "9" above "10" and would
-      // hand out the same number repeatedly — compute the max numerically.
-      const { data: bibData } = await supabase
-        .from('participants')
-        .select('bib_number')
-        .eq('event_id', selectedEvent)
-        .not('bib_number', 'is', null);
-      const nextBib = (bibData || []).reduce((m, r) => Math.max(m, Number(r.bib_number) || 0), 0) + 1;
-
-      const rec_cat = category;
-      const approval_status = raceMismatch ? 'pending' : null;
-      const { error } = await supabase.from('participants').insert({
+      const { bib: nextBib } = await insertParticipantWithBib({
         event_id: selectedEvent,
         race_id: selectedRace,
         first_name: form.first_name,
@@ -253,14 +241,12 @@ export default function Register() {
         rules_accepted: form.rules_accepted,
         photo_consent: false,
         school_grade: form.school_grade || null,
-        recommended_category: rec_cat,
+        recommended_category: category,
         selected_category: selectedRaceObj?.name || null,
         approval_status: null,
         approval_reason: null,
         lane: assignedLane,
-        bib_number: nextBib,
       });
-      if (error) throw error;
       sendConfirmationEmail({
         email: form.email,
         first_name: form.first_name,
@@ -273,6 +259,26 @@ export default function Register() {
       setStep('success');
     } catch (err: any) { toast.error(err.message || 'שגיאה בהרשמה'); }
     finally { setSubmitting(false); }
+  }
+
+  // Insert a participant with the next free bib number, retrying on a unique
+  // conflict so two simultaneous registrations can never share a number.
+  // (Backed by a DB unique index on (event_id, bib_number).)
+  async function insertParticipantWithBib(row: Record<string, unknown>): Promise<{ bib: number; id: string }> {
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const { data: bibData } = await supabase
+        .from('participants').select('bib_number')
+        .eq('event_id', selectedEvent).not('bib_number', 'is', null);
+      const nextBib = (bibData || []).reduce((m, r) => Math.max(m, Number(r.bib_number) || 0), 0) + 1;
+      const { data, error } = await supabase
+        .from('participants').insert({ ...row, bib_number: nextBib })
+        .select('id').single();
+      if (!error && data) return { bib: nextBib, id: data.id };
+      const dup = error?.code === '23505' || /duplicate|unique/i.test(error?.message || '');
+      if (!dup) throw error || new Error('שגיאה בהרשמה');
+      // someone grabbed this number first — recompute and try again
+    }
+    throw new Error('לא ניתן להקצות מספר משתתף פנוי כרגע, נסו שוב.');
   }
 
   // Fire-and-forget: a failed email must never block a successful registration.
@@ -306,14 +312,8 @@ export default function Register() {
         contact_name: teamForm.contact_name, contact_phone: teamForm.contact_phone, contact_email: teamForm.contact_email,
       }).select().single();
       if (teamErr) throw teamErr;
-      const { data: teamBibData } = await supabase
-        .from('participants')
-        .select('bib_number')
-        .eq('event_id', selectedEvent)
-        .not('bib_number', 'is', null);
-      let nextTeamBib = (teamBibData || []).reduce((m, r) => Math.max(m, Number(r.bib_number) || 0), 0) + 1;
       for (const [role, data] of [['swimmer', teamForm.swimmer], ['cyclist', teamForm.cyclist], ['runner', teamForm.runner]] as any[]) {
-        await supabase.from('participants').insert({ event_id: selectedEvent, race_id: selectedRace, team_id: teamData.id, team_role: role, first_name: data.first_name, last_name: data.last_name, phone: data.phone, birth_date: data.birth_date, gender: 'male', email: teamForm.contact_email, health_declaration: true, rules_accepted: true, photo_consent: false, bib_number: nextTeamBib++ });
+        await insertParticipantWithBib({ event_id: selectedEvent, race_id: selectedRace, team_id: teamData.id, team_role: role, first_name: data.first_name, last_name: data.last_name, phone: data.phone, birth_date: data.birth_date, gender: 'male', email: teamForm.contact_email, health_declaration: true, rules_accepted: true, photo_consent: false });
       }
       sendConfirmationEmail({
         email: teamForm.contact_email,
