@@ -420,8 +420,8 @@ export default function Register() {
               <div style={S.fieldWrap}>
                 <label style={S.label}>בחרו מקצה</label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {[...races].sort((a, b) => {
-                    const order = ['ילדים א', 'ילדים ב', 'נוער', 'קלאסי', 'ספרינטון', 'שלשות', 'שליחים'];
+                  {races.filter(r => r.type !== 'relay' && !r.name.includes('שלשות') && !r.name.includes('שליחים')).sort((a, b) => {
+                    const order = ['ילדים א', 'ילדים ב', 'נוער', 'קלאסי', 'ספרינטון'];
                     const ai = order.findIndex(k => a.name.includes(k));
                     const bi = order.findIndex(k => b.name.includes(k));
                     return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
