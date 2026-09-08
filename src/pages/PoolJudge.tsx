@@ -71,10 +71,14 @@ export default function PoolJudge() {
     if (!selectedRace) { setParticipants([]); return; }
     loadAll();
 
-    // Subscribe to race start broadcasts
+    // Subscribe to race-start broadcasts + live participant changes
+    // (e.g. an admin reassigning lanes) so the judge's list refreshes itself.
     if (channelRef.current) supabase.removeChannel(channelRef.current);
-    const ch = supabase.channel(`race-start:${selectedRace}`)
+    const ch = supabase.channel(`race-live:${selectedRace}`)
       .on('broadcast', { event: 'start' }, () => runCountdown(false))
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'participants', filter: `race_id=eq.${selectedRace}` },
+        () => loadAll())
       .subscribe();
     channelRef.current = ch;
     return () => { supabase.removeChannel(ch); };
