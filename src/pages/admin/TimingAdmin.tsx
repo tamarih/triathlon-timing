@@ -248,27 +248,32 @@ export default function TimingAdmin() {
                     );
                   })}
                   <td style={S.td}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <span style={{ fontFamily: 'monospace', fontSize: 12, color: row.t4 ? stationColors[3] : '#d1d5db' }}>
-                        {row.t4 ? new Date(row.t4.recorded_at).toLocaleTimeString('he-IL') : '—'}
-                      </span>
-                      <button
-                        style={S.iconBtn(row.t4 ? stationColors[3] : '#9ca3af')}
-                        onClick={() => openEdit(row.participant.id, 4, row.t4)}
-                        title={row.t4 ? 'ערוך' : 'הוסף'}
-                      >
-                        {row.t4 ? <Edit2 size={11} /> : <Plus size={11} />}
-                      </button>
-                      {row.t4 && (
+                    {/* Turnaround is only relevant to the ספרינטון race */}
+                    {(row.race?.name || '').includes('ספרינטון') ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ fontFamily: 'monospace', fontSize: 12, color: row.t4 ? stationColors[3] : '#d1d5db' }}>
+                          {row.t4 ? new Date(row.t4.recorded_at).toLocaleTimeString('he-IL') : '—'}
+                        </span>
                         <button
-                          style={S.iconBtn('#ef4444')}
-                          onClick={() => deleteTime(row.t4!)}
-                          title="מחק"
+                          style={S.iconBtn(row.t4 ? stationColors[3] : '#9ca3af')}
+                          onClick={() => openEdit(row.participant.id, 4, row.t4)}
+                          title={row.t4 ? 'ערוך' : 'הוסף'}
                         >
-                          <Trash2 size={11} />
+                          {row.t4 ? <Edit2 size={11} /> : <Plus size={11} />}
                         </button>
-                      )}
-                    </div>
+                        {row.t4 && (
+                          <button
+                            style={S.iconBtn('#ef4444')}
+                            onClick={() => deleteTime(row.t4!)}
+                            title="מחק"
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <span style={{ color: '#d1d5db', fontSize: 12 }}>—</span>
+                    )}
                   </td>
                   <td style={{ ...S.td, fontFamily: 'monospace', fontWeight: 800, color: row.total ? '#111827' : '#d1d5db' }}>
                     {row.total ? formatTime(row.total) : '—'}

@@ -73,7 +73,9 @@ export default function PoolJudge() {
   useEffect(() => {
     if (!selectedEvent) { setRaces([]); setSelectedRace(''); return; }
     supabase.from('races').select('*').eq('event_id', selectedEvent).gt('swim_distance', 0).order('name').then(({ data }) => {
-      const sorted = (data || []).sort((a, b) => poolRaceOrder(a.name) - poolRaceOrder(b.name));
+      const sorted = (data || [])
+        .filter(r => r.type !== 'relay' && !r.name.includes('שלשות') && !r.name.includes('שליחים'))
+        .sort((a, b) => poolRaceOrder(a.name) - poolRaceOrder(b.name));
       setRaces(sorted);
       if (sorted.length === 1) setSelectedRace(sorted[0].id);
     });

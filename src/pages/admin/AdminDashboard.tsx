@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 
 interface Stats {
   total: number; paid: number; started: number; finished: number;
-  dnf: number; dns: number; dsq: number; swim_done: number; bike_done: number; turnaround_done: number;
+  dnf: number; dns: number; dsq: number; swim_done: number; bike_done: number; turnaround_done: number; sprinton_total: number;
 }
 
 const S = {
@@ -53,9 +53,13 @@ export default function AdminDashboard() {
   }, [selectedEvent]);
 
   async function loadStats() {
-    const { data: parts } = await supabase.from('participants').select('status, payment_status').eq('event_id', selectedEvent);
-    const { data: timings } = await supabase.from('timing_records').select('station').eq('event_id', selectedEvent);
+    const { data: parts } = await supabase.from('participants').select('id, status, payment_status, race_id').eq('event_id', selectedEvent);
+    const { data: timings } = await supabase.from('timing_records').select('station, participant_id').eq('event_id', selectedEvent);
+    const { data: racesData } = await supabase.from('races').select('id, name').eq('event_id', selectedEvent);
     if (parts) {
+      // Turnaround is a ספרינטון-only checkpoint — scope its count to those runners.
+      const sprintRaceIds = new Set((racesData || []).filter(r => (r.name || '').includes('ספרינטון')).map(r => r.id));
+      const sprintPartIds = new Set(parts.filter(p => sprintRaceIds.has(p.race_id)).map(p => p.id));
       setStats({
         total: parts.length,
         paid: parts.filter(p => p.payment_status === 'paid' || p.payment_status === 'exempt').length,
@@ -66,7 +70,8 @@ export default function AdminDashboard() {
         dsq: parts.filter(p => p.status === 'dsq').length,
         swim_done: timings?.filter(t => t.station === 1).length || 0,
         bike_done: timings?.filter(t => t.station === 2).length || 0,
-        turnaround_done: timings?.filter(t => t.station === 4).length || 0,
+        turnaround_done: timings?.filter(t => t.station === 4 && t.participant_id && sprintPartIds.has(t.participant_id)).length || 0,
+        sprinton_total: sprintPartIds.size,
       });
     }
   }
@@ -118,17 +123,17 @@ export default function AdminDashboard() {
             <div style={S.card}>
               <div style={S.cardTitle}>📍 התקדמות לפי תחנה</div>
               {[
-                { label: '🏊 סיימו שחייה', value: stats.swim_done, color: '#3b82f6' },
-                { label: '🚴 סיימו אופניים', value: stats.bike_done, color: '#f97316' },
-                { label: '🔄 עברו הסתובבות', value: stats.turnaround_done, color: '#a855f7' },
-                { label: '🏃 חצו קו סיום', value: stats.finished, color: '#22c55e' },
+                { label: '🏊 סיימו שחייה', value: stats.swim_done, color: '#3b82f6', denom: stats.total },
+                { label: '🚴 סיימו אופניים', value: stats.bike_done, color: '#f97316', denom: stats.total },
+                { label: '🔄 עברו הסתובבות (ספרינטון)', value: stats.turnaround_done, color: '#a855f7', denom: stats.sprinton_total },
+                { label: '🏃 חצו קו סיום', value: stats.finished, color: '#22c55e', denom: stats.total },
               ].map(pb => {
-                const pct = stats.total > 0 ? Math.round((pb.value / stats.total) * 100) : 0;
+                const pct = pb.denom > 0 ? Math.round((pb.value / pb.denom) * 100) : 0;
                 return (
                   <div key={pb.label} style={{ marginBottom: 14 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 5 }}>
                       <span style={{ color: '#374151' }}>{pb.label}</span>
-                      <span style={{ color: '#6b7280' }}>{pb.value}/{stats.total} ({pct}%)</span>
+                      <span style={{ color: '#6b7280' }}>{pb.value}/{pb.denom} ({pct}%)</span>
                     </div>
                     <div style={{ height: 8, background: '#f3f4f6', borderRadius: 4, overflow: 'hidden' }}>
                       <div style={{ height: '100%', background: pb.color, width: `${pct}%`, borderRadius: 4, transition: 'width 0.5s' }} />
