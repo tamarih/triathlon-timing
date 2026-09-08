@@ -117,6 +117,8 @@ export default function Settings() {
   const [showEditPass, setShowEditPass] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<AppUser | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => { loadUsers(); }, []);
 
@@ -195,6 +197,25 @@ export default function Settings() {
     finally { setDeleting(false); }
   }
 
+  // Clear all timing results for a fresh test run. Keeps registrations,
+  // lanes and bib numbers; only wipes scans, laps, statuses and gun times.
+  async function resetResults() {
+    setResetting(true);
+    try {
+      const NIL = '00000000-0000-0000-0000-000000000000';
+      await supabase.from('timing_records').delete().neq('id', NIL);
+      await supabase.from('pool_lap_logs').delete().neq('id', NIL);
+      await supabase.from('participants').update({ status: 'registered' }).neq('status', 'registered');
+      await supabase.from('races').update({ started_at: null }).not('started_at', 'is', null);
+      toast.success('כל התוצאות אופסו — אפשר להתחיל בדיקה חדשה');
+      setConfirmReset(false);
+    } catch (err: any) {
+      toast.error(err.message || 'שגיאה באיפוס');
+    } finally {
+      setResetting(false);
+    }
+  }
+
   async function sendPasswordReset(email: string) {
     const { error } = await supabase.auth.resetPasswordForEmail(email);
     if (error) toast.error(error.message || 'שגיאה בשליחת איפוס');
@@ -248,6 +269,35 @@ export default function Settings() {
           <strong>מתנדבים שעוזרים ביום האירוע</strong> מנוהלים בדף "מתנדבים" — אינם צריכים חשבון.
         </div>
       </div>
+
+      <div style={{ ...S.card, border: '1.5px solid #fecaca' }}>
+        <div style={S.cardHeader}>
+          <span style={{ ...S.cardTitle, color: '#b91c1c' }}>🧪 איפוס תוצאות (לבדיקות)</span>
+          <button style={{ ...S.addBtn, background: '#dc2626' }} onClick={() => setConfirmReset(true)}>איפוס תוצאות</button>
+        </div>
+        <div style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.6 }}>
+          מוחק את כל הזמנים, הקפות הבריכה, ומאפס סטטוסים וזמני הזנקה — כדי להתחיל בדיקה נקייה. ההרשמות, המסלולים והמספרים נשמרים.
+        </div>
+      </div>
+
+      {/* Reset Results Confirmation Modal */}
+      {confirmReset && (
+        <div style={S.overlay}>
+          <div style={{ ...S.modal, maxWidth: 360 }}>
+            <div style={{ textAlign: 'center', padding: '8px 0 16px' }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>🧪</div>
+              <div style={{ fontSize: 17, fontWeight: 800, color: '#111827', marginBottom: 8 }}>איפוס כל התוצאות</div>
+              <div style={{ fontSize: 14, color: '#6b7280' }}>
+                כל הזמנים, הקפות הבריכה, הסטטוסים וזמני ההזנקה יימחקו.<br />ההרשמות עצמן יישמרו. פעולה זו אינה הפיכה.
+              </div>
+            </div>
+            <div style={S.btnRow}>
+              <button style={S.btnSecondary} onClick={() => setConfirmReset(false)}>ביטול</button>
+              <button style={S.btnDanger} onClick={resetResults} disabled={resetting}>{resetting ? 'מאפס...' : 'אפס הכל'}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add User Modal */}
       {showAddUser && (
