@@ -349,7 +349,7 @@ export default function Participants() {
                     onChange={toggleSelectAll}
                   />
                 </th>
-                {['מס\'', 'שם', 'מסלול', 'קטגוריה', 'מקצה', 'מין/גיל', 'טלפון', 'סטטוס', 'תשלום', 'אישור', ''].map(h => (
+                {['מס\'', 'שם', 'מסלול', 'קטגוריה', 'מקצה', 'מקום מגורים', 'מין/גיל', 'טלפון', 'סטטוס', 'אישור', ''].map(h => (
                   <th key={h} style={S.th}>{h}</th>
                 ))}
               </tr>
@@ -374,16 +374,12 @@ export default function Participants() {
                   </td>
                   <td style={{ ...S.td, color: '#6b7280', fontSize: 12 }}>{p.recommended_category || '—'}</td>
                   <td style={{ ...S.td, color: '#6b7280' }}>{races.find(r => r.id === p.race_id)?.name || '—'}</td>
+                  <td style={{ ...S.td, color: '#6b7280' }}>{p.city || '—'}</td>
                   <td style={{ ...S.td, color: '#6b7280' }}>{genderLabel(p.gender)} · {p.age || (p.birth_date ? calculateAge(p.birth_date) : '?')}</td>
                   <td style={{ ...S.td, color: '#9ca3af' }}>{p.phone}</td>
                   <td style={S.td}>
                     <select style={S.badgeSelect(statusBadge[p.status] || {})} value={p.status} onChange={e => updateParticipantField(p.id, 'status', e.target.value)}>
                       {statusOptions.map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}
-                    </select>
-                  </td>
-                  <td style={S.td}>
-                    <select style={S.badgeSelect(paymentBadge[p.payment_status] || {})} value={p.payment_status} onChange={e => updateParticipantField(p.id, 'payment_status', e.target.value)}>
-                      {paymentOptions.map(s => <option key={s} value={s}>{paymentLabel(s)}</option>)}
                     </select>
                   </td>
                   <td style={S.td}>
