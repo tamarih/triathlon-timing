@@ -30,6 +30,18 @@ const courseRows: [string, string, string, string][] = [
   ['ספרינטון', '21 בריכות (525 מ׳)', '10 ק"מ — עד הקישון ושמאלה', "4,000 מ׳ — אחרי גשר השופט"],
 ];
 
+const schedule: { time: string; label: string; start?: boolean }[] = [
+  { time: '14:45', label: 'התכנסות' },
+  { time: '15:20', label: 'תדרוך' },
+  { time: '15:30', label: 'זינוק ספרינטון', start: true },
+  { time: '15:30', label: 'התכנסות נוער וילדים' },
+  { time: '15:55', label: 'זינוק קלאסי', start: true },
+  { time: '16:15', label: 'תדרוך נוער וילדים' },
+  { time: '16:25', label: 'זינוק נוער', start: true },
+  { time: '16:35', label: 'זינוק ילדים', start: true },
+  { time: '17:15', label: 'טקס סיום' },
+];
+
 const maps: [string, string][] = [
   ['/event/map1.jpg', 'מסלול 1 — ילדים, אופניים, 3 ק"מ'],
   ['/event/map2.jpg', 'מסלול 2 — נוער, אופניים, 4 ק"מ'],
@@ -58,6 +70,25 @@ export default function EventInfo() {
             <li style={S.li}>חולצות יחולקו לפי כל הקודם זוכה, מלאי מוגבל.</li>
             <li style={S.li}>כל משתתף יקבל מספר לחיבור לחולצה באמצעות 4 סיכות ביטחון (יינתנו במעמד חלוקת החולצה).</li>
           </ul>
+        </div>
+
+        <div style={S.card}>
+          <div style={S.h2}>🕒 לוח זמנים</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {schedule.map((row, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '9px 12px', borderRadius: 10,
+                background: row.start ? 'var(--pool-soft)' : 'var(--soft)',
+                border: row.start ? '1px solid #bfe3f6' : '1px solid var(--line)',
+              }}>
+                <span style={{ direction: 'ltr', fontVariantNumeric: 'tabular-nums', fontWeight: 800, fontSize: 17,
+                  color: row.start ? 'var(--pool-deep)' : 'var(--ink)', minWidth: 52, textAlign: 'center' }}>{row.time}</span>
+                <span style={{ fontSize: 16, fontWeight: row.start ? 700 : 500, color: 'var(--ink)' }}>
+                  {row.start ? '🏁 ' : ''}{row.label}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div style={S.card}>
