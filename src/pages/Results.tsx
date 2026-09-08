@@ -60,15 +60,18 @@ export default function Results() {
     const computed: Result[] = (participants || []).map(p => {
       const race = racesData.find(r => r.id === p.race_id);
       if (!race) return { participant: p, race: race! };
-      const gunStr = `1970-01-01T${race.gun_time}`;
+      // Swim/total are measured from the real gun time (started_at). If the
+      // race wasn't started in the app, leave them blank rather than showing a
+      // garbage value derived from the planned time-of-day gun_time.
+      const gunStr = race.started_at || '';
       const t1 = timings?.find(t => t.participant_id === p.id && t.station === 1);
       const t2 = timings?.find(t => t.participant_id === p.id && t.station === 2);
       const t3 = timings?.find(t => t.participant_id === p.id && t.station === 3);
       let swim_time, bike_time, run_time, total_time;
-      if (t1) swim_time = timeDiffSeconds(gunStr, t1.recorded_at);
+      if (t1 && gunStr) swim_time = timeDiffSeconds(gunStr, t1.recorded_at);
       if (t1 && t2) bike_time = timeDiffSeconds(t1.recorded_at, t2.recorded_at);
       if (t2 && t3) run_time = timeDiffSeconds(t2.recorded_at, t3.recorded_at);
-      if (t3) total_time = timeDiffSeconds(gunStr, t3.recorded_at);
+      if (t3 && gunStr) total_time = timeDiffSeconds(gunStr, t3.recorded_at);
       return { participant: p, race, swim_time, bike_time, run_time, total_time };
     });
 
