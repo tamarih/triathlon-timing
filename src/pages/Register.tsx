@@ -312,8 +312,16 @@ export default function Register() {
         contact_name: teamForm.contact_name, contact_phone: teamForm.contact_phone, contact_email: teamForm.contact_email,
       }).select().single();
       if (teamErr) throw teamErr;
+      // Only the swimmer of a relay swims — give them a balanced pool lane; the
+      // cyclist and runner get no lane (they never enter the pool).
+      const { data: laneData } = await supabase
+        .from('participants').select('lane')
+        .eq('race_id', selectedRace).not('lane', 'is', null);
+      const laneCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+      for (const row of laneData || []) { if (row.lane >= 1 && row.lane <= 6) laneCounts[row.lane]++; }
+      const swimmerLane = Number(Object.entries(laneCounts).sort((a, b) => a[1] - b[1])[0][0]);
       for (const [role, data] of [['swimmer', teamForm.swimmer], ['cyclist', teamForm.cyclist], ['runner', teamForm.runner]] as any[]) {
-        await insertParticipantWithBib({ event_id: selectedEvent, race_id: selectedRace, team_id: teamData.id, team_role: role, first_name: data.first_name, last_name: data.last_name, phone: data.phone, birth_date: data.birth_date, gender: 'male', email: teamForm.contact_email, health_declaration: true, rules_accepted: true, photo_consent: false });
+        await insertParticipantWithBib({ event_id: selectedEvent, race_id: selectedRace, team_id: teamData.id, team_role: role, first_name: data.first_name, last_name: data.last_name, phone: data.phone, birth_date: data.birth_date, gender: 'male', email: teamForm.contact_email, health_declaration: true, rules_accepted: true, photo_consent: false, lane: role === 'swimmer' ? swimmerLane : null });
       }
       sendConfirmationEmail({
         email: teamForm.contact_email,

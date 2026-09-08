@@ -233,8 +233,9 @@ export default function Participants() {
   async function autoAssignLanes() {
     const raceId = selectedRace;
     if (!raceId) { toast.error('בחרי מקצה תחילה'); return; }
-    const pool = filtered.filter(p => p.race_id === raceId);
-    if (pool.length === 0) { toast.error('אין משתתפים במקצה זה'); return; }
+    // Only swimmers get a lane — in relays the cyclist/runner never enter the pool.
+    const pool = filtered.filter(p => p.race_id === raceId && (!p.team_id || p.team_role === 'swimmer'));
+    if (pool.length === 0) { toast.error('אין שחיינים לשיבוץ במקצה זה'); return; }
     if (pool.length > 20) { toast.error('יותר מ-20 משתתפים במקצה'); return; }
     const sorted = [...pool].sort((a, b) => (a.bib_number || '').localeCompare(b.bib_number || ''));
     const updates = sorted.map((p, i) => ({ id: p.id, lane: (i % 6) + 1 }));
