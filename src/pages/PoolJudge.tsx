@@ -14,6 +14,17 @@ function requiredLapsFor(race: Race): number {
   return Math.ceil(Number(race.swim_distance) / POOL_LENGTH_METERS);
 }
 
+// Order races in the pool-judge list: ספרינטון → קלאסי → נוער → ילדים ב → ילדים א.
+function poolRaceOrder(name: string): number {
+  if (name.includes('ספרינטון')) return 0;
+  if (name.includes('קלאסי')) return 1;
+  if (name.includes('נוער')) return 2;
+  if (name.includes('ילדים ב')) return 3;
+  if (name.includes('ילדים א')) return 4;
+  if (name.includes('שלשות') || name.includes('שליחים')) return 5;
+  return 9;
+}
+
 export default function PoolJudge() {
   const { appUser, signOut } = useAuth();
   const navigate = useNavigate();
@@ -62,8 +73,9 @@ export default function PoolJudge() {
   useEffect(() => {
     if (!selectedEvent) { setRaces([]); setSelectedRace(''); return; }
     supabase.from('races').select('*').eq('event_id', selectedEvent).gt('swim_distance', 0).order('name').then(({ data }) => {
-      setRaces(data || []);
-      if (data?.length === 1) setSelectedRace(data[0].id);
+      const sorted = (data || []).sort((a, b) => poolRaceOrder(a.name) - poolRaceOrder(b.name));
+      setRaces(sorted);
+      if (sorted.length === 1) setSelectedRace(sorted[0].id);
     });
   }, [selectedEvent]);
 
