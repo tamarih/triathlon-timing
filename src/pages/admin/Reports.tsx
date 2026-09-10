@@ -170,7 +170,51 @@ export default function Reports() {
     setLoading(false);
   }
 
+  // Download a file of participant emails (unique), for sending a reminder.
+  async function exportEmails() {
+    setLoading(true);
+    const d = await fetchData();
+    if (!d) { setLoading(false); return; }
+    const seen = new Set<string>();
+    const rows: Record<string, string>[] = [];
+    for (const p of d.parts) {
+      const key = (p.email || '').trim().toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      rows.push({
+        'שם': `${p.first_name} ${p.last_name}`,
+        'מייל': p.email,
+        'מקצה': d.races.find(r => r.id === p.race_id)?.name || '',
+      });
+    }
+    if (rows.length === 0) { toast.error('אין כתובות מייל'); setLoading(false); return; }
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'מיילים');
+    XLSX.writeFile(wb, 'emails.xlsx');
+    toast.success(`${rows.length} כתובות יוצאו`);
+    setLoading(false);
+  }
+
+  // Copy all unique emails, comma-separated, for pasting into a BCC field.
+  async function copyEmails() {
+    setLoading(true);
+    const d = await fetchData();
+    if (!d) { setLoading(false); return; }
+    const emails = [...new Set(d.parts.map(p => (p.email || '').trim()).filter(Boolean))];
+    if (emails.length === 0) { toast.error('אין כתובות מייל'); setLoading(false); return; }
+    try {
+      await navigator.clipboard.writeText(emails.join(', '));
+      toast.success(`${emails.length} מיילים הועתקו — הדביקי בשדה "עותק מוסתר" (BCC)`);
+    } catch {
+      toast.error('ההעתקה נכשלה — השתמשי בהורדת הקובץ');
+    }
+    setLoading(false);
+  }
+
   const reportCards = [
+    { title: 'מיילים לתזכורת', desc: 'קובץ עם כתובות המייל של כל הנרשמים', icon: '📧', action: exportEmails, type: 'Excel' },
+    { title: 'העתקת כל המיילים', desc: 'להדבקה בשדה BCC בג׳ימייל/אאוטלוק', icon: '📋', action: copyEmails, type: 'העתקה' },
     { title: 'רשימת נרשמים', desc: 'כל המשתתפים עם פרטים מלאים', icon: '👥', action: exportParticipantsExcel, type: 'Excel' },
     { title: 'תוצאות המרוץ', desc: 'זמנים ודירוגים לכל המשתתפים', icon: '🏆', action: exportResultsExcel, type: 'Excel' },
     { title: 'דוח תשלומים', desc: 'סטטוס תשלום לכל משתתף', icon: '💳', action: exportPaymentsExcel, type: 'Excel' },
@@ -201,7 +245,7 @@ export default function Reports() {
               <div style={S.cardTitle}>{card.title}</div>
               <div style={S.cardDesc}>{card.desc}</div>
               <div style={S.cardBadge(card.type === 'PDF')}>
-                {card.type === 'PDF' ? '📄 PDF' : '📊 Excel'}
+                {card.type === 'PDF' ? '📄 PDF' : card.type === 'העתקה' ? '📋 העתקה' : '📊 Excel'}
               </div>
             </div>
             <Download size={18} style={S.downloadIcon} />
