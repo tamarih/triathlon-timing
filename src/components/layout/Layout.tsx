@@ -41,6 +41,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const navLinks = appUser?.role === 'admin' ? adminNav : appUser?.role === 'volunteer' ? [
     { to: '/volunteer', icon: Timer, label: 'קליטת זמנים' },
     { to: '/pool', icon: Waves, label: 'שיפוט בריכה' },
+  ] : appUser?.role === 'registration' ? [
+    { to: '/admin/participants', icon: Users, label: 'משתתפים' },
   ] : [];
 
   return (

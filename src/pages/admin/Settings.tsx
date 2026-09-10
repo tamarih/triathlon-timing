@@ -32,7 +32,7 @@ const S = {
   roleBadge: { fontSize: 12, background: '#eff6ff', color: '#1d4ed8', borderRadius: 20, padding: '3px 10px', fontWeight: 600, whiteSpace: 'nowrap' as const },
 };
 
-const roleLabel: Record<string, string> = { admin: '👑 מנהל', volunteer: '🙋 מתנדב', viewer: '👁️ צופה' };
+const roleLabel: Record<string, string> = { admin: '👑 מנהל', volunteer: '🙋 מתנדב', viewer: '👁️ צופה', registration: '📝 רישום' };
 
 type EditState = { id: string; name: string; role: string; assigned_station: string; pool_lanes: number[]; newPassword: string };
 
@@ -132,16 +132,23 @@ export default function Settings() {
     setSaving(true);
     try {
       const loginEmail = toLoginEmail(newUser.email);
+      // The create_app_user RPC only knows the base roles, so create the
+      // 'registration' user as a viewer and then promote it.
+      const roleForRpc = newUser.role === 'registration' ? 'viewer' : newUser.role;
       const { data, error } = await supabase.rpc('create_app_user', {
         p_email: loginEmail, p_password: newUser.password,
-        p_name: newUser.name, p_role: newUser.role,
+        p_name: newUser.name, p_role: roleForRpc,
         p_station: newUser.assigned_station ? Number(newUser.assigned_station) : null,
       });
-      if (!error && !data?.error && newUser.pool_lanes.length > 0) {
-        await supabase.from('app_users').update({ pool_lanes: newUser.pool_lanes }).eq('email', loginEmail);
-      }
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+      if (newUser.role === 'registration') {
+        const { error: upErr } = await supabase.from('app_users').update({ role: 'registration' }).eq('email', loginEmail);
+        if (upErr) throw upErr;
+      }
+      if (newUser.pool_lanes.length > 0) {
+        await supabase.from('app_users').update({ pool_lanes: newUser.pool_lanes }).eq('email', loginEmail);
+      }
       toast.success('משתמש נוצר');
       setShowAddUser(false);
       setShowPassword(false);
@@ -329,6 +336,7 @@ export default function Settings() {
               <select style={{ ...S.input, marginBottom: 14 }} value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value, pool_lanes: [], assigned_station: ''})}>
                 <option value="admin">מנהל</option>
                 <option value="volunteer">מתנדב מערכת</option>
+                <option value="registration">רישום (עריכת משתתפים)</option>
                 <option value="viewer">צופה</option>
               </select>
               {newUser.role === 'volunteer' && (
@@ -368,6 +376,7 @@ export default function Settings() {
               ) : (
                 <select style={{ ...S.input, marginBottom: 14 }} value={editUser.role} onChange={e => setEditUser({...editUser, role: e.target.value})}>
                   <option value="volunteer">מתנדב מערכת</option>
+                  <option value="registration">רישום (עריכת משתתפים)</option>
                   <option value="viewer">צופה</option>
                 </select>
               )}

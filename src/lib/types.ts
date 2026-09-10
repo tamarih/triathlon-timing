@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'volunteer' | 'viewer';
+export type UserRole = 'admin' | 'volunteer' | 'viewer' | 'registration';
 
 export type Discipline = 'swim' | 'bike' | 'run';
 

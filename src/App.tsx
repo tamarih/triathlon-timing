@@ -25,10 +25,11 @@ import Roles from './pages/admin/Roles';
 import Equipment from './pages/admin/Equipment';
 import ReserveBibs from './pages/admin/ReserveBibs';
 
-function ProtectedRoute({ children, role }: { children: React.ReactNode; role?: 'admin' | 'volunteer' }) {
+function ProtectedRoute({ children, role, roles }: { children: React.ReactNode; role?: 'admin' | 'volunteer'; roles?: string[] }) {
   const { user, appUser, loading } = useAuth();
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280', fontFamily: 'system-ui' }}>טוען...</div>;
   if (!user) return <Navigate to="/login" />;
+  if (roles && !roles.includes(appUser?.role || '')) return <Navigate to="/" />;
   if (role === 'admin' && appUser?.role !== 'admin') return <Navigate to="/" />;
   if (role === 'volunteer' && appUser?.role !== 'admin' && appUser?.role !== 'volunteer') return <Navigate to="/" />;
   return <>{children}</>;
@@ -68,7 +69,7 @@ function AppRoutes() {
               <ProtectedRoute role="admin"><Events /></ProtectedRoute>
             } />
             <Route path="/admin/participants" element={
-              <ProtectedRoute role="admin"><Participants /></ProtectedRoute>
+              <ProtectedRoute roles={['admin', 'registration']}><Participants /></ProtectedRoute>
             } />
             <Route path="/admin/reserve" element={
               <ProtectedRoute role="admin"><ReserveBibs /></ProtectedRoute>
