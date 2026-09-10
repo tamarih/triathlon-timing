@@ -241,3 +241,12 @@ export interface Equipment {
   sort_order: number;
   created_at: string;
 }
+
+export interface ReserveBib {
+  id: string;
+  event_id: string;
+  bib_number: string;
+  status: 'available' | 'assigned';
+  participant_id?: string | null;
+  created_at: string;
+}

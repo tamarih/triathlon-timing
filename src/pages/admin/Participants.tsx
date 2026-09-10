@@ -180,10 +180,15 @@ export default function Participants() {
     setConfirmDelete(null);
   }
 
-  function printBarcodes() {
+  async function printBarcodes() {
+    const w = window.open('', '_blank'); // open synchronously to avoid popup blocking
     const toprint = filtered.filter(p => p.bib_number);
-    if (toprint.length === 0) { toast.error('אין משתתפים עם מספר להדפסה'); return; }
-    const rows = toprint.map(p => {
+    // Include available reserve numbers (printed with a barcode but no name).
+    const { data: reserveData } = await supabase
+      .from('reserve_bibs').select('bib_number,status').eq('event_id', selectedEvent).eq('status', 'available');
+    const reserves = (reserveData || []).sort((a, b) => (Number(a.bib_number) || 0) - (Number(b.bib_number) || 0));
+    if (toprint.length === 0 && reserves.length === 0) { w?.close(); toast.error('אין מספרים להדפסה'); return; }
+    const partRows = toprint.map(p => {
       const race = races.find(r => r.id === p.race_id)?.name?.replace(/שליחים\s*ו/, '') || '';
       return `<div class="card">
         <svg class="barcode" data-bib="${p.bib_number}"></svg>
@@ -192,6 +197,13 @@ export default function Participants() {
         <div class="race">${race}</div>
       </div>`;
     }).join('');
+    const reserveRows = reserves.map(r => `<div class="card">
+        <svg class="barcode" data-bib="${r.bib_number}"></svg>
+        <div class="num">${r.bib_number}</div>
+        <div class="name">&nbsp;</div>
+        <div class="race">רזרבה</div>
+      </div>`).join('');
+    const rows = partRows + reserveRows;
     const html = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"><title>ברקודים</title>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>
     <style>
@@ -226,8 +238,8 @@ export default function Participants() {
       });
       window.onload = () => window.print();
     <\/script></body></html>`;
-    const w = window.open('', '_blank');
     if (w) { w.document.write(html); w.document.close(); }
+    else toast.error('החלון הקופץ נחסם — אפשרו חלונות קופצים לאתר');
   }
 
   async function autoAssignLanes() {

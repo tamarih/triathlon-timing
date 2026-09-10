@@ -23,6 +23,7 @@ import Registrants from './pages/Registrants';
 import LaneView from './pages/admin/LaneView';
 import Roles from './pages/admin/Roles';
 import Equipment from './pages/admin/Equipment';
+import ReserveBibs from './pages/admin/ReserveBibs';
 
 function ProtectedRoute({ children, role }: { children: React.ReactNode; role?: 'admin' | 'volunteer' }) {
   const { user, appUser, loading } = useAuth();
@@ -68,6 +69,9 @@ function AppRoutes() {
             } />
             <Route path="/admin/participants" element={
               <ProtectedRoute role="admin"><Participants /></ProtectedRoute>
+            } />
+            <Route path="/admin/reserve" element={
+              <ProtectedRoute role="admin"><ReserveBibs /></ProtectedRoute>
             } />
             <Route path="/admin/timing" element={
               <ProtectedRoute role="admin"><TimingAdmin /></ProtectedRoute>

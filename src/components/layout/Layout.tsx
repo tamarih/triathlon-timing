@@ -3,13 +3,14 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   Home, Calendar, Users, Timer, FileText,
-  LogOut, Menu, X, Trophy, Settings, HeartHandshake, ClipboardList, Package, Waves,
+  LogOut, Menu, X, Trophy, Settings, HeartHandshake, ClipboardList, Package, Waves, Ticket,
 } from 'lucide-react';
 
 const adminNav = [
   { to: '/admin', icon: Home, label: 'לוח בקרה' },
   { to: '/admin/events', icon: Calendar, label: 'אירועים' },
   { to: '/admin/participants', icon: Users, label: 'משתתפים' },
+  { to: '/admin/reserve', icon: Ticket, label: 'מספרי רזרבה' },
   { to: '/admin/volunteers', icon: HeartHandshake, label: 'מתנדבים' },
   { to: '/admin/roles', icon: ClipboardList, label: 'תפקידים' },
   { to: '/admin/equipment', icon: Package, label: 'ציוד' },

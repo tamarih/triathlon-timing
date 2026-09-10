@@ -265,11 +265,17 @@ export default function Register() {
   // conflict so two simultaneous registrations can never share a number.
   // (Backed by a DB unique index on (event_id, bib_number).)
   async function insertParticipantWithBib(row: Record<string, unknown>): Promise<{ bib: number; id: string }> {
+    // Reserve numbers belong to the same sequence — never hand a new registrant
+    // a number that a reserve bib already occupies.
+    const { data: reserveData } = await supabase
+      .from('reserve_bibs').select('bib_number').eq('event_id', selectedEvent);
+    const reserveMax = (reserveData || []).reduce((m, r) => Math.max(m, Number(r.bib_number) || 0), 0);
     for (let attempt = 0; attempt < 8; attempt++) {
       const { data: bibData } = await supabase
         .from('participants').select('bib_number')
         .eq('event_id', selectedEvent).not('bib_number', 'is', null);
-      const nextBib = (bibData || []).reduce((m, r) => Math.max(m, Number(r.bib_number) || 0), 0) + 1;
+      const partMax = (bibData || []).reduce((m, r) => Math.max(m, Number(r.bib_number) || 0), 0);
+      const nextBib = Math.max(partMax, reserveMax) + 1;
       const { data, error } = await supabase
         .from('participants').insert({ ...row, bib_number: nextBib })
         .select('id').single();
