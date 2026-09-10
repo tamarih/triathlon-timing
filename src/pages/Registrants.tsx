@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { Event, Race } from '../lib/types';
 import { LogOut, Search, Users } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import toast from 'react-hot-toast';
 
 // Read-only, login-gated registrants list. Shows safe fields only
 // (bib, name, race, category, city) — never phone / email / id / birth date.
@@ -14,6 +16,7 @@ interface SafeParticipant {
   last_name: string;
   gender?: string;
   city?: string;
+  email?: string;
   race_id: string;
   team_id?: string | null;
   selected_category?: string;
@@ -65,7 +68,7 @@ export default function Registrants() {
     Promise.all([
       supabase.from('races').select('*').eq('event_id', selectedEvent),
       supabase.from('participants')
-        .select('id, bib_number, first_name, last_name, gender, city, race_id, team_id, selected_category, recommended_category')
+        .select('id, bib_number, first_name, last_name, gender, city, email, race_id, team_id, selected_category, recommended_category')
         .eq('event_id', selectedEvent),
     ]).then(([{ data: r }, { data: p }]) => {
       setRaces(r || []);
@@ -87,6 +90,34 @@ export default function Registrants() {
     );
   }, [participants, search, races]);
 
+  async function copyEmails() {
+    const emails = [...new Set(participants.map(p => (p.email || '').trim()).filter(Boolean))];
+    if (emails.length === 0) { toast.error('אין כתובות מייל'); return; }
+    try {
+      await navigator.clipboard.writeText(emails.join(', '));
+      toast.success(`${emails.length} מיילים הועתקו — הדביקי בשדה BCC`);
+    } catch {
+      toast.error('ההעתקה נכשלה — השתמשי בהורדת הקובץ');
+    }
+  }
+
+  function downloadEmails() {
+    const seen = new Set<string>();
+    const rows: Record<string, string>[] = [];
+    for (const p of participants) {
+      const key = (p.email || '').trim().toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      rows.push({ 'שם': `${p.first_name} ${p.last_name}`, 'מייל': p.email || '', 'מקצה': raceName(p.race_id) });
+    }
+    if (rows.length === 0) { toast.error('אין כתובות מייל'); return; }
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'מיילים');
+    XLSX.writeFile(wb, 'emails.xlsx');
+    toast.success(`${rows.length} כתובות יוצאו`);
+  }
+
   return (
     <div style={S.page}>
       <div style={S.header}>
@@ -107,6 +138,8 @@ export default function Registrants() {
             <input style={S.search} placeholder="חיפוש שם / מספר / מקצה" value={search} onChange={e => setSearch(e.target.value)} />
             <Search size={16} style={S.searchIcon} />
           </div>
+          <button onClick={copyEmails} style={{ border: '1.5px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', borderRadius: 10, padding: '8px 12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'system-ui', whiteSpace: 'nowrap' as const }}>📋 העתקת מיילים</button>
+          <button onClick={downloadEmails} style={{ border: '1.5px solid #bbf7d0', background: '#f0fdf4', color: '#15803d', borderRadius: 10, padding: '8px 12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'system-ui', whiteSpace: 'nowrap' as const }}>📧 הורדת מיילים</button>
         </div>
 
         <div style={S.count}>{filtered.length} נרשמים</div>
