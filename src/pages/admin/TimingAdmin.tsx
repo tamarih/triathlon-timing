@@ -248,8 +248,8 @@ export default function TimingAdmin() {
                     );
                   })}
                   <td style={S.td}>
-                    {/* Turnaround is only relevant to the ספרינטון race */}
-                    {(row.race?.name || '').includes('ספרינטון') ? (
+                    {/* Turnaround is relevant only to ספרינטון and קלאסי (both turn around on the run) */}
+                    {/ספרינטון|קלאסי/.test(row.race?.name || '') ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         <span style={{ fontFamily: 'monospace', fontSize: 12, color: row.t4 ? stationColors[3] : '#d1d5db' }}>
                           {row.t4 ? new Date(row.t4.recorded_at).toLocaleTimeString('he-IL') : '—'}

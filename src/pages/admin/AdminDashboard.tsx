@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 
 interface Stats {
   total: number; paid: number; started: number; finished: number;
-  dnf: number; dns: number; dsq: number; swim_done: number; bike_done: number; turnaround_done: number; sprinton_total: number;
+  dnf: number; dns: number; dsq: number; swim_done: number; bike_done: number; turnaround_done: number; turnaround_total: number;
 }
 
 const S = {
@@ -57,9 +57,9 @@ export default function AdminDashboard() {
     const { data: timings } = await supabase.from('timing_records').select('station, participant_id').eq('event_id', selectedEvent);
     const { data: racesData } = await supabase.from('races').select('id, name').eq('event_id', selectedEvent);
     if (parts) {
-      // Turnaround is a ספרינטון-only checkpoint — scope its count to those runners.
-      const sprintRaceIds = new Set((racesData || []).filter(r => (r.name || '').includes('ספרינטון')).map(r => r.id));
-      const sprintPartIds = new Set(parts.filter(p => sprintRaceIds.has(p.race_id)).map(p => p.id));
+      // Turnaround is relevant to ספרינטון and קלאסי (both turn around on the run).
+      const turnRaceIds = new Set((racesData || []).filter(r => /ספרינטון|קלאסי/.test(r.name || '')).map(r => r.id));
+      const turnPartIds = new Set(parts.filter(p => turnRaceIds.has(p.race_id)).map(p => p.id));
       setStats({
         total: parts.length,
         paid: parts.filter(p => p.payment_status === 'paid' || p.payment_status === 'exempt').length,
@@ -70,8 +70,8 @@ export default function AdminDashboard() {
         dsq: parts.filter(p => p.status === 'dsq').length,
         swim_done: timings?.filter(t => t.station === 1).length || 0,
         bike_done: timings?.filter(t => t.station === 2).length || 0,
-        turnaround_done: timings?.filter(t => t.station === 4 && t.participant_id && sprintPartIds.has(t.participant_id)).length || 0,
-        sprinton_total: sprintPartIds.size,
+        turnaround_done: timings?.filter(t => t.station === 4 && t.participant_id && turnPartIds.has(t.participant_id)).length || 0,
+        turnaround_total: turnPartIds.size,
       });
     }
   }
@@ -125,7 +125,7 @@ export default function AdminDashboard() {
               {[
                 { label: '🏊 סיימו שחייה', value: stats.swim_done, color: '#3b82f6', denom: stats.total },
                 { label: '🚴 סיימו אופניים', value: stats.bike_done, color: '#f97316', denom: stats.total },
-                { label: '🔄 עברו הסתובבות (ספרינטון)', value: stats.turnaround_done, color: '#a855f7', denom: stats.sprinton_total },
+                { label: '🔄 עברו הסתובבות (ספרינטון/קלאסי)', value: stats.turnaround_done, color: '#a855f7', denom: stats.turnaround_total },
                 { label: '🏃 חצו קו סיום', value: stats.finished, color: '#22c55e', denom: stats.total },
               ].map(pb => {
                 const pct = pb.denom > 0 ? Math.round((pb.value / pb.denom) * 100) : 0;
