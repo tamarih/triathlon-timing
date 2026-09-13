@@ -351,23 +351,26 @@ export default function PoolJudge() {
         // Font/size scaling based on number of rows
         const compact = maxPerLane > 4 || (numLanes > 1 && maxPerLane > 3);
         const tiny = maxPerLane > 6;
+        // On a narrow screen (phone) stack lanes in one column and let the page
+        // scroll, so all lanes and swimmers are reachable.
+        const narrow = typeof window !== 'undefined' && window.innerWidth < 700;
+        const cols = narrow ? 1 : numLanes;
 
         return (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: numLanes > 1 ? `repeat(${numLanes}, 1fr)` : '1fr',
-            gap: 6,
-            padding: '6px 8px',
-            height: 'calc(100dvh - 130px)',
+            gridTemplateColumns: `repeat(${cols}, 1fr)`,
+            gap: 8,
+            padding: '8px',
+            alignItems: 'start' as const,
             boxSizing: 'border-box' as const,
           }}>
             {laneNums.map(laneNum => (
               <div key={laneNum} style={{
-                display: 'flex', flexDirection: 'column' as const, gap: 5,
-                height: '100%',
+                display: 'flex', flexDirection: 'column' as const, gap: 6,
               }}>
                 {numLanes > 1 && (
-                  <div style={{ textAlign: 'center', background: '#1e40af', borderRadius: 8, padding: '4px 0', fontWeight: 800, fontSize: 12, flexShrink: 0 }}>
+                  <div style={{ textAlign: 'center', background: '#1e40af', borderRadius: 8, padding: '5px 0', fontWeight: 800, fontSize: 13, flexShrink: 0, position: 'sticky' as const, top: 0, zIndex: 2 }}>
                     🏊 מסלול {laneNum}
                   </div>
                 )}
@@ -380,10 +383,9 @@ export default function PoolJudge() {
                       background: done ? '#052e16' : '#1e293b',
                       border: `2px solid ${done ? '#16a34a' : '#334155'}`,
                       borderRadius: 12,
-                      padding: tiny ? '4px 8px' : compact ? '6px 10px' : '10px 12px',
-                      flex: 1,
+                      padding: tiny ? '6px 10px' : compact ? '8px 10px' : '10px 12px',
+                      minHeight: tiny ? 76 : compact ? 100 : 132,
                       display: 'flex', flexDirection: 'column' as const, justifyContent: 'space-between',
-                      minHeight: 0,
                     }}>
                       {/* Name + bib */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
