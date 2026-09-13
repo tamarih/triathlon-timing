@@ -189,12 +189,19 @@ export default function Participants() {
     const reserves = (reserveData || []).sort((a, b) => (Number(a.bib_number) || 0) - (Number(b.bib_number) || 0));
     if (toprint.length === 0 && reserves.length === 0) { w?.close(); toast.error('אין מספרים להדפסה'); return; }
     const partRows = toprint.map(p => {
-      const race = races.find(r => r.id === p.race_id)?.name?.replace(/שליחים\s*ו/, '') || '';
-      return `<div class="card">
+      const rName = races.find(r => r.id === p.race_id)?.name || '';
+      const race = rName.replace(/שליחים\s*ו/, '');
+      const isRelay = !!p.team_id;
+      const isKids = /ילדים/.test(rName) || /ילדים/.test(p.recommended_category || '') || /ילדים/.test(p.selected_category || '');
+      const accent = isRelay ? '#7c3aed' : isKids ? '#ea580c' : '';
+      const cardStyle = accent ? `border-color:${accent};border-width:4px;` : '';
+      const numStyle = accent ? `color:${accent};` : '';
+      const tag = isRelay ? (race ? `שלשה · ${race}` : 'שלשה') : race;
+      return `<div class="card" style="${cardStyle}">
         <svg class="barcode" data-bib="${p.bib_number}"></svg>
-        <div class="num">${p.bib_number}</div>
+        <div class="num" style="${numStyle}">${p.bib_number}</div>
         <div class="name">${p.first_name} ${p.last_name}</div>
-        <div class="race">${race}</div>
+        <div class="race">${tag}</div>
       </div>`;
     }).join('');
     const reserveRows = reserves.map(r => `<div class="card">
@@ -207,7 +214,7 @@ export default function Participants() {
     const html = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"><title>ברקודים</title>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>
     <style>
-      body { margin:0; font-family: system-ui, sans-serif; background:#fff; }
+      body { margin:0; font-family: system-ui, sans-serif; background:#fff; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
       /* שני ברקודים לעמוד A4 - כל ברקוד בגודל חצי דף */
       .card {
         box-sizing:border-box;
