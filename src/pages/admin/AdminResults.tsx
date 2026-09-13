@@ -302,6 +302,41 @@ export default function AdminResults() {
     toast.success(`${finishers.length} תעודות נוצרו`);
   }
 
+  // Participation certificates for all kids who took part (no times, any result).
+  function openParticipationCertificates() {
+    const kids = results.filter(r => (r.race?.name || '').includes('ילדים'));
+    if (kids.length === 0) { toast.error('אין ילדים להנפקת תעודות'); return; }
+    const event = events.find(e => e.id === selectedEvent);
+    const logo = event?.logo_url || '';
+    const year = event?.date ? new Date(event.date).getFullYear() : new Date().getFullYear();
+    const pages = kids.map(r => {
+      const name = `${r.participant.first_name} ${r.participant.last_name}`;
+      const raceName = r.race?.name?.replace(/שליחים\s*ו/, '') || '';
+      return `<div class="cert" style="page-break-after:always">
+        <div class="border-outer"></div><div class="border-inner"></div>
+        <div class="gold-stripe"><span class="gold-stripe-text">טריאתלון יקנעם מושבה</span><span class="gold-dot">★★★</span><span class="gold-stripe-text">${year}</span></div>
+        <div class="medal"><div class="medal-ribbon"></div><div class="medal-circle"><div class="medal-text">משתתף<br/>TRI<br/>${year}</div></div></div>
+        <div class="content">
+          <div class="logo-row">${logo ? `<img class="logo-img" src="${logo}" />` : `<div class="logo-placeholder">T</div>`}<div class="event-name"><div class="line1">טריאתלון</div><div class="line2">יקנעם מושבה</div><div class="year">★ ${year} ★</div></div></div>
+          <div class="icons"><span class="icon">🏊</span><span class="icon">🚴</span><span class="icon">🏃</span></div>
+          <div class="main-title">תעודת השתתפות</div><div class="stars">★ ★ ★</div>
+          <div class="recipient-label">מוענקת בזאת ל-</div>
+          <div class="recipient-name">${name}</div>
+          <div class="recipient-sub">על ההשתתפות באירוע ורוח הספורט!</div>
+          <div class="kol-hakavod">כל הכבוד!</div>
+          ${raceName ? `<div class="race-badge">${raceName}</div>` : ''}
+          <div class="sigs"><div class="sig"><div class="sig-line"></div><div class="sig-label">יו"ר הוועדה המארגנת</div></div><div class="sig"><div class="sig-line"></div><div class="sig-label">מנכ"ל האירוע</div></div></div>
+        </div></div>`;
+    }).join('');
+    const dummy = buildCertificateHTML(kids[0], logo);
+    const styleMatch = dummy.match(/<style>([\s\S]*?)<\/style>/);
+    const css = styleMatch ? styleMatch[1] : '';
+    const html = `<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="utf-8"><title>תעודות השתתפות</title><style>${css}</style></head><body>${pages}<script>window.onload=()=>window.print();<\/script></body></html>`;
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); }
+    toast.success(`${kids.length} תעודות השתתפות נוצרו`);
+  }
+
   // keep old fn for TS compatibility
   async function generateCertificatePDF(result: RankedResult) { openCertificate(result); }
 
@@ -324,7 +359,13 @@ export default function AdminResults() {
           onClick={openAllCertificates}
           style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1a3a6b', color: 'white', border: 'none', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
         >
-          🎓 כל התעודות
+          🎓 תעודות סיום
+        </button>
+        <button
+          onClick={openParticipationCertificates}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#0369a1', color: 'white', border: 'none', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+        >
+          🎖️ תעודות השתתפות (ילדים)
         </button>
       </div>
 
