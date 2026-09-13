@@ -326,8 +326,13 @@ export default function Register() {
       const laneCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
       for (const row of laneData || []) { if (row.lane >= 1 && row.lane <= 6) laneCounts[row.lane]++; }
       const swimmerLane = Number(Object.entries(laneCounts).sort((a, b) => a[1] - b[1])[0][0]);
+      // Swimmer goes into the age race (counted in the pool); cyclist & runner
+      // are registered under the "שלשות" race, if one exists.
+      const relayRace = races.find(r => r.name.includes('שלשות') || r.name.includes('שליחים'));
+      const relayRaceId = relayRace ? relayRace.id : selectedRace;
       for (const [role, data] of [['swimmer', teamForm.swimmer], ['cyclist', teamForm.cyclist], ['runner', teamForm.runner]] as any[]) {
-        await insertParticipantWithBib({ event_id: selectedEvent, race_id: selectedRace, team_id: teamData.id, team_role: role, first_name: data.first_name, last_name: data.last_name, phone: data.phone, birth_date: data.birth_date, gender: 'male', email: teamForm.contact_email, health_declaration: true, rules_accepted: true, photo_consent: false, lane: role === 'swimmer' ? swimmerLane : null });
+        const isSwimmer = role === 'swimmer';
+        await insertParticipantWithBib({ event_id: selectedEvent, race_id: isSwimmer ? selectedRace : relayRaceId, team_id: teamData.id, team_role: role, first_name: data.first_name, last_name: data.last_name, phone: data.phone, birth_date: data.birth_date, gender: 'male', email: teamForm.contact_email, health_declaration: true, rules_accepted: true, photo_consent: false, lane: isSwimmer ? swimmerLane : null });
       }
       sendConfirmationEmail({
         email: teamForm.contact_email,
