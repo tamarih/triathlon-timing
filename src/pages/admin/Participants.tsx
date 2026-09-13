@@ -192,8 +192,7 @@ export default function Participants() {
       const rName = races.find(r => r.id === p.race_id)?.name || '';
       const race = rName.replace(/שליחים\s*ו/, '');
       const isRelay = !!p.team_id;
-      const isKids = /ילדים/.test(rName) || /ילדים/.test(p.recommended_category || '') || /ילדים/.test(p.selected_category || '');
-      const accent = isRelay ? '#7c3aed' : isKids ? '#ea580c' : '';
+      const accent = isRelay ? '#7c3aed' : '';
       const cardStyle = accent ? `border-color:${accent};border-width:4px;` : '';
       const numStyle = accent ? `color:${accent};` : '';
       const tag = isRelay ? (race ? `שלשה · ${race}` : 'שלשה') : race;
