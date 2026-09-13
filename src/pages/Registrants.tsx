@@ -73,7 +73,7 @@ export default function Registrants() {
     Promise.all([
       supabase.from('races').select('*').eq('event_id', selectedEvent),
       supabase.from('participants')
-        .select('id, bib_number, first_name, last_name, gender, city, email, phone, lane, birth_date, age, race_id, team_id, selected_category, recommended_category')
+        .select('*')
         .eq('event_id', selectedEvent),
     ]).then(([{ data: r }, { data: p }]) => {
       setRaces(r || []);
