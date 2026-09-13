@@ -4,6 +4,7 @@ import type { Event } from '../../lib/types';
 import { Users, Trophy, Timer, TrendingUp } from 'lucide-react';
 import { formatDate } from '../../lib/utils';
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 interface Stats {
   total: number; paid: number; started: number; finished: number;
@@ -78,6 +79,14 @@ export default function AdminDashboard() {
 
   const event = events.find(e => e.id === selectedEvent);
 
+  async function setEventStatus(status: string) {
+    if (!selectedEvent) return;
+    const { error } = await supabase.from('events').update({ status }).eq('id', selectedEvent);
+    if (error) { toast.error(error.message || 'שגיאה'); return; }
+    setEvents(prev => prev.map(e => e.id === selectedEvent ? { ...e, status: status as any } : e));
+    toast.success(status === 'finished' ? '🏁 הטריאתלון סומן כהסתיים' : 'האירוע נפתח מחדש');
+  }
+
   return (
     <div style={S.page}>
       <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
@@ -97,9 +106,22 @@ export default function AdminDashboard() {
             <div style={{ fontWeight: 700, color: '#1e3a8a', fontSize: 15 }}>{event.name}</div>
             <div style={{ fontSize: 13, color: '#3b82f6', marginTop: 2 }}>{formatDate(event.date)} · {event.location}</div>
           </div>
-          <span style={{ fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, background: event.status === 'open' ? '#dcfce7' : '#f3f4f6', color: event.status === 'open' ? '#15803d' : '#6b7280' }}>
-            {event.status === 'open' ? '✅ פתוח' : event.status === 'closed' ? '🔒 סגור' : '🏁 הסתיים'}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, background: event.status === 'open' ? '#dcfce7' : '#f3f4f6', color: event.status === 'open' ? '#15803d' : '#6b7280' }}>
+              {event.status === 'open' ? '✅ פתוח' : event.status === 'closed' ? '🔒 סגור' : '🏁 הסתיים'}
+            </span>
+            {event.status !== 'finished' ? (
+              <button
+                onClick={() => { if (confirm('לסיים את הטריאתלון? האירוע יסומן כ"הסתיים".')) setEventStatus('finished'); }}
+                style={{ background: '#dc2626', color: 'white', border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >🏁 סיום הטריאתלון</button>
+            ) : (
+              <button
+                onClick={() => setEventStatus('closed')}
+                style={{ background: 'white', color: '#6b7280', border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >בטל סיום</button>
+            )}
+          </div>
         </div>
       )}
 
