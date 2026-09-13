@@ -265,6 +265,32 @@ export default function Participants() {
     loadParticipants();
   }
 
+  // One-time fix: move relays registered under the old separate "שלשות/שליחים"
+  // race into the individual race matching each relay's swimmer age.
+  async function fixOldRelays() {
+    const oldRaceIds = new Set(races.filter(r => r.name.includes('שלשות') || r.name.includes('שליחים')).map(r => r.id));
+    if (oldRaceIds.size === 0) { toast('אין מקצה שלשות ישן'); return; }
+    const inOld = participants.filter(p => oldRaceIds.has(p.race_id) && p.team_id);
+    if (inOld.length === 0) { toast('אין שלשות ישנות להעברה'); return; }
+    const teams: Record<string, Participant[]> = {};
+    for (const p of inOld) (teams[p.team_id as string] ||= []).push(p);
+    let moved = 0, skipped = 0;
+    for (const members of Object.values(teams)) {
+      const swimmer = members.find(m => m.team_role === 'swimmer') || members[0];
+      const age = swimmer.age || (swimmer.birth_date ? calculateAge(swimmer.birth_date) : null);
+      if (age == null) { skipped++; continue; }
+      const matcher = age <= 8 ? 'ילדים א' : age <= 10 ? 'ילדים ב' : age <= 14 ? 'נוער' : 'קלאסי';
+      const target = races.find(r => r.name.includes(matcher) && !r.name.includes('שלשות') && !r.name.includes('שליחים') && r.type !== 'relay');
+      if (!target) { skipped++; continue; }
+      for (const m of members) {
+        await supabase.from('participants').update({ race_id: target.id }).eq('id', m.id);
+        moved++;
+      }
+    }
+    toast.success(`הועברו ${moved} משתתפים${skipped ? ` · ${skipped} שלשות דולגו (חסר גיל/מקצה יעד)` : ''}`);
+    loadParticipants();
+  }
+
   async function approveParticipant(p: Participant, status: 'approved' | 'rejected') {
     const { error } = await supabase.from('participants').update({
       approval_status: status,
@@ -308,6 +334,7 @@ export default function Participants() {
           )}
           <button style={{ ...S.outlineBtn, color: '#7c3aed', borderColor: '#c4b5fd' }} onClick={printBarcodes}>🖨️ ברקודים</button>
           <button style={{ ...S.outlineBtn, color: '#0369a1', borderColor: '#7dd3fc' }} onClick={autoAssignLanes}>🏊 הקצאת מסלולים</button>
+          <button style={{ ...S.outlineBtn, color: '#7c3aed', borderColor: '#c4b5fd' }} onClick={fixOldRelays}>🔧 תקן שלשות ישנות</button>
           <button style={S.outlineBtn} onClick={() => setShowImport(true)}><Upload size={14} /> ייבוא Excel</button>
           <button style={S.outlineBtn} onClick={exportExcel}><Download size={14} /> ייצוא</button>
         </div>
