@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { Event, Race } from '../lib/types';
+import { calculateAge } from '../lib/utils';
 import { LogOut, Search, Users } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import toast from 'react-hot-toast';
@@ -17,6 +18,10 @@ interface SafeParticipant {
   gender?: string;
   city?: string;
   email?: string;
+  phone?: string;
+  lane?: number;
+  birth_date?: string;
+  age?: number;
   race_id: string;
   team_id?: string | null;
   selected_category?: string;
@@ -68,7 +73,7 @@ export default function Registrants() {
     Promise.all([
       supabase.from('races').select('*').eq('event_id', selectedEvent),
       supabase.from('participants')
-        .select('id, bib_number, first_name, last_name, gender, city, email, race_id, team_id, selected_category, recommended_category')
+        .select('id, bib_number, first_name, last_name, gender, city, email, phone, lane, birth_date, age, race_id, team_id, selected_category, recommended_category')
         .eq('event_id', selectedEvent),
     ]).then(([{ data: r }, { data: p }]) => {
       setRaces(r || []);
@@ -118,6 +123,27 @@ export default function Registrants() {
     toast.success(`${rows.length} כתובות יוצאו`);
   }
 
+  function downloadFull() {
+    const rows = participants.map(p => ({
+      'מספר': p.bib_number || '',
+      'שם': `${p.first_name} ${p.last_name}`,
+      'מקצה': raceName(p.race_id),
+      'קטגוריה': p.selected_category || p.recommended_category || '',
+      'מסלול': p.lane || '',
+      'מין': p.gender === 'male' ? 'זכר' : p.gender === 'female' ? 'נקבה' : '',
+      'גיל': p.age || (p.birth_date ? calculateAge(p.birth_date) : ''),
+      'יישוב': p.city || '',
+      'טלפון': p.phone || '',
+      'מייל': p.email || '',
+    }));
+    if (rows.length === 0) { toast.error('אין נתונים'); return; }
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'נרשמים');
+    XLSX.writeFile(wb, 'participants.xlsx');
+    toast.success(`${rows.length} נרשמים יוצאו`);
+  }
+
   return (
     <div style={S.page}>
       <div style={S.header}>
@@ -140,6 +166,7 @@ export default function Registrants() {
           </div>
           <button onClick={copyEmails} style={{ border: '1.5px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', borderRadius: 10, padding: '8px 12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'system-ui', whiteSpace: 'nowrap' as const }}>📋 העתקת מיילים</button>
           <button onClick={downloadEmails} style={{ border: '1.5px solid #bbf7d0', background: '#f0fdf4', color: '#15803d', borderRadius: 10, padding: '8px 12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'system-ui', whiteSpace: 'nowrap' as const }}>📧 הורדת מיילים</button>
+          <button onClick={downloadFull} style={{ border: '1.5px solid #ddd6fe', background: '#f5f3ff', color: '#6d28d9', borderRadius: 10, padding: '8px 12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'system-ui', whiteSpace: 'nowrap' as const }}>📄 קובץ מלא</button>
         </div>
 
         <div style={S.count}>{filtered.length} נרשמים</div>
@@ -153,20 +180,28 @@ export default function Registrants() {
                   <th style={S.th}>שם</th>
                   <th style={S.th}>מקצה</th>
                   <th style={S.th}>קטגוריה</th>
+                  <th style={S.th}>מסלול</th>
+                  <th style={S.th}>מין/גיל</th>
                   <th style={S.th}>יישוב</th>
+                  <th style={S.th}>טלפון</th>
+                  <th style={S.th}>מייל</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((p, i) => (
                   <tr key={p.id} style={{ background: i % 2 === 0 ? 'white' : '#fafafa' }}>
                     <td style={{ ...S.td, fontFamily: 'monospace', color: '#6b7280', fontWeight: 600 }}>{p.bib_number || '—'}</td>
-                    <td style={{ ...S.td, fontWeight: 600, color: '#111827' }}>
+                    <td style={{ ...S.td, fontWeight: 600, color: '#111827', whiteSpace: 'nowrap' as const }}>
                       {p.first_name} {p.last_name}
                       {p.team_id && <span style={{ fontSize: 11, color: '#7c3aed', marginRight: 6 }}>שליחים</span>}
                     </td>
                     <td style={{ ...S.td, color: '#374151' }}>{raceName(p.race_id)}</td>
                     <td style={{ ...S.td, color: '#6b7280' }}>{p.selected_category || p.recommended_category || '—'}</td>
+                    <td style={{ ...S.td, color: '#6b7280' }}>{p.lane ? `מסלול ${p.lane}` : '—'}</td>
+                    <td style={{ ...S.td, color: '#6b7280', whiteSpace: 'nowrap' as const }}>{p.gender === 'male' ? 'זכר' : p.gender === 'female' ? 'נקבה' : '—'} · {p.age || (p.birth_date ? calculateAge(p.birth_date) : '—')}</td>
                     <td style={{ ...S.td, color: '#6b7280' }}>{p.city || '—'}</td>
+                    <td style={{ ...S.td, color: '#6b7280', fontFamily: 'monospace', whiteSpace: 'nowrap' as const }}>{p.phone || '—'}</td>
+                    <td style={{ ...S.td, color: '#6b7280', direction: 'ltr' as const, textAlign: 'right' as const }}>{p.email || '—'}</td>
                   </tr>
                 ))}
               </tbody>
