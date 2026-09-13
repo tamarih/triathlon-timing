@@ -90,6 +90,7 @@ export default function PoolJudge() {
     if (channelRef.current) supabase.removeChannel(channelRef.current);
     const ch = supabase.channel(`race-live:${selectedRace}`)
       .on('broadcast', { event: 'start' }, () => runCountdown(false))
+      .on('broadcast', { event: 'cancel' }, () => syncStartedAt())
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'participants', filter: `race_id=eq.${selectedRace}` },
         () => loadAll())
@@ -210,6 +211,21 @@ export default function PoolJudge() {
     } catch {}
   }
 
+  async function syncStartedAt() {
+    if (!selectedRace) return;
+    const { data } = await supabase.from('races').select('started_at').eq('id', selectedRace).single();
+    if (data) setRaces(prev => prev.map(r => r.id === selectedRace ? { ...r, started_at: data.started_at } : r));
+  }
+
+  // Admin: cancel a race that was started by mistake — clears the gun time,
+  // stops the timer and re-locks lap counting for everyone.
+  function cancelStart() {
+    if (!race?.started_at) return;
+    if (!confirm('לעצור את המקצה? הוא יחזור למצב "טרם הוזנק" והטיימר יתאפס.')) return;
+    if (channelRef.current) channelRef.current.send({ type: 'broadcast', event: 'cancel', payload: {} });
+    supabase.from('races').update({ started_at: null }).eq('id', selectedRace).then(() => syncStartedAt());
+  }
+
   function runCountdown(isInitiator = false) {
     setCountdown(3);
     let n = 3;
@@ -293,6 +309,11 @@ export default function PoolJudge() {
             <div style={{ fontSize: 11, color: '#86efac', marginTop: 2 }}>
               הוזנק בשעה {new Date(race.started_at).toLocaleTimeString('he-IL')}
             </div>
+            {appUser?.role === 'admin' && (
+              <button onClick={cancelStart} style={{ marginTop: 8, background: '#7f1d1d', color: '#fecaca', border: '1px solid #b91c1c', borderRadius: 8, padding: '6px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                🛑 עצור / בטל הזנקה
+              </button>
+            )}
           </div>
         ) : appUser?.role === 'admin' && (
           <button onClick={startCountdown} disabled={!selectedRace || countdown !== null}
