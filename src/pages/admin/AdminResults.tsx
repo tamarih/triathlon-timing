@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { Event, Race, Participant } from '../../lib/types';
-import { formatTime, timeDiffSeconds, statusLabel } from '../../lib/utils';
+import { formatTime, timeDiffSeconds, statusLabel, calculateAge } from '../../lib/utils';
 import { Trophy } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -302,10 +302,21 @@ export default function AdminResults() {
     toast.success(`${finishers.length} תעודות נוצרו`);
   }
 
-  // Participation certificates for all kids who took part (no times, any result).
+  // Participation certificates for kids & youth (no times, any result) —
+  // includes ילדים and נוער races, plus relay members who are kids/youth by age
+  // (even though they're filed under the שלשות race).
   function openParticipationCertificates() {
-    const kids = results.filter(r => (r.race?.name || '').includes('ילדים'));
-    if (kids.length === 0) { toast.error('אין ילדים להנפקת תעודות'); return; }
+    const kids = results.filter(r => {
+      const rn = r.race?.name || '';
+      const cat = r.participant.recommended_category || r.participant.selected_category || '';
+      if (rn.includes('ילדים') || rn.includes('נוער') || cat.includes('ילדים') || cat.includes('נוער')) return true;
+      if (r.participant.team_id) {
+        const age = r.participant.age || (r.participant.birth_date ? calculateAge(r.participant.birth_date) : 99);
+        return age <= 14;
+      }
+      return false;
+    });
+    if (kids.length === 0) { toast.error('אין ילדים/נוער להנפקת תעודות'); return; }
     const event = events.find(e => e.id === selectedEvent);
     const logo = '/cert-logo.jpg';
     const eventName = event?.name || 'טריאתלון יקנעם';
@@ -391,7 +402,7 @@ export default function AdminResults() {
           onClick={openParticipationCertificates}
           style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#0369a1', color: 'white', border: 'none', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
         >
-          🎖️ תעודות השתתפות (ילדים)
+          🎖️ תעודות השתתפות (ילדים ונוער)
         </button>
       </div>
 
