@@ -307,7 +307,7 @@ export default function AdminResults() {
     const kids = results.filter(r => (r.race?.name || '').includes('ילדים'));
     if (kids.length === 0) { toast.error('אין ילדים להנפקת תעודות'); return; }
     const event = events.find(e => e.id === selectedEvent);
-    const logo = event?.logo_url || '/logo.png';
+    const logo = '/cert-logo.jpg';
     const eventName = event?.name || 'טריאתלון יקנעם';
     const dateStr = event?.date ? new Date(event.date).toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
 
