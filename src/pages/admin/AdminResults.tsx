@@ -321,17 +321,17 @@ export default function AdminResults() {
       .star{position:absolute;color:#c9a84c;font-size:9mm;}
       .st1{top:9mm;right:9mm;} .st2{top:9mm;left:9mm;} .st3{bottom:9mm;right:9mm;} .st4{bottom:9mm;left:9mm;}
       .dot{position:absolute;border-radius:50%;}
-      .content{position:relative;z-index:5;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:24mm 30mm 16mm;}
-      .title-pill{background:linear-gradient(135deg,#d9efdc,#bfe3c6);border-radius:6mm;padding:6mm 18mm;margin-bottom:12mm;}
-      .title-pill span{font-size:11mm;font-weight:900;color:#1a3a6b;}
-      .event-name{font-size:8mm;font-weight:800;color:#1a3a6b;text-align:center;}
-      .granted{font-size:4mm;color:#6b7280;margin-top:2mm;}
-      .name{font-size:9mm;font-weight:800;color:#1a3a6b;text-align:center;min-width:120mm;border-bottom:0.6mm solid #c9a84c;padding-bottom:2mm;margin:8mm 0 2mm;}
-      .msg{background:#fdf8ec;border:1px solid #e8d9a8;border-radius:4mm;padding:4mm 14mm;margin-top:10mm;}
-      .msg span{font-size:5.5mm;font-weight:800;color:#1a3a6b;}
-      .footer{position:absolute;bottom:16mm;left:0;right:0;text-align:center;font-size:3.6mm;color:#6b7280;}
-      .logo{position:absolute;right:26mm;top:50%;transform:translateY(-40%);width:44mm;height:44mm;object-fit:contain;z-index:4;}
-      .medal{position:absolute;left:28mm;top:50%;transform:translateY(-45%);font-size:44mm;line-height:1;z-index:4;}
+      .content{position:relative;z-index:5;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:26mm 34mm 16mm;}
+      .title-pill{background:linear-gradient(135deg,#d9efdc,#bfe3c6);border-radius:7mm;padding:8mm 26mm;margin-bottom:16mm;}
+      .title-pill span{font-size:15mm;font-weight:900;color:#1a3a6b;}
+      .event-name{font-size:11mm;font-weight:800;color:#1a3a6b;text-align:center;}
+      .granted{font-size:5.5mm;color:#6b7280;margin-top:3mm;}
+      .name{font-size:14mm;font-weight:800;color:#1a3a6b;text-align:center;min-width:150mm;border-bottom:0.8mm solid #c9a84c;padding-bottom:3mm;margin:14mm 0 3mm;}
+      .msg{background:#fdf8ec;border:1.5px solid #e8d9a8;border-radius:5mm;padding:6mm 20mm;margin-top:16mm;}
+      .msg span{font-size:8mm;font-weight:800;color:#1a3a6b;}
+      .footer{position:absolute;bottom:15mm;left:0;right:0;text-align:center;font-size:4.5mm;color:#6b7280;}
+      .logo{position:absolute;right:20mm;top:50%;transform:translateY(-42%);width:62mm;height:62mm;object-fit:contain;z-index:4;}
+      .medal{position:absolute;left:22mm;top:50%;transform:translateY(-46%);font-size:60mm;line-height:1;z-index:4;}
     `;
 
     const pages = kids.map(r => {
