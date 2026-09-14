@@ -342,7 +342,11 @@ export default function AdminResults() {
       .msg span{font-size:8mm;font-weight:800;color:#1a3a6b;}
       .footer{position:absolute;bottom:15mm;left:0;right:0;text-align:center;font-size:4.5mm;color:#6b7280;}
       .logo{position:absolute;right:20mm;top:50%;transform:translateY(-42%);width:62mm;height:62mm;object-fit:contain;z-index:4;}
-      .medal{position:absolute;left:22mm;top:50%;transform:translateY(-46%);font-size:60mm;line-height:1;z-index:4;}
+      .medal{position:absolute;left:20mm;top:50%;transform:translateY(-48%);z-index:4;display:flex;flex-direction:column;align-items:center;width:60mm;}
+      .medal .ribbon{width:26mm;height:20mm;background:linear-gradient(90deg,#c62828 0 34%,#f3f3f3 34% 66%,#1e40af 66%);clip-path:polygon(0 0,100% 0,100% 100%,50% 82%,0 100%);}
+      .medal .disc{margin-top:-5mm;width:56mm;height:56mm;border-radius:50%;background:radial-gradient(circle at 38% 32%,#f8e79a,#eccb54 52%,#bd8b1e);border:2.2mm solid #d9b64a;box-shadow:0 2mm 4mm rgba(0,0,0,.25),inset 0 0 5mm rgba(255,255,255,.45);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1mm;}
+      .medal .ic-top{font-size:15mm;line-height:1;}
+      .medal .ic-bot{display:flex;gap:5mm;font-size:14mm;line-height:1;}
     `;
 
     const pages = kids.map(r => {
@@ -356,7 +360,7 @@ export default function AdminResults() {
         <span class="dot" style="width:3mm;height:3mm;background:#16a34a;bottom:55mm;left:64mm;"></span>
         <span class="dot" style="width:3mm;height:3mm;background:#2563eb;bottom:60mm;right:66mm;"></span>
         <img class="logo" src="${logo}" />
-        <div class="medal">🏅</div>
+        <div class="medal"><div class="ribbon"></div><div class="disc"><div class="ic-top">🏊</div><div class="ic-bot"><span>🚴</span><span>🏃</span></div></div></div>
         <div class="content">
           <div class="title-pill"><span>תעודת השתתפות</span></div>
           <div class="event-name">${eventName}</div>
