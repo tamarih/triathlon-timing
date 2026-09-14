@@ -307,30 +307,56 @@ export default function AdminResults() {
     const kids = results.filter(r => (r.race?.name || '').includes('ילדים'));
     if (kids.length === 0) { toast.error('אין ילדים להנפקת תעודות'); return; }
     const event = events.find(e => e.id === selectedEvent);
-    const logo = event?.logo_url || '';
-    const year = event?.date ? new Date(event.date).getFullYear() : new Date().getFullYear();
+    const logo = event?.logo_url || '/logo.png';
+    const eventName = event?.name || 'טריאתלון יקנעם';
+    const dateStr = event?.date ? new Date(event.date).toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+
+    const css = `
+      *{margin:0;padding:0;box-sizing:border-box;}
+      @page{size:A4 landscape;margin:0;}
+      body{font-family:'Arial','David',sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+      .cert{width:297mm;height:210mm;position:relative;background:#fbfdfb;overflow:hidden;display:flex;page-break-after:always;break-after:page;}
+      .frame{position:absolute;inset:8mm;border:3px solid #c9a84c;border-radius:6mm;}
+      .frame-in{position:absolute;inset:11mm;border:1px solid #d8c483;border-radius:5mm;}
+      .star{position:absolute;color:#c9a84c;font-size:9mm;}
+      .st1{top:9mm;right:9mm;} .st2{top:9mm;left:9mm;} .st3{bottom:9mm;right:9mm;} .st4{bottom:9mm;left:9mm;}
+      .dot{position:absolute;border-radius:50%;}
+      .content{position:relative;z-index:5;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:24mm 30mm 16mm;}
+      .title-pill{background:linear-gradient(135deg,#d9efdc,#bfe3c6);border-radius:6mm;padding:6mm 18mm;margin-bottom:12mm;}
+      .title-pill span{font-size:11mm;font-weight:900;color:#1a3a6b;}
+      .event-name{font-size:8mm;font-weight:800;color:#1a3a6b;text-align:center;}
+      .granted{font-size:4mm;color:#6b7280;margin-top:2mm;}
+      .name{font-size:9mm;font-weight:800;color:#1a3a6b;text-align:center;min-width:120mm;border-bottom:0.6mm solid #c9a84c;padding-bottom:2mm;margin:8mm 0 2mm;}
+      .msg{background:#fdf8ec;border:1px solid #e8d9a8;border-radius:4mm;padding:4mm 14mm;margin-top:10mm;}
+      .msg span{font-size:5.5mm;font-weight:800;color:#1a3a6b;}
+      .footer{position:absolute;bottom:16mm;left:0;right:0;text-align:center;font-size:3.6mm;color:#6b7280;}
+      .logo{position:absolute;right:26mm;top:50%;transform:translateY(-40%);width:44mm;height:44mm;object-fit:contain;z-index:4;}
+      .medal{position:absolute;left:28mm;top:50%;transform:translateY(-45%);font-size:44mm;line-height:1;z-index:4;}
+    `;
+
     const pages = kids.map(r => {
       const name = `${r.participant.first_name} ${r.participant.last_name}`;
-      const raceName = r.race?.name?.replace(/שליחים\s*ו/, '') || '';
-      return `<div class="cert" style="page-break-after:always">
-        <div class="border-outer"></div><div class="border-inner"></div>
-        <div class="gold-stripe"><span class="gold-stripe-text">טריאתלון יקנעם מושבה</span><span class="gold-dot">★★★</span><span class="gold-stripe-text">${year}</span></div>
-        <div class="medal"><div class="medal-ribbon"></div><div class="medal-circle"><div class="medal-text">משתתף<br/>TRI<br/>${year}</div></div></div>
+      return `<div class="cert">
+        <div class="frame"></div><div class="frame-in"></div>
+        <span class="star st1">★</span><span class="star st2">★</span><span class="star st3">★</span><span class="star st4">★</span>
+        <span class="dot" style="width:4mm;height:4mm;background:#2563eb;top:40mm;right:70mm;"></span>
+        <span class="dot" style="width:3mm;height:3mm;background:#16a34a;top:60mm;right:60mm;"></span>
+        <span class="dot" style="width:4mm;height:4mm;background:#2563eb;top:44mm;left:70mm;"></span>
+        <span class="dot" style="width:3mm;height:3mm;background:#16a34a;bottom:55mm;left:64mm;"></span>
+        <span class="dot" style="width:3mm;height:3mm;background:#2563eb;bottom:60mm;right:66mm;"></span>
+        <img class="logo" src="${logo}" />
+        <div class="medal">🏅</div>
         <div class="content">
-          <div class="logo-row">${logo ? `<img class="logo-img" src="${logo}" />` : `<div class="logo-placeholder">T</div>`}<div class="event-name"><div class="line1">טריאתלון</div><div class="line2">יקנעם מושבה</div><div class="year">★ ${year} ★</div></div></div>
-          <div class="icons"><span class="icon">🏊</span><span class="icon">🚴</span><span class="icon">🏃</span></div>
-          <div class="main-title">תעודת השתתפות</div><div class="stars">★ ★ ★</div>
-          <div class="recipient-label">מוענקת בזאת ל-</div>
-          <div class="recipient-name">${name}</div>
-          <div class="recipient-sub">על ההשתתפות באירוע ורוח הספורט!</div>
-          <div class="kol-hakavod">כל הכבוד!</div>
-          ${raceName ? `<div class="race-badge">${raceName}</div>` : ''}
-          <div class="sigs"><div class="sig"><div class="sig-line"></div><div class="sig-label">יו"ר הוועדה המארגנת</div></div><div class="sig"><div class="sig-line"></div><div class="sig-label">מנכ"ל האירוע</div></div></div>
-        </div></div>`;
+          <div class="title-pill"><span>תעודת השתתפות</span></div>
+          <div class="event-name">${eventName}</div>
+          <div class="granted">מוענקת ל:</div>
+          <div class="name">${name}</div>
+          <div class="msg"><span>כל הכבוד על ההשקעה ועל המאמץ!</span></div>
+        </div>
+        <div class="footer">ועדת ספורט · יקנעם מושבה${dateStr ? ` · ${dateStr}` : ''}</div>
+      </div>`;
     }).join('');
-    const dummy = buildCertificateHTML(kids[0], logo);
-    const styleMatch = dummy.match(/<style>([\s\S]*?)<\/style>/);
-    const css = styleMatch ? styleMatch[1] : '';
+
     const html = `<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="utf-8"><title>תעודות השתתפות</title><style>${css}</style></head><body>${pages}<script>window.onload=()=>window.print();<\/script></body></html>`;
     const w = window.open('', '_blank');
     if (w) { w.document.write(html); w.document.close(); }
