@@ -89,8 +89,18 @@ export default function ReserveBibs() {
 
   async function assignTo(participant: Participant) {
     if (!assignTarget) return;
+    // Guard: a participant may hold only one reserve number. If they already
+    // have one, offer to move it (freeing the previous number) instead of
+    // orphaning it.
+    const existing = reserves.find(r => r.participant_id === participant.id && r.id !== assignTarget.id);
+    if (existing) {
+      if (!confirm(`ל${participant.first_name} ${participant.last_name} כבר משויך מספר רזרבה ${existing.bib_number}. להחליף למספר ${assignTarget.bib_number}? המספר הקודם יחזור לפנוי.`)) return;
+    }
     setBusy(true);
     try {
+      if (existing) {
+        await supabase.from('reserve_bibs').update({ status: 'available', participant_id: null }).eq('id', existing.id);
+      }
       // Point the participant at the reserve number; mark the reserve assigned.
       const { error: e1 } = await supabase.from('participants').update({ bib_number: assignTarget.bib_number }).eq('id', participant.id);
       if (e1) throw e1;

@@ -274,6 +274,7 @@ export default function Participants() {
     const teams: Record<string, Participant[]> = {};
     for (const p of relayMembers) (teams[p.team_id as string] ||= []).push(p);
     let moved = 0, skipped = 0;
+    const affectedRaces = new Set<string>();
     for (const members of Object.values(teams)) {
       const swimmer = members.find(m => m.team_role === 'swimmer') || members[0];
       const age = swimmer.age || (swimmer.birth_date ? calculateAge(swimmer.birth_date) : null);
@@ -286,13 +287,28 @@ export default function Participants() {
             await supabase.from('participants').update({ race_id: ageRace.id }).eq('id', m.id);
             moved++;
           }
+          if (ageRace) affectedRaces.add(ageRace.id);
         } else if (relayRace && m.race_id !== relayRace.id) {
           await supabase.from('participants').update({ race_id: relayRace.id, lane: null }).eq('id', m.id);
           moved++;
         }
       }
     }
-    toast.success(`עודכנו ${moved} משתתפים${skipped ? ` · ${skipped} דולגו` : ''}`);
+    // Rebalance pool lanes in the affected age races so a moved relay swimmer
+    // doesn't collide with an existing swimmer on the same lane.
+    let relaned = 0;
+    for (const raceId of affectedRaces) {
+      const { data: swimmers } = await supabase.from('participants')
+        .select('id, bib_number, team_id, team_role').eq('race_id', raceId);
+      const pool = (swimmers || [])
+        .filter(p => !p.team_id || p.team_role === 'swimmer')
+        .sort((a, b) => (Number(a.bib_number) || 0) - (Number(b.bib_number) || 0));
+      for (let i = 0; i < pool.length; i++) {
+        await supabase.from('participants').update({ lane: (i % 6) + 1 }).eq('id', pool[i].id);
+        relaned++;
+      }
+    }
+    toast.success(`עודכנו ${moved} משתתפים · אוזנו ${relaned} מסלולים${skipped ? ` · ${skipped} דולגו` : ''}`);
     loadParticipants();
   }
 
