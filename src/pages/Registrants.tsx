@@ -28,6 +28,19 @@ interface SafeParticipant {
   recommended_category?: string;
 }
 
+// Build a WhatsApp deep link, normalizing an Israeli phone to international (972).
+function waUrl(phone: string | undefined, text: string): string | null {
+  if (!phone) return null;
+  let d = phone.replace(/\D/g, '');
+  if (!d) return null;
+  if (d.startsWith('972')) { /* already international */ }
+  else if (d.startsWith('0')) d = '972' + d.slice(1);
+  else d = '972' + d;
+  return `https://wa.me/${d}?text=${encodeURIComponent(text)}`;
+}
+
+const CONTACT_PHONE = '052-8073399'; // בן אהובי — for registration corrections
+
 const S = {
   page: { minHeight: '100vh', background: '#f3f4f6', direction: 'rtl' as const, fontFamily: 'system-ui, -apple-system, sans-serif', paddingBottom: 40 },
   header: { background: 'linear-gradient(135deg,#1d4ed8,#0ea5e9)', color: 'white', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
@@ -84,6 +97,15 @@ export default function Registrants() {
   }, [selectedEvent]);
 
   const raceName = (id: string) => races.find(r => r.id === id)?.name?.replace(/שליחים\s*ו/, '') || '—';
+  const eventName = events.find(e => e.id === selectedEvent)?.name || 'טריאתלון יקנעם 2026';
+
+  function waMessage(p: SafeParticipant): string {
+    return `שלום ${p.first_name}, נרשמת ל${eventName} 🏅\n`
+      + `המקצה שלך: ${raceName(p.race_id)}`
+      + (p.bib_number ? `\nמספר חזה: ${p.bib_number}` : '')
+      + `\n\nאם יש טעות או שמשהו לא נכון, אנא צרו קשר עם בן אהובי: ${CONTACT_PHONE}.`
+      + `\nנתראה באירוע! 🏊🚴🏃`;
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -185,6 +207,7 @@ export default function Registrants() {
                   <th style={S.th}>יישוב</th>
                   <th style={S.th}>טלפון</th>
                   <th style={S.th}>מייל</th>
+                  <th style={S.th}>וואטסאפ</th>
                 </tr>
               </thead>
               <tbody>
@@ -202,6 +225,12 @@ export default function Registrants() {
                     <td style={{ ...S.td, color: '#6b7280' }}>{p.city || '—'}</td>
                     <td style={{ ...S.td, color: '#6b7280', fontFamily: 'monospace', whiteSpace: 'nowrap' as const }}>{p.phone || '—'}</td>
                     <td style={{ ...S.td, color: '#6b7280', direction: 'ltr' as const, textAlign: 'right' as const }}>{p.email || '—'}</td>
+                    <td style={S.td}>
+                      {waUrl(p.phone, waMessage(p))
+                        ? <a href={waUrl(p.phone, waMessage(p))!} target="_blank" rel="noopener noreferrer"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#25D366', color: 'white', textDecoration: 'none', borderRadius: 8, padding: '6px 11px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' as const }}>💬 שלח</a>
+                        : <span style={{ color: '#9ca3af' }}>—</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody>
