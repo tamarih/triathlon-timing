@@ -23,6 +23,19 @@ const paymentBadge: Record<string, React.CSSProperties> = {
   exempt: { background: '#f3f4f6', color: '#6b7280' },
 };
 
+const CONTACT_PHONE = '052-8073399'; // בן אהובי — for registration corrections
+
+// Build a WhatsApp deep link, normalizing an Israeli phone to international (972).
+function waUrl(phone: string | undefined, text: string): string | null {
+  if (!phone) return null;
+  let d = phone.replace(/\D/g, '');
+  if (!d) return null;
+  if (d.startsWith('972')) { /* already international */ }
+  else if (d.startsWith('0')) d = '972' + d.slice(1);
+  else d = '972' + d;
+  return `https://wa.me/${d}?text=${encodeURIComponent(text)}`;
+}
+
 const S = {
   page: { direction: 'rtl' as const, fontFamily: 'system-ui, -apple-system, sans-serif', paddingBottom: 40 },
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
@@ -342,6 +355,16 @@ export default function Participants() {
   const filtered = getFiltered();
   const categoryOptions = [...new Set(participants.map(p => p.recommended_category).filter(Boolean))].sort() as string[];
 
+  const eventName = events.find(e => e.id === selectedEvent)?.name || 'טריאתלון יקנעם 2026';
+  function waMessage(p: Participant): string {
+    const rName = races.find(r => r.id === p.race_id)?.name || '';
+    return `שלום ${p.first_name}, נרשמת ל${eventName} 🏅\n`
+      + `המקצה שלך: ${rName}`
+      + (p.bib_number ? `\nמספר חזה: ${p.bib_number}` : '')
+      + `\n\nאם יש טעות או שמשהו לא נכון, אנא צרו קשר עם בן אהובי: ${CONTACT_PHONE}.`
+      + `\nנתראה באירוע! 🏊🚴🏃`;
+  }
+
   return (
     <div style={S.page}>
       <div style={S.header}>
@@ -473,6 +496,10 @@ export default function Participants() {
                   </td>
                   <td style={{ ...S.td, whiteSpace: 'nowrap' as const }}>
                     <div style={{ display: 'flex', gap: 6 }}>
+                      {waUrl(p.phone, waMessage(p)) && (
+                        <a href={waUrl(p.phone, waMessage(p))!} target="_blank" rel="noopener noreferrer" title="שליחת וואטסאפ עם המקצה"
+                          style={{ background: '#25D366', border: '1px solid #1eb959', cursor: 'pointer', color: 'white', padding: '5px 8px', borderRadius: 7, display: 'flex', alignItems: 'center', textDecoration: 'none', fontSize: 13 }}>💬</a>
+                      )}
                       <button onClick={() => setEditParticipant(p)} title="עריכה" style={{ background: '#f3f4f6', border: '1px solid #e5e7eb', cursor: 'pointer', color: '#374151', padding: '5px 7px', borderRadius: 7, display: 'flex', alignItems: 'center' }}><Edit2 size={14} /></button>
                       <button onClick={() => { setDeleteTarget(p.id); setConfirmDelete('single'); }} title="מחיקה" style={{ background: '#fee2e2', border: '1px solid #fecaca', cursor: 'pointer', color: '#dc2626', padding: '5px 7px', borderRadius: 7, display: 'flex', alignItems: 'center' }}><Trash2 size={14} /></button>
                     </div>
