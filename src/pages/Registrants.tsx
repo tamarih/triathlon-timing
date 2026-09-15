@@ -204,6 +204,7 @@ export default function Registrants() {
                 <tr>
                   <th style={S.th}>מס'</th>
                   <th style={S.th}>שם</th>
+                  <th style={S.th}>וואטסאפ</th>
                   <th style={S.th}>מקצה</th>
                   <th style={S.th}>קטגוריה</th>
                   <th style={S.th}>מסלול</th>
@@ -211,7 +212,6 @@ export default function Registrants() {
                   <th style={S.th}>יישוב</th>
                   <th style={S.th}>טלפון</th>
                   <th style={S.th}>מייל</th>
-                  <th style={S.th}>וואטסאפ</th>
                 </tr>
               </thead>
               <tbody>
@@ -222,6 +222,12 @@ export default function Registrants() {
                       {p.first_name} {p.last_name}
                       {p.team_id && <span style={{ fontSize: 11, color: '#7c3aed', marginRight: 6 }}>שליחים</span>}
                     </td>
+                    <td style={S.td}>
+                      {waUrl(p.phone, waMessage(p))
+                        ? <a href={waUrl(p.phone, waMessage(p))!} target="_blank" rel="noopener noreferrer"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#25D366', color: 'white', textDecoration: 'none', borderRadius: 8, padding: '6px 11px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' as const }}>💬 שלח</a>
+                        : <span style={{ color: '#9ca3af' }}>—</span>}
+                    </td>
                     <td style={{ ...S.td, color: '#374151' }}>{raceName(p.race_id)}</td>
                     <td style={{ ...S.td, color: '#6b7280' }}>{p.selected_category || p.recommended_category || '—'}</td>
                     <td style={{ ...S.td, color: '#6b7280' }}>{p.lane ? `מסלול ${p.lane}` : '—'}</td>
@@ -229,12 +235,6 @@ export default function Registrants() {
                     <td style={{ ...S.td, color: '#6b7280' }}>{p.city || '—'}</td>
                     <td style={{ ...S.td, color: '#6b7280', fontFamily: 'monospace', whiteSpace: 'nowrap' as const }}>{p.phone || '—'}</td>
                     <td style={{ ...S.td, color: '#6b7280', direction: 'ltr' as const, textAlign: 'right' as const }}>{p.email || '—'}</td>
-                    <td style={S.td}>
-                      {waUrl(p.phone, waMessage(p))
-                        ? <a href={waUrl(p.phone, waMessage(p))!} target="_blank" rel="noopener noreferrer"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#25D366', color: 'white', textDecoration: 'none', borderRadius: 8, padding: '6px 11px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' as const }}>💬 שלח</a>
-                        : <span style={{ color: '#9ca3af' }}>—</span>}
-                    </td>
                   </tr>
                 ))}
               </tbody>
