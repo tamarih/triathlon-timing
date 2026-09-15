@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { Event, Race } from '../lib/types';
-import { calculateAge, raceDistanceLine } from '../lib/utils';
+import { calculateAge, raceDistanceLine, raceMeetingInfo } from '../lib/utils';
 import { LogOut, Search, Users } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import toast from 'react-hot-toast';
@@ -40,7 +40,6 @@ function waUrl(phone: string | undefined, text: string): string | null {
 }
 
 const CONTACT_PHONE = '052-8073399'; // בן אהובי — for registration corrections
-const MEETING_INFO = 'מפגש: 18 בספטמבר, בשעה 14:30, בבריכת המושבה יקנעם.';
 
 const S = {
   page: { minHeight: '100vh', background: '#f3f4f6', direction: 'rtl' as const, fontFamily: 'system-ui, -apple-system, sans-serif', paddingBottom: 40 },
@@ -107,7 +106,7 @@ export default function Registrants() {
       + `המקצה שלך: ${raceName(p.race_id)}`
       + (p.bib_number ? `\nמספר חזה: ${p.bib_number}` : '')
       + (dist ? `\nמרחקים: ${dist}` : '')
-      + `\n\n${MEETING_INFO}`
+      + `\n\n${raceMeetingInfo(race)}`
       + `\n\nאם יש טעות או שמשהו לא נכון, אנא צרו קשר עם בן אהובי: ${CONTACT_PHONE}.`
       + `\nנתראה באירוע!`;
   }

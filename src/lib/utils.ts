@@ -93,28 +93,50 @@ export function raceTypeLabel(type: string): string {
   return type === 'relay' ? 'שליחים' : 'אישי';
 }
 
-// Pool lengths ("בריכות") per swim distance in meters.
+// Pool lengths ("בריכות") per swim distance in meters (fallback only).
 const SWIM_LAPS: Record<number, number> = { 75: 3, 125: 5, 375: 15, 525: 21 };
-// Fixed bike distance (km) for these race types, overriding stored value.
-const BIKE_OVERRIDE: Record<string, number> = { 'קלאסי': 10, 'ספרינטון': 10, 'שלשות': 10, 'שליחים': 10 };
 
-function bikeKm(raceName: string, bikeDist?: number): string {
-  for (const key of Object.keys(BIKE_OVERRIDE)) {
-    if (raceName.includes(key)) return `${BIKE_OVERRIDE[key]}ק"מ`;
+// Authoritative distances per race category (swim meters, pool lengths, bike km, run meters).
+type RaceDist = { swimM: number; laps: number; bikeKm: number; runM: number };
+const RACE_DIST: { match: RegExp; d: RaceDist }[] = [
+  { match: /ספרינטון/, d: { swimM: 525, laps: 21, bikeKm: 10, runM: 4000 } },
+  { match: /נוער/,     d: { swimM: 125, laps: 5,  bikeKm: 4,  runM: 1200 } },
+  { match: /ילדים/,    d: { swimM: 75,  laps: 3,  bikeKm: 3,  runM: 600 } },
+  { match: /שלשות|שליחים/, d: { swimM: 375, laps: 15, bikeKm: 10, runM: 2000 } },
+  { match: /קלאסי/,    d: { swimM: 375, laps: 15, bikeKm: 10, runM: 2000 } },
+];
+
+function raceDistFor(name: string): RaceDist | undefined {
+  return RACE_DIST.find(x => x.match.test(name))?.d;
+}
+
+function formatRun(runM: number): string {
+  if (runM >= 1000) {
+    const km = runM / 1000;
+    return `${Number.isInteger(km) ? km : km.toFixed(1)} ק"מ`;
   }
-  return `${bikeDist ?? 0}ק"מ`;
+  return `${runM} מ'`;
 }
 
 // Human-readable distances line for a race: swim (with pool lengths), bike, run.
 export function raceDistanceLine(race: { name?: string; swim_distance?: number; bike_distance?: number; run_distance?: number } | undefined): string {
   if (!race) return '';
   const name = race.name || '';
+  const d = raceDistFor(name);
+  if (d) {
+    return `שחייה ${d.swimM} מ' (${d.laps} בריכות) · אופניים ${d.bikeKm} ק"מ · ריצה ${formatRun(d.runM)}`;
+  }
+  // Fallback to stored values if the race name is unrecognized.
   const swim = race.swim_distance || 0;
   const laps = SWIM_LAPS[swim];
-  const swimPart = `שחייה ${swim} מ'${laps ? ` (${laps} בריכות)` : ''}`;
-  const bikePart = `אופניים ${bikeKm(name, race.bike_distance)}`;
-  const runPart = `ריצה ${race.run_distance ?? 0} ק"מ`;
-  return `${swimPart} · ${bikePart} · ${runPart}`;
+  return `שחייה ${swim} מ'${laps ? ` (${laps} בריכות)` : ''} · אופניים ${race.bike_distance ?? 0} ק"מ · ריצה ${race.run_distance ?? 0} ק"מ`;
+}
+
+// Meeting/assembly info line. Youth and kids assemble at 15:30, others at 14:30.
+export function raceMeetingInfo(race: { name?: string } | undefined): string {
+  const name = race?.name || '';
+  const time = /נוער|ילדים/.test(name) ? '15:30' : '14:30';
+  return `מפגש: 18 בספטמבר, בשעה ${time}, בבריכת המושבה יקנעם.`;
 }
 
 export function shirtSizeLabel(size: string): string {
