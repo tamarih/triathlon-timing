@@ -357,7 +357,7 @@ export default function AdminResults() {
         <span class="dot" style="width:3mm;height:3mm;background:#16a34a;bottom:55mm;left:64mm;"></span>
         <span class="dot" style="width:3mm;height:3mm;background:#2563eb;bottom:60mm;right:66mm;"></span>
         <img class="logo" src="${logo}" />
-        <div class="medal"><img src="/cert-medal.jpg" /></div>
+        <div class="medal"><img src="/cert-medal.png" /></div>
         <div class="content">
           <div class="title-pill"><span>תעודת השתתפות</span></div>
           <div class="event-name">${eventName}</div>
