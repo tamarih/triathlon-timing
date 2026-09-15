@@ -93,6 +93,30 @@ export function raceTypeLabel(type: string): string {
   return type === 'relay' ? 'שליחים' : 'אישי';
 }
 
+// Pool lengths ("בריכות") per swim distance in meters.
+const SWIM_LAPS: Record<number, number> = { 75: 3, 125: 5, 375: 15, 525: 21 };
+// Fixed bike distance (km) for these race types, overriding stored value.
+const BIKE_OVERRIDE: Record<string, number> = { 'קלאסי': 10, 'ספרינטון': 10, 'שלשות': 10, 'שליחים': 10 };
+
+function bikeKm(raceName: string, bikeDist?: number): string {
+  for (const key of Object.keys(BIKE_OVERRIDE)) {
+    if (raceName.includes(key)) return `${BIKE_OVERRIDE[key]}ק"מ`;
+  }
+  return `${bikeDist ?? 0}ק"מ`;
+}
+
+// Human-readable distances line for a race: swim (with pool lengths), bike, run.
+export function raceDistanceLine(race: { name?: string; swim_distance?: number; bike_distance?: number; run_distance?: number } | undefined): string {
+  if (!race) return '';
+  const name = race.name || '';
+  const swim = race.swim_distance || 0;
+  const laps = SWIM_LAPS[swim];
+  const swimPart = `שחייה ${swim} מ'${laps ? ` (${laps} בריכות)` : ''}`;
+  const bikePart = `אופניים ${bikeKm(name, race.bike_distance)}`;
+  const runPart = `ריצה ${race.run_distance ?? 0} ק"מ`;
+  return `${swimPart} · ${bikePart} · ${runPart}`;
+}
+
 export function shirtSizeLabel(size: string): string {
   return size || '';
 }

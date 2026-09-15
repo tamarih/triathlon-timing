@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { Event, Race } from '../lib/types';
-import { calculateAge } from '../lib/utils';
+import { calculateAge, raceDistanceLine } from '../lib/utils';
 import { LogOut, Search, Users } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import toast from 'react-hot-toast';
@@ -100,11 +100,14 @@ export default function Registrants() {
   const eventName = events.find(e => e.id === selectedEvent)?.name || 'טריאתלון יקנעם 2026';
 
   function waMessage(p: SafeParticipant): string {
-    return `שלום ${p.first_name}, נרשמת ל${eventName} 🏅\n`
+    const race = races.find(r => r.id === p.race_id);
+    const dist = raceDistanceLine(race);
+    return `שלום ${p.first_name}, נרשמת ל${eventName}.\n`
       + `המקצה שלך: ${raceName(p.race_id)}`
       + (p.bib_number ? `\nמספר חזה: ${p.bib_number}` : '')
+      + (dist ? `\nמרחקים: ${dist}` : '')
       + `\n\nאם יש טעות או שמשהו לא נכון, אנא צרו קשר עם בן אהובי: ${CONTACT_PHONE}.`
-      + `\nנתראה באירוע! 🏊🚴🏃`;
+      + `\nנתראה באירוע!`;
   }
 
   const filtered = useMemo(() => {

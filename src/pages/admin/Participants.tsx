@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { Participant, Event, Race } from '../../lib/types';
-import { genderLabel, statusLabel, paymentLabel, calculateAge } from '../../lib/utils';
+import { genderLabel, statusLabel, paymentLabel, calculateAge, raceDistanceLine } from '../../lib/utils';
 import { Search, Edit2, Download, Upload, X, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -357,12 +357,14 @@ export default function Participants() {
 
   const eventName = events.find(e => e.id === selectedEvent)?.name || 'טריאתלון יקנעם 2026';
   function waMessage(p: Participant): string {
-    const rName = races.find(r => r.id === p.race_id)?.name || '';
-    return `שלום ${p.first_name}, נרשמת ל${eventName} 🏅\n`
-      + `המקצה שלך: ${rName}`
+    const race = races.find(r => r.id === p.race_id);
+    const dist = raceDistanceLine(race);
+    return `שלום ${p.first_name}, נרשמת ל${eventName}.\n`
+      + `המקצה שלך: ${race?.name || ''}`
       + (p.bib_number ? `\nמספר חזה: ${p.bib_number}` : '')
+      + (dist ? `\nמרחקים: ${dist}` : '')
       + `\n\nאם יש טעות או שמשהו לא נכון, אנא צרו קשר עם בן אהובי: ${CONTACT_PHONE}.`
-      + `\nנתראה באירוע! 🏊🚴🏃`;
+      + `\nנתראה באירוע!`;
   }
 
   return (
