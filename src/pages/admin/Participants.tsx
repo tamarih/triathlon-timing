@@ -602,6 +602,12 @@ export default function Participants() {
                 <div><label style={S.label}>דוא"ל</label><input style={S.input} value={editParticipant.email} onChange={e => setEditParticipant({...editParticipant, email: e.target.value})} /></div>
                 <div><label style={S.label}>יישוב</label><input style={S.input} value={editParticipant.city || ''} onChange={e => setEditParticipant({...editParticipant, city: e.target.value})} /></div>
               </div>
+              <div>
+                <label style={S.label}>מקצה</label>
+                <select style={S.input} value={editParticipant.race_id || ''} onChange={e => setEditParticipant({...editParticipant, race_id: e.target.value})}>
+                  {races.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </select>
+              </div>
               <div style={S.grid2}>
                 <div>
                   <label style={S.label}>סטטוס</label>
