@@ -139,6 +139,21 @@ export function raceMeetingInfo(race: { name?: string } | undefined): string {
   return `מפגש: 18 בספטמבר, בשעה ${time}, בבריכת המושבה יקנעם.`;
 }
 
+// Relay (שלשות) helpers.
+export function relayRoleLabel(role?: string): string {
+  return role === 'swimmer' ? 'שחיין' : role === 'cyclist' ? 'רוכב' : role === 'runner' ? 'רץ' : '';
+}
+
+// The single leg a relay member does, with its distance.
+export function relayLegLine(role?: string): string {
+  const d = raceDistFor('שלשות');
+  if (!d) return '';
+  if (role === 'swimmer') return `שחייה ${d.swimM} מ' (${d.laps} בריכות)`;
+  if (role === 'cyclist') return `אופניים ${d.bikeKm} ק"מ`;
+  if (role === 'runner') return `ריצה ${formatRun(d.runM)}`;
+  return '';
+}
+
 export function shirtSizeLabel(size: string): string {
   return size || '';
 }

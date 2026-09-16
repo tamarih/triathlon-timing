@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { Event, Race } from '../lib/types';
-import { calculateAge, raceDistanceLine, raceMeetingInfo } from '../lib/utils';
+import { calculateAge, raceDistanceLine, raceMeetingInfo, relayRoleLabel, relayLegLine } from '../lib/utils';
 import { LogOut, Search, Users } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import toast from 'react-hot-toast';
@@ -24,6 +24,7 @@ interface SafeParticipant {
   age?: number;
   race_id: string;
   team_id?: string | null;
+  team_role?: 'swimmer' | 'cyclist' | 'runner';
   selected_category?: string;
   recommended_category?: string;
 }
@@ -100,6 +101,19 @@ export default function Registrants() {
   const eventName = events.find(e => e.id === selectedEvent)?.name || 'טריאתלון יקנעם 2026';
 
   function waMessage(p: SafeParticipant): string {
+    // Relay members are filed under their leg's race (the swimmer under the age
+    // race), so show them as a relay with their role instead of that race name.
+    if (p.team_id) {
+      const roleLabel = relayRoleLabel(p.team_role);
+      const leg = relayLegLine(p.team_role);
+      return `שלום ${p.first_name}, נרשמת ל${eventName} כחלק משלשה (שליחים).`
+        + (roleLabel ? `\nהתפקיד שלך: ${roleLabel}` : '')
+        + (p.bib_number ? `\nמספר חזה: ${p.bib_number}` : '')
+        + (leg ? `\nהקטע שלך: ${leg}` : '')
+        + `\n\n${raceMeetingInfo({ name: 'שלשות' })}`
+        + `\n\nאם יש טעות או שמשהו לא נכון, אנא צרו קשר עם בן אהובי: ${CONTACT_PHONE}.`
+        + `\nנתראה באירוע!`;
+    }
     const race = races.find(r => r.id === p.race_id);
     const dist = raceDistanceLine(race);
     return `שלום ${p.first_name}, נרשמת ל${eventName}.\n`

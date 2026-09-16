@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { Participant, Event, Race, Team } from '../../lib/types';
-import { genderLabel, statusLabel, paymentLabel, calculateAge, raceDistanceLine, raceMeetingInfo } from '../../lib/utils';
+import { genderLabel, statusLabel, paymentLabel, calculateAge, raceDistanceLine, raceMeetingInfo, relayRoleLabel, relayLegLine } from '../../lib/utils';
 import { Search, Edit2, Download, Upload, X, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -126,21 +126,39 @@ export default function Participants() {
     setSaving(true);
     const { id, created_at: _ca, updated_at: _ua, ...data } = editParticipant as any;
 
-    // Team (שלשה) handling: create a new team on demand, or clear role when
-    // the participant is removed from a team.
+    // Team (שלשה) handling.
+    const relayRace = races.find(r => /שלשות|שליחים/.test(r.name));
     if (data.team_id === '__new__') {
       const name = newTeamName.trim();
       if (!name) { toast.error('הזיני שם לשלשה'); setSaving(false); return; }
-      const relayRaceId = races.find(r => /שלשות|שליחים/.test(r.name))?.id || data.race_id;
       const { data: t, error: te } = await supabase.from('teams').insert({
-        event_id: selectedEvent, race_id: relayRaceId, name,
+        event_id: selectedEvent, race_id: relayRace?.id || data.race_id, name,
         contact_name: `${data.first_name} ${data.last_name}`.trim() || name,
         contact_phone: data.phone || '', contact_email: data.email || '',
       }).select().single();
       if (te || !t) { toast.error(te?.message || 'יצירת השלשה נכשלה'); setSaving(false); return; }
       data.team_id = t.id;
     }
-    if (!data.team_id) { data.team_id = null; data.team_role = null; }
+
+    if (data.team_id) {
+      // A relay member must have a role, and we place them into the right race
+      // immediately: swimmer stays in the age race (with a pool lane); the
+      // cyclist and runner move to the שלשות race (no lane).
+      if (!data.team_role) { toast.error('בחרי תפקיד בשלשה: שחיין / רוכב / רץ'); setSaving(false); return; }
+      if (data.team_role === 'cyclist' || data.team_role === 'runner') {
+        if (relayRace) { data.race_id = relayRace.id; }
+        data.lane = null;
+      } else if (data.team_role === 'swimmer' && !data.lane) {
+        // Balance the swimmer into the least-used lane of their race.
+        const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+        participants.filter(x => x.id !== id && x.race_id === data.race_id && x.lane).forEach(x => { counts[x.lane as number] = (counts[x.lane as number] || 0) + 1; });
+        data.lane = Number(Object.entries(counts).sort((a, b) => a[1] - b[1])[0][0]);
+      }
+    } else {
+      // Not part of a team → clear any leftover role.
+      data.team_id = null;
+      data.team_role = null;
+    }
 
     const { error } = await supabase.from('participants').update(data).eq('id', id);
     if (error) toast.error(error.message);
@@ -383,6 +401,19 @@ export default function Participants() {
 
   const eventName = events.find(e => e.id === selectedEvent)?.name || 'טריאתלון יקנעם 2026';
   function waMessage(p: Participant): string {
+    // Relay members are filed under their leg's race (the swimmer under the age
+    // race), so show them as a relay with their role instead of that race name.
+    if (p.team_id) {
+      const roleLabel = relayRoleLabel(p.team_role);
+      const leg = relayLegLine(p.team_role);
+      return `שלום ${p.first_name}, נרשמת ל${eventName} כחלק משלשה (שליחים).`
+        + (roleLabel ? `\nהתפקיד שלך: ${roleLabel}` : '')
+        + (p.bib_number ? `\nמספר חזה: ${p.bib_number}` : '')
+        + (leg ? `\nהקטע שלך: ${leg}` : '')
+        + `\n\n${raceMeetingInfo({ name: 'שלשות' })}`
+        + `\n\nאם יש טעות או שמשהו לא נכון, אנא צרו קשר עם בן אהובי: ${CONTACT_PHONE}.`
+        + `\nנתראה באירוע!`;
+    }
     const race = races.find(r => r.id === p.race_id);
     const dist = raceDistanceLine(race);
     return `שלום ${p.first_name}, נרשמת ל${eventName}.\n`
