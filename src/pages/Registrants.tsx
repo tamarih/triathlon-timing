@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { Event, Race } from '../lib/types';
-import { calculateAge, raceDistanceLine, raceMeetingInfo, relayRoleLabel, relayLegLine } from '../lib/utils';
+import { calculateAge, raceDistanceLine, raceMeetingInfo, relayRoleLabel, relayLegLine, hasRole } from '../lib/utils';
 import { LogOut, Search, Users } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import toast from 'react-hot-toast';
@@ -104,13 +104,17 @@ export default function Registrants() {
     // Relay members are filed under their leg's race (the swimmer under the age
     // race), so show them as a relay with their role instead of that race name.
     if (p.team_id) {
+      // The relay's level follows the team's swimmer (their age race), so a kid
+      // relay gets kid distances/assembly time, not the default classic ones.
+      const swimmer = participants.find(x => x.team_id === p.team_id && hasRole(x.team_role, 'swimmer'));
+      const levelRace = races.find(r => r.id === (swimmer?.race_id || p.race_id));
       const roleLabel = relayRoleLabel(p.team_role);
-      const leg = relayLegLine(p.team_role);
+      const leg = relayLegLine(p.team_role, levelRace?.name);
       return `שלום ${p.first_name}, נרשמת ל${eventName} כחלק משלשה (שליחים).`
         + (roleLabel ? `\nהתפקיד שלך: ${roleLabel}` : '')
         + (p.bib_number ? `\nמספר חזה: ${p.bib_number}` : '')
         + (leg ? `\nהקטע שלך: ${leg}` : '')
-        + `\n\n${raceMeetingInfo({ name: 'שלשות' })}`
+        + `\n\n${raceMeetingInfo(levelRace)}`
         + `\n\nאם יש טעות או שמשהו לא נכון, אנא צרו קשר עם בן אהובי: ${CONTACT_PHONE}.`
         + `\nנתראה באירוע!`;
     }

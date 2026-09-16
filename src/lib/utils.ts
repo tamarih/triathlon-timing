@@ -158,9 +158,11 @@ export function relayRoleEmojis(team_role?: string): string {
   return roleSet(team_role).map(r => ROLE_EMOJI[r]).filter(Boolean).join(' · ');
 }
 
-// The leg(s) a relay member does, with distances.
-export function relayLegLine(team_role?: string): string {
-  const d = raceDistFor('שלשות');
+// The leg(s) a relay member does, with distances. The relay's level (and thus
+// the leg distances) follows the age of the team — pass the swimmer's age-race
+// name (e.g. "ילדים א") so a kid relay swimmer gets 3 pool lengths, not 15.
+export function relayLegLine(team_role?: string, levelRaceName?: string): string {
+  const d = raceDistFor(levelRaceName || 'שלשות') || raceDistFor('שלשות');
   if (!d) return '';
   return roleSet(team_role).map(r =>
     r === 'swimmer' ? `שחייה ${d.swimM} מ' (${d.laps} בריכות)`
