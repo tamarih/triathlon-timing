@@ -81,6 +81,7 @@ export default function Participants() {
   const [saving, setSaving] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [approvalFilter, setApprovalFilter] = useState('');
+  const [arrivalFilter, setArrivalFilter] = useState('');
   const [approvalNotes, setApprovalNotes] = useState('');
   const [showApprovalModal, setShowApprovalModal] = useState<Participant | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -115,7 +116,7 @@ export default function Participants() {
     setParticipants(sorted);
   }
 
-  async function updateParticipantField(id: string, field: string, value: string) {
+  async function updateParticipantField(id: string, field: string, value: string | boolean | number | null) {
     const { error } = await supabase.from('participants').update({ [field]: value }).eq('id', id);
     if (error) toast.error(error.message);
     else { toast.success('עודכן'); loadParticipants(); }
@@ -433,7 +434,8 @@ export default function Participants() {
         && (!selectedRace || p.race_id === selectedRace)
         && (!categoryFilter || (p.recommended_category || '') === categoryFilter)
         && (!statusFilter || p.status === statusFilter)
-        && (!approvalFilter || p.approval_status === approvalFilter);
+        && (!approvalFilter || p.approval_status === approvalFilter)
+        && (!arrivalFilter || (arrivalFilter === 'in' ? !!p.checked_in : !p.checked_in));
     });
   }
 
@@ -516,6 +518,14 @@ export default function Participants() {
           <option value="approved">✅ אושר</option>
           <option value="rejected">❌ נדחה</option>
         </select>
+        <select style={S.filterSelect} value={arrivalFilter} onChange={e => setArrivalFilter(e.target.value)}>
+          <option value="">כל ההגעה</option>
+          <option value="in">✅ הגיעו</option>
+          <option value="out">⬜ טרם הגיעו</option>
+        </select>
+        <span style={{ fontSize: 12, fontWeight: 700, background: '#dcfce7', color: '#15803d', borderRadius: 20, padding: '4px 12px' }}>
+          ✅ הגיעו {participants.filter(p => p.checked_in).length}/{participants.length}
+        </span>
         {pendingCount > 0 && (
           <span style={{ fontSize: 12, fontWeight: 700, background: '#fef9c3', color: '#92400e', borderRadius: 20, padding: '4px 12px', cursor: 'pointer' }} onClick={() => setApprovalFilter('pending')}>
             ⏳ {pendingCount} ממתינים לאישור
@@ -548,7 +558,7 @@ export default function Participants() {
                     onChange={toggleSelectAll}
                   />
                 </th>
-                {['מס\'', 'שם', 'מסלול', 'קטגוריה', 'מקצה', 'מקום מגורים', 'מין/גיל', 'טלפון', 'סטטוס', 'אישור', ''].map(h => (
+                {['מס\'', 'שם', 'הגיע', 'מסלול', 'קטגוריה', 'מקצה', 'מקום מגורים', 'מין/גיל', 'טלפון', 'סטטוס', 'אישור', ''].map(h => (
                   <th key={h} style={S.th}>{h}</th>
                 ))}
               </tr>
@@ -567,6 +577,13 @@ export default function Participants() {
                         {relayRoleEmojis(p.team_role)}
                       </span>
                     )}
+                  </td>
+                  <td style={S.td}>
+                    <button
+                      onClick={() => updateParticipantField(p.id, 'checked_in', !p.checked_in)}
+                      title={p.checked_in ? 'הגיע — לחצי לביטול' : 'סמני שהגיע'}
+                      style={{ border: `1.5px solid ${p.checked_in ? '#16a34a' : '#e5e7eb'}`, background: p.checked_in ? '#16a34a' : '#f9fafb', color: p.checked_in ? 'white' : '#9ca3af', borderRadius: 8, padding: '5px 10px', fontSize: 13, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' as const }}
+                    >{p.checked_in ? '✓ הגיע' : 'לא הגיע'}</button>
                   </td>
                   <td style={S.td}>
                     <select

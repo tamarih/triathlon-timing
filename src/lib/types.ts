@@ -84,6 +84,7 @@ export interface Participant {
   approval_status?: 'pending' | 'approved' | 'rejected' | null;
   approval_reason?: string;
   approval_notes?: string;
+  checked_in?: boolean; // arrived / checked in on event day
   created_at: string;
   updated_at: string;
 }
