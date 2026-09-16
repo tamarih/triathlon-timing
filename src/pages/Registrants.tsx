@@ -24,7 +24,7 @@ interface SafeParticipant {
   age?: number;
   race_id: string;
   team_id?: string | null;
-  team_role?: 'swimmer' | 'cyclist' | 'runner';
+  team_role?: string;
   selected_category?: string;
   recommended_category?: string;
 }

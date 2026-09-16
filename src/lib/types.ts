@@ -74,7 +74,7 @@ export interface Participant {
   status: ParticipantStatus;
   payment_status: PaymentStatus;
   team_id?: string;
-  team_role?: 'swimmer' | 'cyclist' | 'runner';
+  team_role?: string; // one or more of swimmer/cyclist/runner, joined by "+"
   // Pool
   lane?: number;
   // Classification fields

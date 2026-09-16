@@ -139,19 +139,35 @@ export function raceMeetingInfo(race: { name?: string } | undefined): string {
   return `מפגש: 18 בספטמבר, בשעה ${time}, בבריכת המושבה יקנעם.`;
 }
 
-// Relay (שלשות) helpers.
-export function relayRoleLabel(role?: string): string {
-  return role === 'swimmer' ? 'שחיין' : role === 'cyclist' ? 'רוכב' : role === 'runner' ? 'רץ' : '';
+// Relay (שלשות) helpers. team_role may hold more than one role, joined by "+"
+// (e.g. "swimmer+cyclist" when one person does two legs).
+export function roleSet(team_role?: string): string[] {
+  return (team_role || '').split('+').map(s => s.trim()).filter(Boolean);
+}
+export function hasRole(team_role: string | undefined, role: string): boolean {
+  return roleSet(team_role).includes(role);
 }
 
-// The single leg a relay member does, with its distance.
-export function relayLegLine(role?: string): string {
+const ROLE_HE: Record<string, string> = { swimmer: 'שחיין', cyclist: 'רוכב', runner: 'רץ' };
+const ROLE_EMOJI: Record<string, string> = { swimmer: '🏊 שחיין', cyclist: '🚴 רוכב', runner: '🏃 רץ' };
+
+export function relayRoleLabel(team_role?: string): string {
+  return roleSet(team_role).map(r => ROLE_HE[r]).filter(Boolean).join(' + ');
+}
+export function relayRoleEmojis(team_role?: string): string {
+  return roleSet(team_role).map(r => ROLE_EMOJI[r]).filter(Boolean).join(' · ');
+}
+
+// The leg(s) a relay member does, with distances.
+export function relayLegLine(team_role?: string): string {
   const d = raceDistFor('שלשות');
   if (!d) return '';
-  if (role === 'swimmer') return `שחייה ${d.swimM} מ' (${d.laps} בריכות)`;
-  if (role === 'cyclist') return `אופניים ${d.bikeKm} ק"מ`;
-  if (role === 'runner') return `ריצה ${formatRun(d.runM)}`;
-  return '';
+  return roleSet(team_role).map(r =>
+    r === 'swimmer' ? `שחייה ${d.swimM} מ' (${d.laps} בריכות)`
+    : r === 'cyclist' ? `אופניים ${d.bikeKm} ק"מ`
+    : r === 'runner' ? `ריצה ${formatRun(d.runM)}`
+    : ''
+  ).filter(Boolean).join(' · ');
 }
 
 export function shirtSizeLabel(size: string): string {

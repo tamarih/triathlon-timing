@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { Participant, Event, Race, Team } from '../../lib/types';
-import { genderLabel, statusLabel, paymentLabel, calculateAge, raceDistanceLine, raceMeetingInfo, relayRoleLabel, relayLegLine } from '../../lib/utils';
+import { genderLabel, statusLabel, paymentLabel, calculateAge, raceDistanceLine, raceMeetingInfo, relayRoleLabel, relayLegLine, relayRoleEmojis, roleSet, hasRole } from '../../lib/utils';
 import { Search, Edit2, Download, Upload, X, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -141,18 +141,20 @@ export default function Participants() {
     }
 
     if (data.team_id) {
-      // A relay member must have a role, and we place them into the right race
-      // immediately: swimmer stays in the age race (with a pool lane); the
-      // cyclist and runner move to the שלשות race (no lane).
-      if (!data.team_role) { toast.error('בחרי תפקיד בשלשה: שחיין / רוכב / רץ'); setSaving(false); return; }
-      if (data.team_role === 'cyclist' || data.team_role === 'runner') {
+      // A relay member must have at least one role. Placement: anyone who swims
+      // stays in the age race (with a pool lane, so they are counted in the
+      // pool); a member who only cycles/runs moves to the שלשות race (no lane).
+      const roles = roleSet(data.team_role);
+      if (roles.length === 0) { toast.error('בחרי לפחות תפקיד אחד: שחיין / רוכב / רץ'); setSaving(false); return; }
+      if (roles.includes('swimmer')) {
+        if (!data.lane) {
+          const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+          participants.filter(x => x.id !== id && x.race_id === data.race_id && x.lane).forEach(x => { counts[x.lane as number] = (counts[x.lane as number] || 0) + 1; });
+          data.lane = Number(Object.entries(counts).sort((a, b) => a[1] - b[1])[0][0]);
+        }
+      } else {
         if (relayRace) { data.race_id = relayRace.id; }
         data.lane = null;
-      } else if (data.team_role === 'swimmer' && !data.lane) {
-        // Balance the swimmer into the least-used lane of their race.
-        const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
-        participants.filter(x => x.id !== id && x.race_id === data.race_id && x.lane).forEach(x => { counts[x.lane as number] = (counts[x.lane as number] || 0) + 1; });
-        data.lane = Number(Object.entries(counts).sort((a, b) => a[1] - b[1])[0][0]);
       }
     } else {
       // Not part of a team → clear any leftover role.
@@ -309,7 +311,7 @@ export default function Participants() {
     const raceId = selectedRace;
     if (!raceId) { toast.error('בחרי מקצה תחילה'); return; }
     // Only swimmers get a lane — in relays the cyclist/runner never enter the pool.
-    const pool = filtered.filter(p => p.race_id === raceId && (!p.team_id || p.team_role === 'swimmer'));
+    const pool = filtered.filter(p => p.race_id === raceId && (!p.team_id || hasRole(p.team_role, 'swimmer')));
     if (pool.length === 0) { toast.error('אין שחיינים לשיבוץ במקצה זה'); return; }
     if (pool.length > 20) { toast.error('יותר מ-20 משתתפים במקצה'); return; }
     const sorted = [...pool].sort((a, b) => (a.bib_number || '').localeCompare(b.bib_number || ''));
@@ -333,13 +335,13 @@ export default function Participants() {
     let moved = 0, skipped = 0;
     const affectedRaces = new Set<string>();
     for (const members of Object.values(teams)) {
-      const swimmer = members.find(m => m.team_role === 'swimmer') || members[0];
+      const swimmer = members.find(m => hasRole(m.team_role, 'swimmer')) || members[0];
       const age = swimmer.age || (swimmer.birth_date ? calculateAge(swimmer.birth_date) : null);
       if (age == null) { skipped++; continue; }
       const matcher = age <= 8 ? 'ילדים א' : age <= 10 ? 'ילדים ב' : age <= 14 ? 'נוער' : 'קלאסי';
       const ageRace = races.find(r => r.name.includes(matcher) && !r.name.includes('שלשות') && !r.name.includes('שליחים') && r.type !== 'relay');
       for (const m of members) {
-        if (m.team_role === 'swimmer') {
+        if (hasRole(m.team_role, 'swimmer')) {
           if (ageRace && m.race_id !== ageRace.id) {
             await supabase.from('participants').update({ race_id: ageRace.id }).eq('id', m.id);
             moved++;
@@ -358,7 +360,7 @@ export default function Participants() {
       const { data: swimmers } = await supabase.from('participants')
         .select('id, bib_number, team_id, team_role').eq('race_id', raceId);
       const pool = (swimmers || [])
-        .filter(p => !p.team_id || p.team_role === 'swimmer')
+        .filter(p => !p.team_id || hasRole(p.team_role, 'swimmer'))
         .sort((a, b) => (Number(a.bib_number) || 0) - (Number(b.bib_number) || 0));
       for (let i = 0; i < pool.length; i++) {
         await supabase.from('participants').update({ lane: (i % 6) + 1 }).eq('id', pool[i].id);
@@ -518,7 +520,7 @@ export default function Participants() {
                     {p.first_name} {p.last_name}
                     {p.team_role && (
                       <span style={{ marginRight: 6, fontSize: 11, fontWeight: 700, background: '#ede9fe', color: '#6d28d9', borderRadius: 20, padding: '2px 8px', whiteSpace: 'nowrap' as const }}>
-                        {p.team_role === 'swimmer' ? '🏊 שחיין' : p.team_role === 'cyclist' ? '🚴 רוכב' : '🏃 רץ'}
+                        {relayRoleEmojis(p.team_role)}
                       </span>
                     )}
                   </td>
@@ -669,13 +671,23 @@ export default function Participants() {
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#6d28d9', marginBottom: 10 }}>🏅 שלשה (שליחים)</div>
                 <div style={S.grid2}>
                   <div>
-                    <label style={S.label}>תפקיד בשלשה</label>
-                    <select style={{ ...S.input, marginBottom: 0 }} value={editParticipant.team_role || ''} onChange={e => setEditParticipant({...editParticipant, team_role: (e.target.value || undefined) as any})}>
-                      <option value="">ללא</option>
-                      <option value="swimmer">🏊 שחיין</option>
-                      <option value="cyclist">🚴 רוכב</option>
-                      <option value="runner">🏃 רץ</option>
-                    </select>
+                    <label style={S.label}>תפקיד בשלשה (אפשר לבחור כמה)</label>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const }}>
+                      {([['swimmer','🏊 שחיין'],['cyclist','🚴 רוכב'],['runner','🏃 רץ']] as const).map(([val, lbl]) => {
+                        const active = roleSet(editParticipant.team_role).includes(val);
+                        return (
+                          <button key={val} type="button"
+                            onClick={() => {
+                              const cur = roleSet(editParticipant.team_role);
+                              const next = cur.includes(val) ? cur.filter(r => r !== val) : [...cur, val];
+                              const ordered = ['swimmer','cyclist','runner'].filter(r => next.includes(r));
+                              setEditParticipant({ ...editParticipant, team_role: ordered.join('+') || undefined });
+                            }}
+                            style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap' as const, border: `1.5px solid ${active ? '#7c3aed' : '#e5e7eb'}`, background: active ? '#7c3aed' : '#f9fafb', color: active ? 'white' : '#374151', borderRadius: 10, padding: '9px 6px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'system-ui' }}
+                          >{lbl}</button>
+                        );
+                      })}
+                    </div>
                   </div>
                   <div>
                     <label style={S.label}>שיוך לשלשה</label>
