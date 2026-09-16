@@ -77,6 +77,7 @@ export default function Participants() {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [editParticipant, setEditParticipant] = useState<Participant | null>(null);
   const [newTeamName, setNewTeamName] = useState('');
+  const [addForm, setAddForm] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [approvalFilter, setApprovalFilter] = useState('');
@@ -165,6 +166,44 @@ export default function Participants() {
     const { error } = await supabase.from('participants').update(data).eq('id', id);
     if (error) toast.error(error.message);
     else { toast.success('המשתתף עודכן'); setEditParticipant(null); setNewTeamName(''); loadTeams(); loadParticipants(); }
+    setSaving(false);
+  }
+
+  // Manual registration (walk-ins on event day): suggest the next free bib.
+  function openAdd() {
+    const max = participants.reduce((m, p) => Math.max(m, Number(p.bib_number) || 0), 0);
+    setAddForm({
+      first_name: '', last_name: '', gender: 'male', birth_date: '', phone: '', email: '',
+      city: '', race_id: selectedRace || races[0]?.id || '', recommended_category: '',
+      bib_number: String(max + 1), status: 'registered', payment_status: 'exempt',
+    });
+  }
+
+  async function addParticipant(e: React.FormEvent) {
+    e.preventDefault();
+    if (!addForm) return;
+    if (!addForm.first_name.trim() || !addForm.last_name.trim()) { toast.error('שם פרטי ושם משפחה חובה'); return; }
+    if (!addForm.race_id) { toast.error('בחרי מקצה'); return; }
+    setSaving(true);
+    const { error } = await supabase.from('participants').insert({
+      event_id: selectedEvent,
+      race_id: addForm.race_id,
+      first_name: addForm.first_name.trim(),
+      last_name: addForm.last_name.trim(),
+      gender: addForm.gender || 'male',
+      birth_date: addForm.birth_date || '2000-01-01',
+      phone: addForm.phone || '',
+      email: addForm.email || '',
+      city: addForm.city || '',
+      bib_number: addForm.bib_number ? String(addForm.bib_number).trim() : undefined,
+      recommended_category: addForm.recommended_category || undefined,
+      selected_category: addForm.recommended_category || undefined,
+      status: addForm.status || 'registered',
+      payment_status: addForm.payment_status || 'exempt',
+      health_declaration: true, rules_accepted: true, photo_consent: false,
+    });
+    if (error) toast.error(error.code === '23505' ? 'מספר החזה כבר קיים — בחרי מספר אחר' : error.message);
+    else { toast.success('המשתתף נוסף'); setAddForm(null); loadParticipants(); }
     setSaving(false);
   }
 
@@ -442,6 +481,7 @@ export default function Participants() {
               onClick={() => setConfirmDelete('multi')}
             ><Trash2 size={14} /> מחק נבחרים ({selectedIds.size})</button>
           )}
+          <button style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'linear-gradient(135deg,#16a34a,#22c55e)', color: 'white', border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 13, fontWeight: 800, cursor: 'pointer' }} onClick={openAdd}>➕ הוספת משתתף</button>
           <button style={{ ...S.outlineBtn, color: '#7c3aed', borderColor: '#c4b5fd' }} onClick={printBarcodes}>🖨️ ברקודים</button>
           <button style={{ ...S.outlineBtn, color: '#0369a1', borderColor: '#7dd3fc' }} onClick={autoAssignLanes}>🏊 הקצאת מסלולים</button>
           <button style={{ ...S.outlineBtn, color: '#7c3aed', borderColor: '#c4b5fd' }} onClick={fixOldRelays}>🔧 תקן שלשות</button>
@@ -768,6 +808,75 @@ export default function Participants() {
               <div style={S.btnRow}>
                 <button type="button" style={S.btnSecondary} onClick={() => { setEditParticipant(null); setNewTeamName(''); }}>ביטול</button>
                 <button type="submit" style={S.btnPrimary} disabled={saving}>{saving ? 'שומר...' : 'שמירה'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {addForm && (
+        <div style={S.overlay}>
+          <div style={S.modal}>
+            <div style={S.modalHeader}>
+              <span style={S.modalTitle}>➕ רישום משתתף חדש</span>
+              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }} onClick={() => setAddForm(null)}><X size={18} /></button>
+            </div>
+            <form onSubmit={addParticipant}>
+              <div style={S.grid2}>
+                <div><label style={S.label}>שם פרטי *</label><input style={S.input} value={addForm.first_name} onChange={e => setAddForm({...addForm, first_name: e.target.value})} required /></div>
+                <div><label style={S.label}>שם משפחה *</label><input style={S.input} value={addForm.last_name} onChange={e => setAddForm({...addForm, last_name: e.target.value})} required /></div>
+              </div>
+              <div style={S.grid2}>
+                <div>
+                  <label style={S.label}>מקצה *</label>
+                  <select style={S.input} value={addForm.race_id} onChange={e => setAddForm({...addForm, race_id: e.target.value})} required>
+                    <option value="">בחרי מקצה</option>
+                    {races.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  </select>
+                </div>
+                <div><label style={S.label}>מספר חזה</label><input style={S.input} value={addForm.bib_number} onChange={e => setAddForm({...addForm, bib_number: e.target.value})} /></div>
+              </div>
+              <div style={S.grid2}>
+                <div>
+                  <label style={S.label}>מין</label>
+                  <select style={S.input} value={addForm.gender} onChange={e => setAddForm({...addForm, gender: e.target.value})}>
+                    <option value="male">זכר</option>
+                    <option value="female">נקבה</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={S.label}>קטגוריה</label>
+                  <select style={S.input} value={addForm.recommended_category} onChange={e => setAddForm({...addForm, recommended_category: e.target.value})}>
+                    <option value="">ללא</option>
+                    {['ילדים א','ילדים ב','נוער','בוגרים'].map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={S.grid2}>
+                <div><label style={S.label}>תאריך לידה</label><input type="date" style={S.input} value={addForm.birth_date} onChange={e => setAddForm({...addForm, birth_date: e.target.value})} /></div>
+                <div><label style={S.label}>טלפון</label><input style={S.input} value={addForm.phone} onChange={e => setAddForm({...addForm, phone: e.target.value})} /></div>
+              </div>
+              <div style={S.grid2}>
+                <div><label style={S.label}>דוא"ל</label><input style={S.input} value={addForm.email} onChange={e => setAddForm({...addForm, email: e.target.value})} /></div>
+                <div><label style={S.label}>יישוב</label><input style={S.input} value={addForm.city} onChange={e => setAddForm({...addForm, city: e.target.value})} /></div>
+              </div>
+              <div style={S.grid2}>
+                <div>
+                  <label style={S.label}>סטטוס</label>
+                  <select style={S.input} value={addForm.status} onChange={e => setAddForm({...addForm, status: e.target.value})}>
+                    {statusOptions.map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={S.label}>תשלום</label>
+                  <select style={S.input} value={addForm.payment_status} onChange={e => setAddForm({...addForm, payment_status: e.target.value})}>
+                    {paymentOptions.map(s => <option key={s} value={s}>{paymentLabel(s)}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={S.btnRow}>
+                <button type="button" style={S.btnSecondary} onClick={() => setAddForm(null)}>ביטול</button>
+                <button type="submit" style={S.btnPrimary} disabled={saving}>{saving ? 'שומר...' : 'רישום'}</button>
               </div>
             </form>
           </div>
