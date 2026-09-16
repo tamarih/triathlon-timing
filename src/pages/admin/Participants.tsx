@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import type { Participant, Event, Race } from '../../lib/types';
+import type { Participant, Event, Race, Team } from '../../lib/types';
 import { genderLabel, statusLabel, paymentLabel, calculateAge, raceDistanceLine, raceMeetingInfo } from '../../lib/utils';
 import { Search, Edit2, Download, Upload, X, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -67,6 +67,7 @@ const S = {
 export default function Participants() {
   const [events, setEvents] = useState<Event[]>([]);
   const [races, setRaces] = useState<Race[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [selectedEvent, setSelectedEvent] = useState('');
   const [selectedRace, setSelectedRace] = useState('');
@@ -75,6 +76,7 @@ export default function Participants() {
   const [paymentFilter, setPaymentFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [editParticipant, setEditParticipant] = useState<Participant | null>(null);
+  const [newTeamName, setNewTeamName] = useState('');
   const [saving, setSaving] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [approvalFilter, setApprovalFilter] = useState('');
@@ -94,8 +96,15 @@ export default function Participants() {
   useEffect(() => {
     if (!selectedEvent) return;
     supabase.from('races').select('*').eq('event_id', selectedEvent).then(({ data }) => setRaces(data || []));
+    loadTeams();
     loadParticipants();
   }, [selectedEvent]);
+
+  async function loadTeams() {
+    if (!selectedEvent) return;
+    const { data } = await supabase.from('teams').select('*').eq('event_id', selectedEvent);
+    setTeams(data || []);
+  }
 
   async function loadParticipants() {
     if (!selectedEvent) return;
@@ -115,10 +124,27 @@ export default function Participants() {
     e.preventDefault();
     if (!editParticipant) return;
     setSaving(true);
-    const { id, created_at: _ca, updated_at: _ua, ...data } = editParticipant;
+    const { id, created_at: _ca, updated_at: _ua, ...data } = editParticipant as any;
+
+    // Team (שלשה) handling: create a new team on demand, or clear role when
+    // the participant is removed from a team.
+    if (data.team_id === '__new__') {
+      const name = newTeamName.trim();
+      if (!name) { toast.error('הזיני שם לשלשה'); setSaving(false); return; }
+      const relayRaceId = races.find(r => /שלשות|שליחים/.test(r.name))?.id || data.race_id;
+      const { data: t, error: te } = await supabase.from('teams').insert({
+        event_id: selectedEvent, race_id: relayRaceId, name,
+        contact_name: `${data.first_name} ${data.last_name}`.trim() || name,
+        contact_phone: data.phone || '', contact_email: data.email || '',
+      }).select().single();
+      if (te || !t) { toast.error(te?.message || 'יצירת השלשה נכשלה'); setSaving(false); return; }
+      data.team_id = t.id;
+    }
+    if (!data.team_id) { data.team_id = null; data.team_role = null; }
+
     const { error } = await supabase.from('participants').update(data).eq('id', id);
     if (error) toast.error(error.message);
-    else { toast.success('המשתתף עודכן'); setEditParticipant(null); loadParticipants(); }
+    else { toast.success('המשתתף עודכן'); setEditParticipant(null); setNewTeamName(''); loadTeams(); loadParticipants(); }
     setSaving(false);
   }
 
@@ -503,7 +529,7 @@ export default function Participants() {
                         <a href={waUrl(p.phone, waMessage(p))!} target="_blank" rel="noopener noreferrer" title="שליחת וואטסאפ עם המקצה"
                           style={{ background: '#25D366', border: '1px solid #1eb959', cursor: 'pointer', color: 'white', padding: '5px 8px', borderRadius: 7, display: 'flex', alignItems: 'center', textDecoration: 'none', fontSize: 13 }}>💬</a>
                       )}
-                      <button onClick={() => setEditParticipant(p)} title="עריכה" style={{ background: '#f3f4f6', border: '1px solid #e5e7eb', cursor: 'pointer', color: '#374151', padding: '5px 7px', borderRadius: 7, display: 'flex', alignItems: 'center' }}><Edit2 size={14} /></button>
+                      <button onClick={() => { setNewTeamName(''); setEditParticipant(p); }} title="עריכה" style={{ background: '#f3f4f6', border: '1px solid #e5e7eb', cursor: 'pointer', color: '#374151', padding: '5px 7px', borderRadius: 7, display: 'flex', alignItems: 'center' }}><Edit2 size={14} /></button>
                       <button onClick={() => { setDeleteTarget(p.id); setConfirmDelete('single'); }} title="מחיקה" style={{ background: '#fee2e2', border: '1px solid #fecaca', cursor: 'pointer', color: '#dc2626', padding: '5px 7px', borderRadius: 7, display: 'flex', alignItems: 'center' }}><Trash2 size={14} /></button>
                     </div>
                   </td>
@@ -587,7 +613,7 @@ export default function Participants() {
           <div style={S.modal}>
             <div style={S.modalHeader}>
               <span style={S.modalTitle}>עריכת משתתף</span>
-              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }} onClick={() => setEditParticipant(null)}><X size={18} /></button>
+              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }} onClick={() => { setEditParticipant(null); setNewTeamName(''); }}><X size={18} /></button>
             </div>
             <form onSubmit={saveEdit}>
               <div style={S.grid2}>
@@ -607,6 +633,37 @@ export default function Participants() {
                 <select style={S.input} value={editParticipant.race_id || ''} onChange={e => setEditParticipant({...editParticipant, race_id: e.target.value})}>
                   {races.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                 </select>
+              </div>
+              <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 12, padding: '12px 14px', marginBottom: 14 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#6d28d9', marginBottom: 10 }}>🏅 שלשה (שליחים)</div>
+                <div style={S.grid2}>
+                  <div>
+                    <label style={S.label}>תפקיד בשלשה</label>
+                    <select style={{ ...S.input, marginBottom: 0 }} value={editParticipant.team_role || ''} onChange={e => setEditParticipant({...editParticipant, team_role: (e.target.value || undefined) as any})}>
+                      <option value="">ללא</option>
+                      <option value="swimmer">🏊 שחיין</option>
+                      <option value="cyclist">🚴 רוכב</option>
+                      <option value="runner">🏃 רץ</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={S.label}>שיוך לשלשה</label>
+                    <select style={{ ...S.input, marginBottom: 0 }} value={editParticipant.team_id || ''} onChange={e => setEditParticipant({...editParticipant, team_id: e.target.value || undefined})}>
+                      <option value="">ללא שלשה</option>
+                      {teams.map(t => <option key={t.id} value={t.id}>{t.name}{t.team_number ? ` (${t.team_number})` : ''}</option>)}
+                      <option value="__new__">➕ צור שלשה חדשה…</option>
+                    </select>
+                  </div>
+                </div>
+                {editParticipant.team_id === '__new__' && (
+                  <div style={{ marginTop: 10 }}>
+                    <label style={S.label}>שם השלשה החדשה</label>
+                    <input style={{ ...S.input, marginBottom: 0 }} value={newTeamName} onChange={e => setNewTeamName(e.target.value)} placeholder="לדוגמה: הנחשונים" />
+                  </div>
+                )}
+                <div style={{ fontSize: 11, color: '#7c3aed', marginTop: 10, lineHeight: 1.5 }}>
+                  לשלשה מלאה: צרו שלשה אחת, שייכו אליה 3 משתתפים (שחיין, רוכב, רץ), ואז לחצו על "תקן שלשות" כדי לשבץ אוטומטית — השחיין למקצה הגיל בבריכה, והרוכב והרץ למקצה השלשות.
+                </div>
               </div>
               <div style={S.grid2}>
                 <div>
@@ -636,7 +693,7 @@ export default function Participants() {
                 </div>
               </div>
               <div style={S.btnRow}>
-                <button type="button" style={S.btnSecondary} onClick={() => setEditParticipant(null)}>ביטול</button>
+                <button type="button" style={S.btnSecondary} onClick={() => { setEditParticipant(null); setNewTeamName(''); }}>ביטול</button>
                 <button type="submit" style={S.btnPrimary} disabled={saving}>{saving ? 'שומר...' : 'שמירה'}</button>
               </div>
             </form>
