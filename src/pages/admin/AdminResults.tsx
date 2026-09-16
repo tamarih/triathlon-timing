@@ -316,7 +316,16 @@ export default function AdminResults() {
       }
       return false;
     });
-    if (kids.length === 0) { toast.error('אין ילדים/נוער להנפקת תעודות'); return; }
+    // One certificate per child, even if they have multiple records (e.g.
+    // registered individually and also as a relay member).
+    const seenNames = new Set<string>();
+    const uniqueKids = kids.filter(r => {
+      const key = `${r.participant.first_name} ${r.participant.last_name}`.trim().replace(/\s+/g, ' ').toLowerCase();
+      if (seenNames.has(key)) return false;
+      seenNames.add(key);
+      return true;
+    });
+    if (uniqueKids.length === 0) { toast.error('אין ילדים/נוער להנפקת תעודות'); return; }
     const event = events.find(e => e.id === selectedEvent);
     const logo = '/cert-logo.jpg';
     const eventName = event?.name || 'טריאתלון יקנעם';
@@ -346,7 +355,7 @@ export default function AdminResults() {
       .medal img{width:100%;height:auto;display:block;}
     `;
 
-    const pages = kids.map(r => {
+    const pages = uniqueKids.map(r => {
       const name = `${r.participant.first_name} ${r.participant.last_name}`;
       return `<div class="cert">
         <div class="frame"></div><div class="frame-in"></div>
@@ -372,7 +381,7 @@ export default function AdminResults() {
     const html = `<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="utf-8"><title>תעודות השתתפות</title><style>${css}</style></head><body>${pages}<script>window.onload=()=>window.print();<\/script></body></html>`;
     const w = window.open('', '_blank');
     if (w) { w.document.write(html); w.document.close(); }
-    toast.success(`${kids.length} תעודות השתתפות נוצרו`);
+    toast.success(`${uniqueKids.length} תעודות השתתפות נוצרו`);
   }
 
   // keep old fn for TS compatibility
