@@ -665,6 +665,32 @@ export default function Participants() {
                 <div><label style={S.label}>דוא"ל</label><input style={S.input} value={editParticipant.email} onChange={e => setEditParticipant({...editParticipant, email: e.target.value})} /></div>
                 <div><label style={S.label}>יישוב</label><input style={S.input} value={editParticipant.city || ''} onChange={e => setEditParticipant({...editParticipant, city: e.target.value})} /></div>
               </div>
+              <div style={S.grid2}>
+                <div>
+                  <label style={S.label}>מין</label>
+                  <select style={S.input} value={editParticipant.gender} onChange={e => setEditParticipant({...editParticipant, gender: e.target.value as any})}>
+                    <option value="male">זכר</option>
+                    <option value="female">נקבה</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={S.label}>קטגוריה</label>
+                  <select style={S.input} value={editParticipant.recommended_category || ''} onChange={e => setEditParticipant({...editParticipant, recommended_category: e.target.value || undefined, selected_category: e.target.value || undefined})}>
+                    <option value="">ללא</option>
+                    {['ילדים א','ילדים ב','נוער','בוגרים'].map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={S.grid2}>
+                <div>
+                  <label style={S.label}>תאריך לידה</label>
+                  <input type="date" style={S.input} value={editParticipant.birth_date || ''} onChange={e => setEditParticipant({...editParticipant, birth_date: e.target.value})} />
+                </div>
+                <div>
+                  <label style={S.label}>גיל (מחושב)</label>
+                  <input style={{ ...S.input, background: '#eef2f7', color: '#6b7280' }} value={editParticipant.birth_date ? calculateAge(editParticipant.birth_date) : (editParticipant.age ?? '')} readOnly />
+                </div>
+              </div>
               <div>
                 <label style={S.label}>מקצה</label>
                 <select style={S.input} value={editParticipant.race_id || ''} onChange={e => setEditParticipant({...editParticipant, race_id: e.target.value})}>
