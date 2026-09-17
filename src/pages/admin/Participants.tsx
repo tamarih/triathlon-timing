@@ -280,6 +280,9 @@ export default function Participants() {
   }
 
   async function printBarcodes() {
+    // Ask BEFORE opening the print window — a prompt behind the popup returns null.
+    const ans = window.prompt('כמה מספרי רזרבה נוספים ליצור ולהדפיס בסוף (מעל המספר הגבוה), למצטרפים ביום האירוע?', '20');
+    const extraCount = Math.max(0, Math.min(300, parseInt(ans || '0', 10) || 0));
     const w = window.open('', '_blank'); // open synchronously to avoid popup blocking
     const toprint = filtered.filter(p => p.bib_number);
     // Include available reserve numbers (printed with a barcode but no name).
@@ -316,8 +319,6 @@ export default function Participants() {
       ...participants.map(p => Number(p.bib_number) || 0),
       ...reserves.map(r => Number(r.bib_number) || 0),
     );
-    const ans = window.prompt('כמה מספרי רזרבה נוספים ליצור ולהדפיס בסוף (מעל המספר הגבוה), למצטרפים ביום האירוע?', '20');
-    const extraCount = Math.max(0, Math.min(300, parseInt(ans || '0', 10) || 0));
     let extraRows = '';
     if (extraCount > 0) {
       const newRes = Array.from({ length: extraCount }, (_, i) => ({
