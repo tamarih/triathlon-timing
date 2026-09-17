@@ -309,24 +309,33 @@ export default function Participants() {
         <div class="race">רזרבה</div>
       </div>`).join('');
 
-    // Extra spare numbers for walk-ins: printed above the highest existing
-    // number (across all participants and reserve numbers), with a barcode.
+    // Extra spare numbers for walk-ins: created as real reserve numbers above
+    // the highest existing number (participants + reserves) and printed too.
     const maxNum = Math.max(
       0,
       ...participants.map(p => Number(p.bib_number) || 0),
       ...reserves.map(r => Number(r.bib_number) || 0),
     );
-    const ans = window.prompt('כמה מספרי רזרבה נוספים להדפיס בסוף (מעל המספר הגבוה), למצטרפים ביום האירוע?', '20');
+    const ans = window.prompt('כמה מספרי רזרבה נוספים ליצור ולהדפיס בסוף (מעל המספר הגבוה), למצטרפים ביום האירוע?', '20');
     const extraCount = Math.max(0, Math.min(300, parseInt(ans || '0', 10) || 0));
-    const extraRows = Array.from({ length: extraCount }, (_, i) => {
-      const n = maxNum + 1 + i;
-      return `<div class="card">
-        <svg class="barcode" data-bib="${n}"></svg>
-        <div class="num">${n}</div>
-        <div class="name">&nbsp;</div>
-        <div class="race">רזרבה</div>
-      </div>`;
-    }).join('');
+    let extraRows = '';
+    if (extraCount > 0) {
+      const newRes = Array.from({ length: extraCount }, (_, i) => ({
+        event_id: selectedEvent, bib_number: String(maxNum + 1 + i), status: 'available',
+      }));
+      const { error: insErr } = await supabase.from('reserve_bibs').insert(newRes);
+      if (insErr) {
+        toast.error('לא ניתן ליצור מספרי רזרבה: ' + insErr.message);
+      } else {
+        toast.success(`נוצרו ${extraCount} מספרי רזרבה חדשים (${maxNum + 1}–${maxNum + extraCount})`);
+        extraRows = newRes.map(r => `<div class="card">
+          <svg class="barcode" data-bib="${r.bib_number}"></svg>
+          <div class="num">${r.bib_number}</div>
+          <div class="name">&nbsp;</div>
+          <div class="race">רזרבה</div>
+        </div>`).join('');
+      }
+    }
 
     const rows = partRows + reserveRows + extraRows;
     const html = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"><title>ברקודים</title>
