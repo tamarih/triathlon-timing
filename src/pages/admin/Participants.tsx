@@ -308,7 +308,27 @@ export default function Participants() {
         <div class="name">&nbsp;</div>
         <div class="race">רזרבה</div>
       </div>`).join('');
-    const rows = partRows + reserveRows;
+
+    // Extra spare numbers for walk-ins: printed above the highest existing
+    // number (across all participants and reserve numbers), with a barcode.
+    const maxNum = Math.max(
+      0,
+      ...participants.map(p => Number(p.bib_number) || 0),
+      ...reserves.map(r => Number(r.bib_number) || 0),
+    );
+    const ans = window.prompt('כמה מספרי רזרבה נוספים להדפיס בסוף (מעל המספר הגבוה), למצטרפים ביום האירוע?', '20');
+    const extraCount = Math.max(0, Math.min(300, parseInt(ans || '0', 10) || 0));
+    const extraRows = Array.from({ length: extraCount }, (_, i) => {
+      const n = maxNum + 1 + i;
+      return `<div class="card">
+        <svg class="barcode" data-bib="${n}"></svg>
+        <div class="num">${n}</div>
+        <div class="name">&nbsp;</div>
+        <div class="race">רזרבה</div>
+      </div>`;
+    }).join('');
+
+    const rows = partRows + reserveRows + extraRows;
     const html = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"><title>ברקודים</title>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>
     <style>
