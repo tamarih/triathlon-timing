@@ -78,6 +78,8 @@ export default function Participants() {
   const [editParticipant, setEditParticipant] = useState<Participant | null>(null);
   const [newTeamName, setNewTeamName] = useState('');
   const [addForm, setAddForm] = useState<any | null>(null);
+  const [showBarcodeModal, setShowBarcodeModal] = useState(false);
+  const [spareCount, setSpareCount] = useState('20');
   const [saving, setSaving] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [approvalFilter, setApprovalFilter] = useState('');
@@ -279,10 +281,7 @@ export default function Participants() {
     setConfirmDelete(null);
   }
 
-  async function printBarcodes() {
-    // Ask BEFORE opening the print window — a prompt behind the popup returns null.
-    const ans = window.prompt('כמה מספרי רזרבה נוספים ליצור ולהדפיס בסוף (מעל המספר הגבוה), למצטרפים ביום האירוע?', '20');
-    const extraCount = Math.max(0, Math.min(300, parseInt(ans || '0', 10) || 0));
+  async function printBarcodes(extraCount = 0) {
     const w = window.open('', '_blank'); // open synchronously to avoid popup blocking
     const toprint = filtered.filter(p => p.bib_number);
     // Include available reserve numbers (printed with a barcode but no name).
@@ -514,7 +513,7 @@ export default function Participants() {
             ><Trash2 size={14} /> מחק נבחרים ({selectedIds.size})</button>
           )}
           <button style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'linear-gradient(135deg,#16a34a,#22c55e)', color: 'white', border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 13, fontWeight: 800, cursor: 'pointer' }} onClick={openAdd}>➕ הוספת משתתף</button>
-          <button style={{ ...S.outlineBtn, color: '#7c3aed', borderColor: '#c4b5fd' }} onClick={printBarcodes}>🖨️ ברקודים</button>
+          <button style={{ ...S.outlineBtn, color: '#7c3aed', borderColor: '#c4b5fd' }} onClick={() => { setSpareCount('20'); setShowBarcodeModal(true); }}>🖨️ ברקודים</button>
           <button style={{ ...S.outlineBtn, color: '#0369a1', borderColor: '#7dd3fc' }} onClick={autoAssignLanes}>🏊 הקצאת מסלולים</button>
           <button style={{ ...S.outlineBtn, color: '#7c3aed', borderColor: '#c4b5fd' }} onClick={fixOldRelays}>🔧 תקן שלשות</button>
           <button style={S.outlineBtn} onClick={() => setShowImport(true)}><Upload size={14} /> ייבוא Excel</button>
@@ -857,6 +856,26 @@ export default function Participants() {
                 <button type="submit" style={S.btnPrimary} disabled={saving}>{saving ? 'שומר...' : 'שמירה'}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showBarcodeModal && (
+        <div style={S.overlay}>
+          <div style={{ ...S.modal, maxWidth: 420 }}>
+            <div style={S.modalHeader}>
+              <span style={S.modalTitle}>🖨️ הדפסת ברקודים</span>
+              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }} onClick={() => setShowBarcodeModal(false)}><X size={18} /></button>
+            </div>
+            <p style={{ fontSize: 13, color: '#374151', marginBottom: 12, lineHeight: 1.6 }}>
+              יודפסו הברקודים של כל המשתתפים ומספרי הרזרבה הקיימים. אפשר להוסיף בסוף מספרי רזרבה חדשים (מעל המספר הגבוה) למצטרפים ביום האירוע — הם ייווצרו גם במסך "מספרי רזרבה".
+            </p>
+            <label style={S.label}>כמה מספרי רזרבה נוספים ליצור?</label>
+            <input type="number" min={0} max={300} style={S.input} value={spareCount} onChange={e => setSpareCount(e.target.value)} />
+            <div style={S.btnRow}>
+              <button type="button" style={S.btnSecondary} onClick={() => setShowBarcodeModal(false)}>ביטול</button>
+              <button type="button" style={S.btnPrimary} onClick={() => { const n = Math.max(0, Math.min(300, parseInt(spareCount || '0', 10) || 0)); setShowBarcodeModal(false); printBarcodes(n); }}>🖨️ הדפסה</button>
+            </div>
           </div>
         </div>
       )}
