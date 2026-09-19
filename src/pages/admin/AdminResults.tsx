@@ -5,6 +5,7 @@ import { formatTime, timeDiffSeconds, statusLabel, calculateAge } from '../../li
 import { Trophy } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import toast from 'react-hot-toast';
 
 interface RankedResult {
@@ -302,6 +303,55 @@ export default function AdminResults() {
     toast.success(`${finishers.length} תעודות נוצרו`);
   }
 
+  // Export results to Excel: one sheet per race, split into בנים/בנות, with
+  // swim/bike/run splits, total and place (ranked within race + gender).
+  function exportResults() {
+    if (results.length === 0) { toast.error('אין תוצאות לייצוא'); return; }
+    const sortByTotal = (a: RankedResult, b: RankedResult) => {
+      if (a.total !== undefined && b.total !== undefined) return a.total - b.total;
+      if (a.total !== undefined) return -1;
+      if (b.total !== undefined) return 1;
+      return (Number(a.participant.bib_number) || 0) - (Number(b.participant.bib_number) || 0);
+    };
+    const fmt = (s?: number) => s !== undefined ? formatTime(s) : '';
+    const byRace: Record<string, RankedResult[]> = {};
+    for (const r of results) {
+      const key = r.race?.name || 'ללא מקצה';
+      (byRace[key] ||= []).push(r);
+    }
+    const wb = XLSX.utils.book_new();
+    const used = new Set<string>();
+    for (const raceName of Object.keys(byRace).sort()) {
+      const group = byRace[raceName];
+      const rows: Record<string, string | number>[] = [];
+      for (const [g, label] of [['male', 'בנים'], ['female', 'בנות']] as const) {
+        const arr = group.filter(r => r.participant.gender === g).sort(sortByTotal);
+        arr.forEach((r, i) => rows.push({
+          'מין': label,
+          'מקום': r.total !== undefined ? i + 1 : '',
+          'מספר': r.participant.bib_number || '',
+          'שם': `${r.participant.first_name} ${r.participant.last_name}`,
+          'קטגוריה': r.participant.recommended_category || r.participant.selected_category || '',
+          'שחייה': fmt(r.swim),
+          'אופניים': fmt(r.bike),
+          'ריצה': fmt(r.run),
+          'סה"כ': fmt(r.total),
+          'סטטוס': statusLabel(r.participant.status),
+        }));
+      }
+      if (rows.length === 0) continue;
+      const ws = XLSX.utils.json_to_sheet(rows);
+      let name = (raceName.replace(/[:\\/?*[\]]/g, ' ').trim() || 'מקצה').slice(0, 31);
+      let unique = name, k = 1;
+      while (used.has(unique)) unique = name.slice(0, 28) + ' ' + (++k);
+      used.add(unique);
+      XLSX.utils.book_append_sheet(wb, ws, unique);
+    }
+    const eventName = events.find(e => e.id === selectedEvent)?.name || 'טריאתלון';
+    XLSX.writeFile(wb, `תוצאות - ${eventName}.xlsx`);
+    toast.success('התוצאות יוצאו');
+  }
+
   // Participation certificates for kids & youth (no times, any result) —
   // includes ילדים and נוער races, plus relay members who are kids/youth by age
   // (even though they're filed under the שלשות race).
@@ -402,6 +452,12 @@ export default function AdminResults() {
         <Trophy size={22} color="#eab308" />
         <span style={S.title}>תוצאות ודירוגים</span>
         <span style={{ marginRight: 'auto', fontSize: 13, color: '#6b7280' }}>{filtered.length} משתתפים</span>
+        <button
+          onClick={exportResults}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#15803d', color: 'white', border: 'none', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+        >
+          📊 ייצוא תוצאות (Excel)
+        </button>
         <button
           onClick={openAllCertificates}
           style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1a3a6b', color: 'white', border: 'none', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
