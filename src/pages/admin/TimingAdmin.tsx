@@ -98,7 +98,14 @@ export default function TimingAdmin() {
     if (!editRecord || !editTime) return;
     setSaving(true);
     try {
-      const dt = new Date(`1970-01-01T${editTime}:00`).toISOString();
+      // Keep the real event date and set only the time-of-day (incl. seconds),
+      // so diffs against the gun time stay correct.
+      const [hh, mm, ss] = editTime.split(':').map(Number);
+      const row = rows.find(r => r.participant.id === editRecord.participantId);
+      const baseIso = editRecord.existing?.recorded_at || row?.race?.started_at;
+      const base = baseIso ? new Date(baseIso) : new Date();
+      base.setHours(hh || 0, mm || 0, ss || 0, 0);
+      const dt = base.toISOString();
       if (editRecord.existing) {
         await supabase.from('timing_records').update({ recorded_at: dt }).eq('id', editRecord.existing.id);
       } else {
@@ -129,7 +136,7 @@ export default function TimingAdmin() {
 
   function openEdit(participantId: string, station: 1|2|3|4, existing?: TimingRecord) {
     setEditRecord({ participantId, station, existing });
-    setEditTime(existing ? new Date(existing.recorded_at).toTimeString().slice(0, 5) : '');
+    setEditTime(existing ? new Date(existing.recorded_at).toTimeString().slice(0, 8) : '');
   }
 
   const filtered = rows.filter(r => {
@@ -172,9 +179,10 @@ export default function TimingAdmin() {
               </span>
               <button style={S.closeBtn} onClick={() => setEditRecord(null)}><X size={18} /></button>
             </div>
-            <label style={S.label}>שעה (HH:MM)</label>
+            <label style={S.label}>שעה (שעה:דקה:שנייה)</label>
             <input
               type="time"
+              step="1"
               value={editTime}
               onChange={e => setEditTime(e.target.value)}
               style={S.timeInput}
