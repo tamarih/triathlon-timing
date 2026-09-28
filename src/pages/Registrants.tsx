@@ -192,9 +192,14 @@ export default function Registrants() {
     <div style={S.page}>
       <div style={S.header}>
         <div style={S.headerTitle}><Users size={20} /> רשימת נרשמים</div>
-        <button style={S.logoutBtn} onClick={async () => { await signOut(); navigate('/login'); }}>
-          <LogOut size={15} /> יציאה
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button style={{ ...S.logoutBtn, background: 'rgba(255,255,255,0.28)' }} onClick={() => navigate('/results')}>
+            🏆 תוצאות
+          </button>
+          <button style={S.logoutBtn} onClick={async () => { await signOut(); navigate('/login'); }}>
+            <LogOut size={15} /> יציאה
+          </button>
+        </div>
       </div>
 
       <div style={S.inner}>
