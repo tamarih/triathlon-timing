@@ -23,8 +23,9 @@ export default function PPHome() {
   const regOpen = settings?.registration_open !== false;
 
   return (
-    <div style={ppPage}>
-      <div style={ppWrap}>
+    <div style={{ ...ppPage, position: 'relative', overflow: 'hidden' }}>
+      <img src="/pp-lion.png" alt="" aria-hidden style={{ position: 'absolute', bottom: -30, left: '50%', transform: 'translateX(-50%)', width: 520, maxWidth: '150%', opacity: 0.05, pointerEvents: 'none', filter: 'blur(0.3px)' }} />
+      <div style={{ ...ppWrap, position: 'relative', zIndex: 1 }}>
         {/* Hero */}
         <div style={{ textAlign: 'center', paddingTop: 18 }}>
           <img src="/pp-logo.png" alt="יקנעם מושבה" style={{ width: 96, height: 'auto', margin: '0 auto 6px', display: 'block', opacity: 0.95 }} />
