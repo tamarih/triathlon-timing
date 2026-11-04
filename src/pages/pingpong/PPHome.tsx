@@ -27,6 +27,7 @@ export default function PPHome() {
       <div style={ppWrap}>
         {/* Hero */}
         <div style={{ textAlign: 'center', paddingTop: 18 }}>
+          <img src="/pp-logo.png" alt="יקנעם מושבה" style={{ width: 96, height: 'auto', margin: '0 auto 6px', display: 'block', opacity: 0.95 }} />
           <BallAnim size={58} />
           <h1 style={{ fontSize: 30, fontWeight: 900, margin: '10px 0 4px', lineHeight: 1.15 }}>🏓 {name}</h1>
           <div style={{ display: 'inline-flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', margin: '12px 0 6px' }}>
