@@ -26,7 +26,7 @@ const S: Record<string, React.CSSProperties> = {
 export default function ChooseApp() {
   return (
     <div style={S.page}>
-      <img src="/pp-logo.png" alt="יקנעם מושבה" style={{ width: 150, maxWidth: '55%', height: 'auto', marginBottom: 14, filter: 'drop-shadow(0 4px 14px rgba(0,0,0,0.4))' }} />
+      <img src="/pp-logo.png" alt="יקנעם מושבה" style={{ width: 190, maxWidth: '62%', height: 'auto', marginBottom: 14, filter: 'drop-shadow(0 4px 14px rgba(0,0,0,0.4))' }} />
       <div style={S.sub}>בחרו את האירוע שלכם 👇</div>
       <div style={S.grid}>
         <Link to="/pingpong" style={{ ...S.card, background: 'linear-gradient(160deg,#ff7a18,#d6002a)' }}>
