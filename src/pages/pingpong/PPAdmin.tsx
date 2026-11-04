@@ -6,12 +6,13 @@ import {
   genderHe, type TTSettings, type TTCategory, type TTParticipant,
 } from '../../lib/pingpong';
 import { PP, ppPage, ppWrap, ppCard, ppInput, ppLabel } from './theme';
+import PPTournamentAdmin from './PPTournamentAdmin';
 
 const btn = (bg: string): React.CSSProperties => ({ background: bg, color: 'white', border: 'none', borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 800, cursor: 'pointer' });
 const th: React.CSSProperties = { textAlign: 'right', padding: '9px 10px', fontSize: 12, color: PP.dim, fontWeight: 700, whiteSpace: 'nowrap' };
 const td: React.CSSProperties = { padding: '8px 10px', fontSize: 13, borderTop: `1px solid ${PP.line}`, whiteSpace: 'nowrap' };
 const sel: React.CSSProperties = { background: '#0e1626', color: PP.text, border: `1px solid ${PP.line}`, borderRadius: 8, padding: '5px 8px', fontSize: 12, fontFamily: 'system-ui' };
-const TABS = ['לוח בקרה', 'משתתפים', 'קטגוריות', 'שולחנות', 'הגדרות'] as const;
+const TABS = ['לוח בקרה', 'משתתפים', 'קטגוריות', 'טורניר', 'שולחנות', 'הגדרות'] as const;
 
 export default function PPAdmin() {
   const navigate = useNavigate();
@@ -235,6 +236,9 @@ export default function PPAdmin() {
             </div>
           </>
         )}
+
+        {/* ---- Tournament (groups, matches, bracket) ---- */}
+        {tab === 'טורניר' && <PPTournamentAdmin />}
 
         {/* ---- Tables ---- */}
         {tab === 'שולחנות' && (
