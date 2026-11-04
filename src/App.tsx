@@ -24,6 +24,11 @@ import LaneView from './pages/admin/LaneView';
 import Roles from './pages/admin/Roles';
 import Equipment from './pages/admin/Equipment';
 import ReserveBibs from './pages/admin/ReserveBibs';
+import ChooseApp from './pages/ChooseApp';
+import PPHome from './pages/pingpong/PPHome';
+import PPRegister from './pages/pingpong/PPRegister';
+import PPAdmin from './pages/pingpong/PPAdmin';
+import PPTournament from './pages/pingpong/PPTournament';
 
 function ProtectedRoute({ children, role, roles }: { children: React.ReactNode; role?: 'admin' | 'volunteer'; roles?: string[] }) {
   const { user, appUser, loading } = useAuth();
@@ -39,6 +44,12 @@ function AppRoutes() {
   return (
     <Routes>
       {/* Full-screen pages — no sidebar layout */}
+      {/* Landing chooser + table-tennis tournament (shares this deployment) */}
+      <Route path="/" element={<ChooseApp />} />
+      <Route path="/pingpong" element={<PPHome />} />
+      <Route path="/pingpong/register" element={<PPRegister />} />
+      <Route path="/pingpong/tournament" element={<PPTournament />} />
+      <Route path="/pingpong/admin" element={<PPAdmin />} />
       <Route path="/volunteer" element={
         <ProtectedRoute role="volunteer"><TimingStation /></ProtectedRoute>
       } />
@@ -57,7 +68,7 @@ function AppRoutes() {
       <Route path="/*" element={
         <Layout>
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/triathlon" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/info" element={<EventInfo />} />
@@ -98,7 +109,7 @@ function AppRoutes() {
             <Route path="/admin/settings" element={
               <ProtectedRoute role="admin"><Settings /></ProtectedRoute>
             } />
-            <Route path="*" element={<Navigate to="/" />} />
+            <Route path="*" element={<Navigate to="/triathlon" />} />
           </Routes>
         </Layout>
       } />

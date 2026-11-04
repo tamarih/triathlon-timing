@@ -153,7 +153,7 @@ export default function EventInfo() {
         <div style={{ textAlign: 'center', margin: '8px 0 20px', fontSize: 18, fontWeight: 800, color: '#1d4ed8' }}>מחכים לכם! 😊</div>
 
         <div style={{ textAlign: 'center' }}>
-          <Link to="/" style={S.backBtn}>חזרה לדף הבית</Link>
+          <Link to="/triathlon" style={S.backBtn}>חזרה לדף הבית</Link>
         </div>
       </div>
     </div>
