@@ -59,6 +59,10 @@ export default function PPHome() {
           </div>
         </div>
 
+        <Link to="/pingpong/registered" style={{ display: 'block', textAlign: 'center', color: PP.orange, textDecoration: 'none', fontSize: 14, fontWeight: 700, marginTop: 12 }}>
+          📋 לרשימת הנרשמים — לבדוק אם נרשמתם
+        </Link>
+
         {/* Tournament view link */}
         <Link to="/pingpong/tournament" style={{ ...ppBtn('rgba(255,255,255,0.06)'), marginTop: 14, boxShadow: 'none', border: `1px solid ${PP.line}` }}>
           👀 לצפייה בטורניר (בתים, משחקים ותוצאות)

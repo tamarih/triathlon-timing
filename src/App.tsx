@@ -27,6 +27,7 @@ import ReserveBibs from './pages/admin/ReserveBibs';
 import ChooseApp from './pages/ChooseApp';
 import PPHome from './pages/pingpong/PPHome';
 import PPRegister from './pages/pingpong/PPRegister';
+import PPRegistered from './pages/pingpong/PPRegistered';
 import PPAdmin from './pages/pingpong/PPAdmin';
 import PPTournament from './pages/pingpong/PPTournament';
 
@@ -48,6 +49,7 @@ function AppRoutes() {
       <Route path="/" element={<ChooseApp />} />
       <Route path="/pingpong" element={<PPHome />} />
       <Route path="/pingpong/register" element={<PPRegister />} />
+      <Route path="/pingpong/registered" element={<PPRegistered />} />
       <Route path="/pingpong/tournament" element={<PPTournament />} />
       <Route path="/pingpong/admin" element={<PPAdmin />} />
       <Route path="/volunteer" element={
