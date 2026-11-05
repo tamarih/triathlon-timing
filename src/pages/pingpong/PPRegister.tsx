@@ -84,13 +84,16 @@ export default function PPRegister() {
           <input style={ppInput} value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="05X-XXXXXXX" />
 
           <label style={ppLabel}>האם יש לך שולחן טניס שולחן להשאלה לטובת הטורניר? *</label>
+          <div style={{ background: 'rgba(22,163,74,0.12)', border: '1px solid rgba(22,163,74,0.4)', borderRadius: 12, padding: '10px 12px', fontSize: 13, color: '#bbf7d0', marginBottom: 10, lineHeight: 1.55 }}>
+            📣 יש לכם שולחן? נשמח אם תשאילו! <b>אתם לא צריכים לטרוח בכלום</b> — צוות המארגנים דואג לתיאום, איסוף והחזרת השולחן לבית העם ובחזרה. 🙏
+          </div>
           <div style={{ display: 'flex', gap: 10, marginBottom: 6 }}>
             <div onClick={() => setForm({ ...form, has_table: true })} style={pick(PP.green, form.has_table === true)}>✅ כן</div>
             <div onClick={() => setForm({ ...form, has_table: false })} style={pick('#6b7280', form.has_table === false)}>❌ לא</div>
           </div>
           {form.has_table === true && (
-            <div style={{ background: 'rgba(22,163,74,0.12)', border: '1px solid rgba(22,163,74,0.4)', borderRadius: 12, padding: '10px 12px', fontSize: 13, color: '#bbf7d0', marginBottom: 8, lineHeight: 1.5 }}>
-              מעולה, תודה! 🙏 צוות המארגנים ידאג לתיאום ולשינוע השולחן לבית העם ובחזרה.
+            <div style={{ background: 'rgba(22,163,74,0.18)', border: '1px solid rgba(22,163,74,0.5)', borderRadius: 12, padding: '10px 12px', fontSize: 13, color: '#bbf7d0', marginBottom: 8, lineHeight: 1.5 }}>
+              מעולה, תודה רבה! 🙏 ניצור איתך קשר לתיאום השינוע.
             </div>
           )}
 
