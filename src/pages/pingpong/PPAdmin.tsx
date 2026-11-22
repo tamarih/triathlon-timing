@@ -26,6 +26,8 @@ export default function PPAdmin() {
   const [categories, setCategories] = useState<TTCategory[]>([]);
   const [edit, setEdit] = useState<TTParticipant | null>(null);
   const [suggested, setSuggested] = useState<Omit<TTCategory, 'id'>[] | null>(null);
+  const [pFilter, setPFilter] = useState<string>(''); // '', 'male', 'female', 'table', or category id
+  const [addForm, setAddForm] = useState<{ full_name: string; gender: string; age: string; phone: string; has_table: boolean } | null>(null);
 
   async function loadAll() {
     const [{ data: s }, { data: p }, { data: c }] = await Promise.all([
@@ -78,6 +80,19 @@ export default function PPAdmin() {
     if (!confirm('למחוק את המשתתף? פעולה זו אינה הפיכה.')) return;
     await supabase.from('tt_participants').delete().eq('id', id);
     loadAll();
+  }
+  async function addParticipant() {
+    if (!addForm) return;
+    const name = addForm.full_name.trim();
+    const age = parseInt(addForm.age, 10);
+    if (!name) { alert('נא למלא שם'); return; }
+    if (!age || age < 4 || age > 100) { alert('נא למלא גיל תקין'); return; }
+    const { error } = await supabase.from('tt_participants').insert({
+      full_name: name, gender: addForm.gender, age, phone: addForm.phone.trim() || null,
+      has_table: addForm.has_table, table_status: addForm.has_table ? 'pending' : null,
+    });
+    if (error) { alert(error.message); return; }
+    setAddForm(null); loadAll();
   }
   async function saveEdit() {
     if (!edit) return;
@@ -160,38 +175,64 @@ export default function PPAdmin() {
         )}
 
         {/* ---- Participants ---- */}
-        {tab === 'משתתפים' && (
-          <div style={{ ...ppCard, padding: 0, overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
-              <thead><tr>
-                {['שם', 'מין', 'גיל', 'שולחן', 'קטגוריה', ''].map(h => <th key={h} style={th}>{h}</th>)}
-              </tr></thead>
-              <tbody>
-                {participants.map(p => (
-                  <tr key={p.id}>
-                    <td style={{ ...td, fontWeight: 700 }}>{p.full_name}</td>
-                    <td style={td}>{p.gender === 'male' ? '👦' : '👧'}</td>
-                    <td style={td}>{p.age}</td>
-                    <td style={td}>{p.has_table ? '✅' : '—'}</td>
-                    <td style={td}>
-                      <select style={sel} value={p.category_id || ''} onChange={e => patch(p.id, { category_id: e.target.value || null })}>
-                        <option value="">—</option>
-                        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                    </td>
-                    <td style={td}>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button onClick={() => setEdit(p)} style={btn('rgba(255,255,255,0.1)')}>✏️</button>
-                        <button onClick={() => del(p.id)} style={btn('#7f1d1d')}>🗑️</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {participants.length === 0 && <tr><td colSpan={6} style={{ ...td, textAlign: 'center', color: PP.dim, padding: 30 }}>עדיין אין נרשמים 🏓</td></tr>}
-              </tbody>
-            </table>
-          </div>
-        )}
+        {tab === 'משתתפים' && (() => {
+          const chip = (key: string, label: string): React.CSSProperties => ({
+            border: `1.5px solid ${pFilter === key ? PP.orange : PP.line}`,
+            background: pFilter === key ? 'rgba(255,122,24,0.18)' : '#0e1626',
+            color: pFilter === key ? PP.orange : PP.text, borderRadius: 999,
+            padding: '6px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+          });
+          const shown = participants.filter(p =>
+            !pFilter ? true
+            : pFilter === 'male' ? p.gender === 'male'
+            : pFilter === 'female' ? p.gender === 'female'
+            : pFilter === 'table' ? p.has_table
+            : p.category_id === pFilter);
+          return (
+          <>
+            {/* Filter bar — click a word to filter */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
+              <span style={chip('', `הכל (${participants.length})`)} onClick={() => setPFilter('')}>הכל ({participants.length})</span>
+              <span style={chip('male', '')} onClick={() => setPFilter('male')}>זכר ({males})</span>
+              <span style={chip('female', '')} onClick={() => setPFilter('female')}>נקבה ({females})</span>
+              <span style={chip('table', '')} onClick={() => setPFilter('table')}>🏓 מספק שולחן ({tables})</span>
+              {categories.map(c => <span key={c.id} style={chip(c.id, '')} onClick={() => setPFilter(c.id)}>{c.name}</span>)}
+              <button onClick={() => setAddForm({ full_name: '', gender: 'male', age: '', phone: '', has_table: false })} style={{ ...btn(PP.green), marginRight: 'auto' }}>➕ הוספת משתתף</button>
+            </div>
+            <div style={{ ...ppCard, padding: 0, overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
+                <thead><tr>
+                  {['שם', 'מין', 'גיל', 'טלפון', 'שולחן', 'קטגוריה', ''].map(h => <th key={h} style={th}>{h}</th>)}
+                </tr></thead>
+                <tbody>
+                  {shown.map(p => (
+                    <tr key={p.id}>
+                      <td style={{ ...td, fontWeight: 700 }}>{p.full_name}</td>
+                      <td style={td}>{p.gender === 'male' ? 'זכר' : 'נקבה'}</td>
+                      <td style={td}>{p.age}</td>
+                      <td style={{ ...td, direction: 'ltr', textAlign: 'right', fontFamily: 'monospace' }}>{p.phone || '—'}</td>
+                      <td style={td}>{p.has_table ? '✅' : '—'}</td>
+                      <td style={td}>
+                        <select style={sel} value={p.category_id || ''} onChange={e => patch(p.id, { category_id: e.target.value || null })}>
+                          <option value="">—</option>
+                          {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                      </td>
+                      <td style={td}>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button onClick={() => setEdit(p)} style={btn('rgba(255,255,255,0.1)')}>✏️</button>
+                          <button onClick={() => del(p.id)} style={btn('#7f1d1d')}>🗑️</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {shown.length === 0 && <tr><td colSpan={7} style={{ ...td, textAlign: 'center', color: PP.dim, padding: 30 }}>{participants.length === 0 ? 'עדיין אין נרשמים 🏓' : 'אין תוצאות לסינון הזה'}</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </>
+          );
+        })()}
 
         {/* ---- Categories ---- */}
         {tab === 'קטגוריות' && (
@@ -318,13 +359,61 @@ export default function PPAdmin() {
               <option value="">— ללא —</option>
               {categories.map(c => <option key={c.id} value={c.id}>{c.name} ({genderHe(c.gender)})</option>)}
             </select>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', margin: '4px 0 14px' }}>
-              <input type="checkbox" checked={edit.has_table} onChange={e => setEdit({ ...edit, has_table: e.target.checked })} />
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', margin: '4px 0 10px' }}>
+              <input type="checkbox" checked={edit.has_table} onChange={e => setEdit({ ...edit, has_table: e.target.checked, table_status: e.target.checked ? (edit.table_status || 'pending') : null })} />
               <span>מספק שולחן לטורניר</span>
             </label>
+            {edit.has_table && (
+              <>
+                <label style={ppLabel}>סטטוס השולחן</label>
+                <select style={{ ...ppInput, padding: '12px' }} value={edit.table_status || 'pending'} onChange={e => setEdit({ ...edit, table_status: e.target.value as any })}>
+                  <option value="pending">טרם תואם</option>
+                  <option value="matched">תואם</option>
+                  <option value="collected">נאסף</option>
+                  <option value="arrived">הגיע לבית העם</option>
+                  <option value="returned">הוחזר</option>
+                </select>
+              </>
+            )}
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={saveEdit} style={{ ...btn('linear-gradient(135deg,#ff7a18,#d6002a)'), flex: 1, padding: '12px' }}>שמירה</button>
               <button onClick={() => setEdit(null)} style={{ ...btn('rgba(255,255,255,0.1)'), flex: 1, padding: '12px' }}>ביטול</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---- Add participant modal ---- */}
+      {addForm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16, overflowY: 'auto', zIndex: 50, direction: 'rtl' }}>
+          <div style={{ ...ppCard, width: '100%', maxWidth: 440, marginTop: 40 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <b style={{ fontSize: 17 }}>➕ הוספת משתתף</b>
+              <button onClick={() => setAddForm(null)} style={{ background: 'none', border: 'none', color: PP.dim, cursor: 'pointer', fontSize: 20 }}>✕</button>
+            </div>
+            <label style={ppLabel}>שם מלא</label>
+            <input style={ppInput} value={addForm.full_name} onChange={e => setAddForm({ ...addForm, full_name: e.target.value })} />
+            <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <label style={ppLabel}>מין</label>
+                <select style={{ ...ppInput, padding: '12px' }} value={addForm.gender} onChange={e => setAddForm({ ...addForm, gender: e.target.value })}>
+                  <option value="male">זכר</option><option value="female">נקבה</option>
+                </select>
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={ppLabel}>גיל</label>
+                <input style={ppInput} type="number" value={addForm.age} onChange={e => setAddForm({ ...addForm, age: e.target.value })} />
+              </div>
+            </div>
+            <label style={ppLabel}>טלפון (לא חובה)</label>
+            <input style={ppInput} value={addForm.phone} onChange={e => setAddForm({ ...addForm, phone: e.target.value })} />
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', margin: '4px 0 14px' }}>
+              <input type="checkbox" checked={addForm.has_table} onChange={e => setAddForm({ ...addForm, has_table: e.target.checked })} />
+              <span>מספק שולחן לטורניר</span>
+            </label>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={addParticipant} style={{ ...btn(PP.green), flex: 1, padding: '12px' }}>הוספה</button>
+              <button onClick={() => setAddForm(null)} style={{ ...btn('rgba(255,255,255,0.1)'), flex: 1, padding: '12px' }}>ביטול</button>
             </div>
           </div>
         </div>

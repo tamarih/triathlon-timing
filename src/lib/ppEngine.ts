@@ -93,7 +93,23 @@ export async function generateKnockout(categoryId: string, groups: TTGroup[], pl
     for (const g of perGroup) if (g[rank]) seeds.push(g[rank]);
 
   if (seeds.length < 2) throw new Error('צריך לפחות 2 מעפילים ליצירת נוקאאוט');
+  await buildBracketFromSeeds(categoryId, seeds);
+}
 
+// Build a straight single-elimination bracket from ALL participants in a
+// category (no group stage): שמינית → רבע → חצי → גמר, by field size.
+export async function generateDirectKnockout(categoryId: string, players: TTParticipant[]) {
+  if (players.length < 2) throw new Error('צריך לפחות 2 משתתפים');
+  // wipe everything for this category (groups + matches) and mark active
+  await supabase.from('tt_matches').delete().eq('category_id', categoryId);
+  await supabase.from('tt_groups').delete().eq('category_id', categoryId);
+  await supabase.from('tt_participants').update({ group_id: null, status: 'active' }).eq('category_id', categoryId);
+  const seeds = [...players].sort(() => Math.random() - 0.5);
+  await buildBracketFromSeeds(categoryId, seeds);
+}
+
+// Shared: lay out `seeds` into a knockout bracket and create the matches.
+async function buildBracketFromSeeds(categoryId: string, seeds: TTParticipant[]) {
   let size = 1; while (size < seeds.length) size *= 2;
   const order = seedOrder(size); // bracket slot -> seed number (1-based)
   const slotPlayers = order.map(seedNo => seeds[seedNo - 1] || null); // null = bye
@@ -103,8 +119,6 @@ export async function generateKnockout(categoryId: string, groups: TTGroup[], pl
   const roundIds: string[][] = [];
   for (let r = 0; r < roundsCount; r++) roundIds.push([]);
 
-  // final (round index roundsCount-1) has 1 match; first round (0) has size/2
-  // create from final back to first
   let nextRoundIds: string[] = [];
   for (let r = roundsCount - 1; r >= 0; r--) {
     const count = Math.pow(2, roundsCount - 1 - r); // matches this round

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { genderHe, type TTCategory, type TTParticipant, type TTGroup, type TTMatch } from '../../lib/pingpong';
-import { generateGroups, generateKnockout, recordResult, clearResult, computeStandings } from '../../lib/ppEngine';
+import { generateGroups, generateKnockout, generateDirectKnockout, recordResult, clearResult, computeStandings } from '../../lib/ppEngine';
 import { PP, ppCard } from './theme';
 import BracketView from './BracketView';
 
@@ -50,6 +50,11 @@ export default function PPTournamentAdmin() {
     if (koMatches.length && !confirm('יצירת שלב נוקאאוט מחדש תמחק את ה-Bracket הקיים בקטגוריה. להמשיך?')) return;
     await run(() => generateKnockout(sel, catGroups, catParts, groupMatches, parseInt(advancers) || 2));
   }
+  async function doDirectKnockout() {
+    if (catParts.length < 2) { alert('צריך לפחות 2 משתתפים בקטגוריה'); return; }
+    if ((catGroups.length || koMatches.length) && !confirm('פעולה זו תמחק בתים/משחקים קיימים בקטגוריה ותיצור טבלת נוקאאוט ישירה מכל המשתתפים. להמשיך?')) return;
+    await run(() => generateDirectKnockout(sel, catParts));
+  }
   async function pick(m: TTMatch, winnerId: string, withScore: boolean) {
     if (m.status === 'done' && m.winner_id !== winnerId && !confirm('שינוי תוצאה עשוי להשפיע על המשך הטורניר. להמשיך?')) return;
     let score: string | null = m.score || null;
@@ -84,10 +89,17 @@ export default function PPTournamentAdmin() {
             </div>
           )}
 
-          {/* Controls */}
-          <div style={{ ...ppCard, marginBottom: 14, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          {/* Direct knockout (no groups) */}
+          <div style={{ ...ppCard, marginBottom: 12, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
             <span style={{ fontSize: 13, color: PP.dim }}>משתתפים בקטגוריה: <b style={{ color: PP.text }}>{catParts.length}</b></span>
-            <span style={{ width: 1, height: 20, background: PP.line }} />
+            <button onClick={doDirectKnockout} disabled={busy} style={{ ...btn('linear-gradient(135deg,#ff7a18,#d6002a)'), fontSize: 14 }}>🏆 צור טבלת נוקאאוט (שמינית→רבע→חצי→גמר)</button>
+            <span style={{ fontSize: 12, color: PP.dim }}>כל המשתתפים ישירות לטבלת הדחה, ללא בתים.</span>
+          </div>
+
+          {/* Groups → knockout (optional) */}
+          <details style={{ ...ppCard, marginBottom: 14 }}>
+            <summary style={{ cursor: 'pointer', fontSize: 13, color: PP.dim, fontWeight: 700 }}>או: שיטת בתים ואז נוקאאוט ▾</summary>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 12 }}>
             <span style={{ fontSize: 13 }}>גודל בית:</span>
             <input style={sizeInput} type="number" min={2} max={8} value={groupSize} onChange={e => setGroupSize(e.target.value)} />
             <button onClick={doGroups} disabled={busy} style={btn('linear-gradient(135deg,#ff7a18,#d6002a)')}>🏗️ {catGroups.length ? 'צור בתים מחדש' : 'צור בתים'}</button>
@@ -97,7 +109,8 @@ export default function PPTournamentAdmin() {
               <input style={sizeInput} type="number" min={1} max={4} value={advancers} onChange={e => setAdvancers(e.target.value)} />
               <button onClick={doKnockout} disabled={busy} style={btn(PP.green)}>🏆 {koMatches.length ? 'צור נוקאאוט מחדש' : 'צור שלב נוקאאוט'}</button>
             </>}
-          </div>
+            </div>
+          </details>
 
           {/* Groups + standings + results */}
           {catGroups.length > 0 && (
@@ -147,11 +160,11 @@ export default function PPTournamentAdmin() {
             </div>
           )}
 
-          {catGroups.length === 0 && (
+          {catGroups.length === 0 && koMatches.length === 0 && (
             <div style={{ ...ppCard, textAlign: 'center', color: PP.dim, lineHeight: 1.7 }}>
               <div style={{ fontSize: 34 }}>🏓</div>
-              עדיין אין בתים בקטגוריה <b style={{ color: PP.text }}>{cats.find(c => c.id === sel)?.name}</b> ({genderHe(cats.find(c => c.id === sel)?.gender || '')}).<br />
-              קבעו גודל בית ולחצו "צור בתים".
+              עדיין לא נבנה טורניר בקטגוריה <b style={{ color: PP.text }}>{cats.find(c => c.id === sel)?.name}</b> ({genderHe(cats.find(c => c.id === sel)?.gender || '')}).<br />
+              לחצו "צור טבלת נוקאאוט" למעלה.
             </div>
           )}
         </>
