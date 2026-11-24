@@ -124,14 +124,16 @@ export default function PPTournamentAdmin() {
                     <div style={{ fontWeight: 900, color: PP.orange, marginBottom: 8 }}>בית {g.name}</div>
                     {/* standings */}
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginBottom: 10 }}>
-                      <thead><tr>{['#', 'שם', 'נ', 'ה', 'בית'].map(h => <th key={h} style={{ textAlign: 'right', color: PP.dim, fontSize: 11, padding: '3px 6px' }}>{h}</th>)}</tr></thead>
+                      <thead><tr>{['#', 'שם', 'מש׳', 'נ', 'ה', 'הפרש', 'בית'].map(h => <th key={h} style={{ textAlign: 'right', color: PP.dim, fontSize: 11, padding: '3px 6px' }}>{h}</th>)}</tr></thead>
                       <tbody>
                         {st.map((s, i) => (
-                          <tr key={s.participant.id}>
-                            <td style={{ padding: '3px 6px', color: i < parseInt(advancers) ? PP.green : PP.dim, fontWeight: 800 }}>{i + 1}</td>
+                          <tr key={s.participant.id} style={{ background: i < parseInt(advancers) ? 'rgba(22,163,74,0.10)' : 'transparent' }}>
+                            <td style={{ padding: '3px 6px', color: i < parseInt(advancers) ? PP.green : PP.dim, fontWeight: 800 }}>{i < parseInt(advancers) ? `${i + 1} ⬆` : i + 1}</td>
                             <td style={{ padding: '3px 6px', fontWeight: 700 }}>{s.participant.full_name}</td>
+                            <td style={{ padding: '3px 6px', color: PP.dim }}>{s.played}</td>
                             <td style={{ padding: '3px 6px' }}>{s.wins}</td>
                             <td style={{ padding: '3px 6px' }}>{s.losses}</td>
+                            <td style={{ padding: '3px 6px', color: PP.dim }}>{s.diff > 0 ? `+${s.diff}` : s.diff}</td>
                             <td style={{ padding: '3px 6px' }}>
                               <select value={g.id} onChange={e => moveTo(s.participant.id, e.target.value)} style={{ background: '#0e1626', color: PP.dim, border: `1px solid ${PP.line}`, borderRadius: 6, fontSize: 11, padding: '2px' }}>
                                 {catGroups.map(gg => <option key={gg.id} value={gg.id}>{gg.name}</option>)}

@@ -4,19 +4,30 @@ import { splitIntoGroups, roundRobin, type TTParticipant, type TTMatch, type TTG
 // ---- Standings -------------------------------------------------------
 export interface Standing {
   participant: TTParticipant;
-  played: number; wins: number; losses: number; points: number; // points = wins
+  played: number; wins: number; losses: number; points: number; diff: number; // diff = set/point differential
 }
 
-// Compute standings for a set of players from their completed matches.
-// Tiebreak: wins → head-to-head → fewer losses → name.
+// Parse a score string like "3-1" into [winnerGames, loserGames].
+function parseScore(score?: string | null): [number, number] | null {
+  if (!score) return null;
+  const m = score.match(/(\d+)\s*[-:]\s*(\d+)/);
+  if (!m) return null;
+  const a = parseInt(m[1], 10), b = parseInt(m[2], 10);
+  return [Math.max(a, b), Math.min(a, b)];
+}
+
+// Compute standings. Ranking: wins → (2-way: head-to-head) /
+// (3+-way: set/point differential) → head-to-head → name.
 export function computeStandings(players: TTParticipant[], matches: TTMatch[]): Standing[] {
   const rows: Record<string, Standing> = {};
-  for (const p of players) rows[p.id] = { participant: p, played: 0, wins: 0, losses: 0, points: 0 };
+  for (const p of players) rows[p.id] = { participant: p, played: 0, wins: 0, losses: 0, points: 0, diff: 0 };
   for (const m of matches) {
     if (m.status !== 'done' || !m.winner_id) continue;
     const loserId = m.winner_id === m.player1_id ? m.player2_id : m.player1_id;
-    if (m.winner_id && rows[m.winner_id]) { rows[m.winner_id].wins++; rows[m.winner_id].played++; rows[m.winner_id].points++; }
-    if (loserId && rows[loserId]) { rows[loserId].losses++; rows[loserId].played++; }
+    const sc = parseScore(m.score); // winner games, loser games
+    const d = sc ? sc[0] - sc[1] : 1;
+    if (rows[m.winner_id]) { rows[m.winner_id].wins++; rows[m.winner_id].played++; rows[m.winner_id].points++; rows[m.winner_id].diff += d; }
+    if (loserId && rows[loserId]) { rows[loserId].losses++; rows[loserId].played++; rows[loserId].diff -= d; }
   }
   const h2h = (a: string, b: string): number => {
     const m = matches.find(x => x.status === 'done' && x.winner_id &&
@@ -24,11 +35,18 @@ export function computeStandings(players: TTParticipant[], matches: TTMatch[]): 
     if (!m) return 0;
     return m.winner_id === a ? -1 : 1;
   };
-  return Object.values(rows).sort((x, y) =>
-    y.wins - x.wins ||
-    h2h(x.participant.id, y.participant.id) ||
-    x.losses - y.losses ||
-    x.participant.full_name.localeCompare(y.participant.full_name, 'he'));
+  const all = Object.values(rows);
+  const byName = (x: Standing, y: Standing) => x.participant.full_name.localeCompare(y.participant.full_name, 'he');
+  return all.sort((x, y) => {
+    if (y.wins !== x.wins) return y.wins - x.wins;
+    const tied = all.filter(r => r.wins === x.wins).length;
+    if (tied === 2) {
+      // two-way tie → direct head-to-head, then differential
+      return h2h(x.participant.id, y.participant.id) || (y.diff - x.diff) || byName(x, y);
+    }
+    // three or more tied → set/point differential, then head-to-head
+    return (y.diff - x.diff) || h2h(x.participant.id, y.participant.id) || byName(x, y);
+  });
 }
 
 // ---- Group stage -----------------------------------------------------
@@ -113,6 +131,24 @@ async function buildBracketFromSeeds(categoryId: string, seeds: TTParticipant[])
   let size = 1; while (size < seeds.length) size *= 2;
   const order = seedOrder(size); // bracket slot -> seed number (1-based)
   const slotPlayers = order.map(seedNo => seeds[seedNo - 1] || null); // null = bye
+
+  // Avoid first-round meetings between players from the same group: swap the
+  // lower-seed (odd) slots until no round-1 match pits two same-group players.
+  // (For a direct knockout the players have no group, so this is a no-op.)
+  const sameGroup = (a: TTParticipant | null, b: TTParticipant | null) =>
+    !!(a && b && a.group_id && a.group_id === b.group_id);
+  const pairs = size / 2;
+  for (let k = 0; k < pairs; k++) {
+    if (!sameGroup(slotPlayers[2 * k], slotPlayers[2 * k + 1])) continue;
+    for (let j = 0; j < pairs; j++) {
+      if (j === k) continue;
+      const a = slotPlayers[2 * k], d = slotPlayers[2 * j + 1];
+      const c = slotPlayers[2 * j], b = slotPlayers[2 * k + 1];
+      if (!sameGroup(a, d) && !sameGroup(c, b)) { // swap the two runner-up slots
+        slotPlayers[2 * k + 1] = d; slotPlayers[2 * j + 1] = b; break;
+      }
+    }
+  }
 
   // Create rounds from final backwards so next_match_id is known.
   const roundsCount = Math.log2(size);

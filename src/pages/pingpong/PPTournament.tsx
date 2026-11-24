@@ -108,18 +108,20 @@ export default function PPTournament() {
                   <div key={g.id} style={{ ...ppCard, marginBottom: 10 }}>
                     <div style={{ fontWeight: 900, color: PP.text, marginBottom: 6 }}>בית {g.name}</div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginBottom: 8 }}>
-                      <thead><tr>{['#', 'שם', 'נ', 'ה'].map(h => <th key={h} style={{ textAlign: 'right', color: PP.dim, fontSize: 11, padding: '3px 6px' }}>{h}</th>)}</tr></thead>
+                      <thead><tr>{['#', 'שם', 'מש׳', 'נ', 'ה'].map(h => <th key={h} style={{ textAlign: 'right', color: PP.dim, fontSize: 11, padding: '3px 6px' }}>{h}</th>)}</tr></thead>
                       <tbody>
                         {st.map((s, i) => (
-                          <tr key={s.participant.id}>
-                            <td style={{ padding: '3px 6px', color: PP.dim, fontWeight: 800 }}>{i + 1}</td>
+                          <tr key={s.participant.id} style={{ background: i < 2 ? 'rgba(22,163,74,0.10)' : 'transparent' }}>
+                            <td style={{ padding: '3px 6px', color: i < 2 ? PP.green : PP.dim, fontWeight: 800 }}>{i < 2 ? `${i + 1} ⬆` : i + 1}</td>
                             <td style={{ padding: '3px 6px', fontWeight: 700 }}>{s.participant.full_name}</td>
+                            <td style={{ padding: '3px 6px', color: PP.dim }}>{s.played}</td>
                             <td style={{ padding: '3px 6px' }}>{s.wins}</td>
                             <td style={{ padding: '3px 6px' }}>{s.losses}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
+                    <div style={{ fontSize: 11, color: PP.green, marginBottom: 6 }}>⬆ שני הראשונים עולים לנוקאאוט</div>
                     <div style={{ display: 'grid', gap: 4 }}>
                       {gm.map(m => {
                         const done = m.status === 'done';
